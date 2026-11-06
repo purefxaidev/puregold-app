@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.2',
+    date: '2026-11-06',
+    th: [
+      'ขัด UI แอปให้หรูขึ้น — โทนทอง glass/glow การ์ดและตัวอักษรคมขึ้น',
+      'หน้าเว็บ PureGold (landing) อลังการขึ้น พร้อมดาวน์โหลด APK 0.9.2',
+      'คงฟีเจอร์เดิมครบ: กราฟ เทคนิค ข่าว PureFxAi แผน แชท วิดเจ็ต หน้าต่างลอย',
+    ],
+    en: [
+      'Premium UI polish — gold glass/glow, sharper cards and typography',
+      'PureGold landing page refreshed with APK 0.9.2 download',
+      'All prior features kept: chart, techniques, news, PureFxAi, plan, chat, widget, overlay',
+    ],
+    zh: [
+      '界面高级打磨 — 金色玻璃光晕、卡片与字体更精致',
+      'PureGold 落地页同步更新并提供 0.9.2 APK',
+      '保留全部既有功能：图表、技法、新闻、PureFxAi、计划、聊天、小组件、悬浮窗',
+    ],
+    ja: [
+      'UIを高級感あるゴールドのガラス/グロウに磨き上げ',
+      'PureGoldランディングも更新し APK 0.9.2 を配布',
+      'チャート・手法・ニュース・PureFxAi・プラン・チャット・ウィジェット・オーバーレイは維持',
+    ],
+  },
+  {
     version: '0.9.1',
     date: '2026-11-06',
     th: [

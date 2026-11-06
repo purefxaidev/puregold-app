@@ -17,7 +17,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.1';
+const APP_VERSION = '0.9.2';
 
 let L = store.getLang();
 let A = store.loadAnalysis();

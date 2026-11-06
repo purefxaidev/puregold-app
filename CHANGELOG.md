@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.2 — 2026-11-06
+### TH
+- ขัด UI แอปให้หรูขึ้น — โทนทอง / glass / glow · การ์ดและตัวอักษรคมขึ้น
+- หน้าเว็บ PureGold (landing) อลังการขึ้น พร้อมปุ่มดาวน์โหลด APK 0.9.2
+- คงฟีเจอร์เดิมครบ (กราฟ เทคนิค ข่าว PureFxAi แผน แชท วิดเจ็ต หน้าต่างลอย)
+
+### EN
+- Premium UI polish — gold / glass / glow · sharper cards and typography
+- PureGold landing refreshed with APK 0.9.2 download
+- All prior features kept (chart, techniques, news, PureFxAi, plan, chat, widget, overlay)
+
+### ZH
+- 高级金色玻璃光晕 UI · 落地页同步 · 保留全部功能
+
+### JA
+- ゴールドのガラス/グロウUI磨き · ランディング更新 · 既存機能維持
+
+
+
 ## 0.9.1 — 2026-11-06
 ### TH
 - การ์ดข่าวแสดงข้อความสะอาด ไม่โชว์โค้ด HTML หรือ `&lt;a href=...`

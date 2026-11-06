@@ -13,7 +13,7 @@
 Landing (APK download): https://gold.purefxai.store/  
 Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper/
 
-## Features (0.9.1)
+## Features (0.9.2)
 - **Home** shows a live **chart** and **techniques** (full pages still available)
 - **Latest gold news** from multiple sources, each with a clean “Open link / เปิดข่าว” button (no raw HTML)
 - Headlines localize to Thai / 中文 / 日本語 when the app language is set (uses feed text or PureFxAi + API key)
