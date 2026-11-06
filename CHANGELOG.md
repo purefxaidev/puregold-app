@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0 — 2026-11-06
+### TH
+- แพ็ก PureFxAi บนเครื่องเล็กลง (~0.5 GB) — ติดตั้งอัตโนมัติ แสดง “กำลังติดตั้ง”
+- ลบ PureFxAi ออกจากเครื่องได้ (เมนูแผน) เพื่อคืนพื้นที่
+- UI เต็มจอขึ้น ลดขอบว่าง แชท/แผนกว้างขึ้น
+
+### EN
+- Smaller on-device PureFxAi pack (~0.5 GB) — auto-install with Installing…
+- Delete PureFxAi pack from device (Plan tab) to free storage
+- Fuller-screen UI (less padding; larger chat/plan)
+
+### ZH
+- 更小的本机 PureFxAi（约 0.5 GB）— 自动安装并显示“正在安装”
+- 可在计划页删除本机 PureFxAi 释放空间
+- 更满屏界面（减少边距；聊天/计划更大）
+
+
 ## 0.6.0 — 2026-11-06
 ### TH
 - แชทบอท PureFxAi — พิมพ์คุยได้ + เสียงพูด (TTS)

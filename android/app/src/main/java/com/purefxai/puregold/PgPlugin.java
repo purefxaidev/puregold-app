@@ -158,9 +158,13 @@ public class PgPlugin extends Plugin {
     String name=sp().getString("deviceModelFile","purefxai-device.gguf");
     File out=new File(modelDir(), name);
     File part=new File(modelDir(), name+".part");
-    long expect=sp().getLong("deviceModelSize",1270808032L);
+    long expect=c.getData().has("size") ? c.getLong("size",532517120L) : sp().getLong("deviceModelSize",532517120L);
+    if(c.getData().has("size")) sp().edit().putLong("deviceModelSize",expect).apply();
     JSObject o=new JSObject();
-    boolean ready=out.isFile() && out.length()>=Math.max(1, expect-1024);
+    boolean sizeOk=out.isFile() && out.length()>=Math.max(1, expect-1024) && out.length()<=expect+1048576L;
+    boolean ready=sizeOk;
+    if(out.isFile() && !sizeOk){ /* stale pack from older app build */ //noinspection ResultOfMethodCallIgnored
+      out.delete(); }
     o.put("ready", ready);
     o.put("path", ready ? out.getAbsolutePath() : "");
     o.put("downloading", downloading.get());
@@ -175,15 +179,48 @@ public class PgPlugin extends Plugin {
     c.resolve();
   }
 
+  @PluginMethod public void deleteDeviceModel(PluginCall c){
+    cancelDl.set(true);
+    String name=sp().getString("deviceModelFile","purefxai-device.gguf");
+    File out=new File(modelDir(), name);
+    File part=new File(modelDir(), name+".part");
+    long freed=0;
+    if(out.isFile()){ freed+=out.length(); //noinspection ResultOfMethodCallIgnored
+      out.delete(); }
+    if(part.isFile()){ freed+=part.length(); //noinspection ResultOfMethodCallIgnored
+      part.delete(); }
+    // Also clear any leftover packs in models/
+    File[] leftovers=modelDir().listFiles();
+    if(leftovers!=null){
+      for(File f: leftovers){
+        String n=f.getName();
+        if(n.endsWith(".gguf") || n.endsWith(".gguf.part") || n.endsWith(".part")){
+          freed+=f.length(); //noinspection ResultOfMethodCallIgnored
+          f.delete();
+        }
+      }
+    }
+    JSObject o=new JSObject();
+    o.put("ok", true);
+    o.put("freed", freed);
+    o.put("ready", false);
+    notifyListeners("deviceModelDeleted", o);
+    c.resolve(o);
+  }
+
   @PluginMethod public void ensureDeviceModel(PluginCall c){
     final String url=c.getString("url","");
     final String sha=c.getString("sha256","");
     final String fileName=c.getString("fileName","purefxai-device.gguf");
-    final long size=c.getLong("size",1270808032L);
+    final long size=c.getLong("size",532517120L);
     if(url==null||url.isEmpty()){ c.reject("url required"); return; }
     sp().edit().putString("deviceModelFile",fileName).putLong("deviceModelSize",size).apply();
     File out=new File(modelDir(), fileName);
-    if(out.isFile() && out.length()>=Math.max(1, size-1024)){
+    if(out.isFile() && (out.length()<Math.max(1, size-1024) || out.length()>size+1048576L)){
+      //noinspection ResultOfMethodCallIgnored
+      out.delete();
+    }
+    if(out.isFile() && out.length()>=Math.max(1, size-1024) && out.length()<=size+1048576L){
       JSObject o=new JSObject(); o.put("ready",true); o.put("path",out.getAbsolutePath());
       notifyListeners("deviceModelReady", o);
       c.resolve(o); return;

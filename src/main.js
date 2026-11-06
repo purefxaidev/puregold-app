@@ -8,7 +8,7 @@ import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
-import { analyzeWithPureFxAi, nativeStatus, isMarkedReady } from './ondevice.js';
+import { analyzeWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 
 const Pg = registerPlugin('PgNative');
@@ -17,7 +17,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -108,7 +108,7 @@ function showTab(name) {
     requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
   }
   if (name === 'tech') renderTech();
-  if (name === 'plan') { renderPlan(); renderSignalHist(); refreshPfxStatus(); const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } }
+  if (name === 'plan') { renderPlan(); renderSignalHist(); refreshPfxStatus(); const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; } }
   if (name === 'chat') { renderChat(); }
   if (name === 'more') { renderChangelogBox(); renderOverlaySet(); }
 }
@@ -555,15 +555,46 @@ function setPfxProgress(ev) {
 
 async function refreshPfxStatus() {
   const st = $('pfxStatus');
+  const del = $('btnPfxDelete');
   if (!st) return;
   try {
     const s = await nativeStatus();
-    if (s.ready || isMarkedReady()) st.textContent = t('pureFxAiReady');
+    const ready = !!(s.ready || isMarkedReady());
+    if (ready) st.textContent = t('pureFxAiReady');
     else if (s.downloading) {
       const pct = s.total ? Math.floor((s.done / s.total) * 100) : 0;
       st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
     } else st.textContent = '';
-  } catch { st.textContent = ''; }
+    if (del) {
+      del.classList.toggle('hidden', !ready);
+      del.textContent = t('pureFxAiDelete');
+      del.onclick = removePureFxAiPack;
+    }
+  } catch { st.textContent = ''; if (del) del.classList.add('hidden'); }
+}
+
+async function removePureFxAiPack() {
+  if (!confirm(t('pureFxAiDeleteConfirm'))) return;
+  const st = $('pfxStatus');
+  const del = $('btnPfxDelete');
+  const out = $('pfxOut');
+  if (del) del.disabled = true;
+  try {
+    const r = await deleteDeviceModel();
+    if (st) st.textContent = t('pureFxAiDeleted');
+    if (out) { out.textContent = ''; out.classList.add('hidden'); }
+    if (del) del.classList.add('hidden');
+    clearReadySafe();
+  } catch (e) {
+    if (st) st.textContent = t('pureFxAiFail');
+  } finally {
+    if (del) del.disabled = false;
+    refreshPfxStatus();
+  }
+}
+
+function clearReadySafe() {
+  try { localStorage.removeItem('pg_pfx_ready'); localStorage.removeItem('pg_pfx_path'); } catch {}
 }
 
 async function runPureFxAi() {
@@ -601,6 +632,7 @@ async function runPureFxAi() {
   } finally {
     pfxBusy = false;
     if (btn) { btn.disabled = false; btn.textContent = t('pureFxAiBtn'); }
+    refreshPfxStatus();
   }
 }
 
@@ -923,7 +955,7 @@ function renderAll() {
   renderPlan();
   renderSignalHist();
   refreshPfxStatus();
-  { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } }
+  { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; } }
   renderTf();
   renderSet();
   renderOverlaySet();

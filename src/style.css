@@ -3,17 +3,17 @@
   --bg:#07080d;--card:#10121b;--card2:#0b0c13;--line:#2a2618;--line2:#23202a;
   --gold:#f5d27a;--gold2:#c9a227;--gold-dim:#9a8f73;--muted:#8a8473;
   --up:#3ddc84;--dn:#ff5c5c;--ob-bull:#22e39a;--ob-bear:#ff3d9a;--fvg-bull:#36e2ff;--fvg-bear:#ffaa3c;
-  --text:#e8e3d3;--white:#fff;--radius:16px;--bnav:64px;
+  --text:#e8e3d3;--white:#fff;--radius:14px;--bnav:58px;
 }
 html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:Prompt,'Noto Sans SC','Noto Sans JP','Noto Sans Thai',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased}
 #app{min-height:100dvh}
-#view-main{padding:env(safe-area-inset-top) 14px calc(var(--bnav) + env(safe-area-inset-bottom) + 12px)}
-#view-signup{padding:env(safe-area-inset-top) 14px 28px}
+#view-main{padding:env(safe-area-inset-top) 8px calc(var(--bnav) + env(safe-area-inset-bottom) + 6px)}
+#view-signup{padding:env(safe-area-inset-top) 8px 20px}
 
-.top{display:flex;justify-content:space-between;align-items:center;padding:12px 2px 8px;position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(7,8,13,.98),rgba(7,8,13,.88) 70%,transparent);backdrop-filter:blur(8px)}
-.brand{font-size:22px;letter-spacing:2px;color:var(--gold);font-weight:700}
+.top{display:flex;justify-content:space-between;align-items:center;padding:8px 0 6px;position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(7,8,13,.98),rgba(7,8,13,.88) 70%,transparent);backdrop-filter:blur(8px)}
+.brand{font-size:20px;letter-spacing:1.5px;color:var(--gold);font-weight:700}
 .brand b{color:var(--white)}.brand small{display:block;font-size:11px;color:var(--gold-dim);letter-spacing:1px;font-weight:500;margin-top:1px}
 .hb{display:flex;gap:6px}
 .hb button,.icon-btn{background:#151722;color:var(--gold);border:1px solid #3a3220;border-radius:12px;padding:8px 12px;font:inherit;cursor:pointer;min-width:42px}
@@ -22,7 +22,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);
 .banner{background:#f5d27a22;border:1px solid var(--gold2);color:var(--gold);border-radius:12px;padding:8px 12px;font-size:12px;margin:6px 0}
 .hidden{display:none!important}
 
-section{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:10px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+section{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .sec-head h2{margin:0}
 h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.3px}
@@ -205,3 +205,27 @@ footer{font-size:11px;color:#7d776a;line-height:1.6;padding:4px 0}
 .chat-form input{width:100%;min-width:0}
 .chat-send{margin:0!important;width:auto!important;padding:10px 16px!important;white-space:nowrap}
 .chat-bubble.typing{opacity:.75;font-style:italic}
+
+
+/* Fuller-screen / denser layout (0.7.0) */
+html,body,#app{height:100%;max-width:100vw;overflow-x:hidden}
+.panel-dense section{padding:10px;margin:5px 0}
+.panel-dense .hero{padding:12px}
+.panel-full{margin:0}
+.panel-full > section.chat-full{
+  margin:0;padding:8px 6px 4px;border-radius:12px;
+  min-height:calc(100dvh - var(--bnav) - env(safe-area-inset-top) - 56px);
+  display:flex;flex-direction:column;
+}
+.chat-full.chat-wrap{min-height:0;flex:1;height:100%}
+.chat-full .chat-log{
+  flex:1;max-height:none;min-height:0;
+  height:auto;
+}
+.chat-bubble{max-width:96%}
+.pfx-out{max-height:40dvh}
+.chart{height:340px}
+@media (min-width:720px){
+  #view-main,#view-signup{max-width:640px;margin:0 auto}
+  .chart{height:420px}
+}

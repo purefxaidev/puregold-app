@@ -10,10 +10,10 @@ const Pg = registerPlugin('PgNative');
 
 /** Permanent public URL (GitHub Releases asset). */
 export const DEVICE_MODEL_URL =
-  'https://github.com/purefxaidev/puregold-purefxai/releases/download/device-pack-1/purefxai-device.gguf';
-export const DEVICE_MODEL_SIZE = 1270808032;
+  'https://github.com/purefxaidev/puregold-purefxai/releases/download/device-pack-2/purefxai-device.gguf';
+export const DEVICE_MODEL_SIZE = 532517120;
 export const DEVICE_MODEL_SHA256 =
-  '0bfe35afc9f05b7fac3fa04925e051ac7939a42a8a17ea11afc99701bea826cc';
+  'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517';
 
 const READY_KEY = 'pg_pfx_ready';
 const PATH_KEY = 'pg_pfx_path';
@@ -53,8 +53,9 @@ export async function nativeStatus() {
     return { ready: isMarkedReady(), downloading: false, done: 0, total: DEVICE_MODEL_SIZE, path: null, engine: 'web' };
   }
   try {
-    const s = await Pg.deviceModelStatus();
+    const s = await Pg.deviceModelStatus({ size: DEVICE_MODEL_SIZE, fileName: 'purefxai-device.gguf' });
     if (s?.ready) markReady(s.path || '');
+    else clearReady();
     return { ...s, engine: 'native' };
   } catch {
     return { ready: isMarkedReady(), downloading: false, done: 0, total: DEVICE_MODEL_SIZE, path: null, engine: 'native' };
@@ -273,7 +274,7 @@ export async function analyzeWithPureFxAi(A, lang, onProgress) {
     // Strip any accidental vendor tokens if a model echoes them (defensive)
     const cleaned = text
       .replace(/\bQwen[\w.\-]*/gi, 'PureFxAi')
-      .replace(/\b2B\b/g, '')
+      .replace(/\b2B\b/g, '').replace(/\b0\.8B\b/gi, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
     return { text: cleaned, source: 'model' };
@@ -285,6 +286,43 @@ export async function analyzeWithPureFxAi(A, lang, onProgress) {
       error: String(e?.message || e),
     };
   }
+}
+
+
+/** Unload in-memory model so a reinstall can load a fresh pack. */
+export async function unloadModel() {
+  try {
+    if (wllama?.isModelLoaded?.()) await wllama.exit?.();
+  } catch {}
+  wllama = null;
+  loadingModel = false;
+}
+
+/**
+ * Delete the on-device PureFxAi pack from the phone to free storage.
+ * User can re-install later via Analyze / chat.
+ */
+export async function deleteDeviceModel() {
+  await unloadModel();
+  clearReady();
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const r = await Pg.deleteDeviceModel();
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, error: String(e?.message || e) };
+    }
+  }
+  // Web: clear Cache Storage entries that look like the pack (best-effort)
+  try {
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys();
+      for (const k of keys) {
+        if (/wllama|gguf|purefxai|device/i.test(k)) await caches.delete(k);
+      }
+    }
+  } catch {}
+  return { ok: true, engine: 'web' };
 }
 
 export function cancelInstall() {

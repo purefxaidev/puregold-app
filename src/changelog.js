@@ -1,6 +1,25 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.7.0',
+    date: '2026-11-06',
+    th: [
+      'แพ็ก PureFxAi บนเครื่องเล็กลง (~0.5 GB) ติดตั้งเร็วขึ้น — แบรนด์ PureFxAi เท่านั้น',
+      'ลบ / ถอน PureFxAi ออกจากเครื่องได้จากเมนูแผน เพื่อคืนพื้นที่ แล้วติดตั้งใหม่ได้',
+      'UI เต็มจอขึ้น — ลดขอบ/ช่องว่าง แชทและแผนใช้พื้นที่มากขึ้น',
+    ],
+    en: [
+      'Smaller on-device PureFxAi pack (~0.5 GB) — faster install; PureFxAi branding only',
+      'Delete / uninstall PureFxAi from the phone (Plan tab) to free storage; reinstall anytime',
+      'Fuller-screen UI — less padding/chrome; chat and plan use more of the display',
+    ],
+    zh: [
+      '更小的本机 PureFxAi 包（约 0.5 GB），安装更快；界面仅显示 PureFxAi',
+      '可在计划页删除/卸载本机 PureFxAi 以释放空间，之后可重新安装',
+      '更满屏界面 — 减少边距，聊天与计划占用更多屏幕',
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-11-06',
     th: [

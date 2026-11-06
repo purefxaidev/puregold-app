@@ -37,7 +37,7 @@ function stripModelNames(s) {
   return String(s || '')
     .replace(/\bQwen[\w.\-]*/gi, 'PureFxAi')
     .replace(/\bGGUF\b/gi, '')
-    .replace(/\b2B\b/g, '')
+    .replace(/\b2B\b/g, '').replace(/\b0\.8B\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }

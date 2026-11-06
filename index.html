@@ -43,7 +43,7 @@
     </div>
 
     <!-- PLAN (dedicated tab) -->
-    <div class="panel hidden" data-panel="plan">
+    <div class="panel panel-dense hidden" data-panel="plan">
       <section class="hero plan-hero" id="planToday">
         <div class="skel" data-i="load"></div>
       </section>
@@ -62,6 +62,7 @@
         <div class="pfx-bar hidden" id="pfxBar"><div class="pfx-bar-fill" id="pfxBarFill"></div></div>
         <pre id="pfxOut" class="pfx-out hidden"></pre>
         <button type="button" class="btn" id="btnPureFxAi" data-i="pureFxAiBtn"></button>
+        <button type="button" class="btn sec danger hidden" id="btnPfxDelete" data-i="pureFxAiDelete"></button>
       </section>
       <section>
         <h2 data-i="signalHist"></h2>
@@ -94,8 +95,8 @@
 
 
     <!-- CHAT -->
-    <div class="panel hidden" data-panel="chat">
-      <section class="chat-wrap">
+    <div class="panel panel-full hidden" data-panel="chat">
+      <section class="chat-wrap chat-full">
         <div class="sec-head" style="margin-bottom:6px">
           <h2 style="margin:0" data-i="navChat"></h2>
           <label class="tog"><input type="checkbox" id="chatVoice" checked><span data-i="chatVoice"></span></label>
