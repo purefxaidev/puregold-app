@@ -1,26 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/ov_root"
-    android:layout_width="wrap_content"
+    android:layout_width="200dp"
     android:layout_height="wrap_content"
+    android:minWidth="188dp"
     android:orientation="vertical"
-    android:padding="10dp"
+    android:padding="12dp"
     android:background="@drawable/widget_bg"
-    android:elevation="8dp">
-    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:orientation="horizontal" android:gravity="center_vertical">
-        <TextView android:id="@+id/ov_title" android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:text="PUREGOLD" android:textColor="#F5D27A"
-            android:textStyle="bold" android:textSize="11sp"/>
-        <TextView android:id="@+id/ov_close" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="✕" android:textColor="#9A8F73" android:textSize="14sp" android:paddingLeft="10dp" android:paddingRight="2dp"/>
+    android:elevation="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/ov_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="PUREGOLD"
+            android:textColor="#F5D27A"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:maxLines="1"/>
+        <TextView
+            android:id="@+id/ov_close"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textColor="#C9B48A"
+            android:textSize="16sp"
+            android:paddingLeft="12dp"
+            android:paddingTop="4dp"
+            android:paddingRight="4dp"
+            android:paddingBottom="4dp"
+            android:clickable="true"
+            android:focusable="true"/>
     </LinearLayout>
-    <TextView android:id="@+id/ov_xau" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="XAU —" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="16sp"/>
-    <TextView android:id="@+id/ov_thai" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="HSH —" android:textColor="#9A8F73" android:textSize="11sp"/>
-    <TextView android:id="@+id/ov_signal" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="WAIT" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="2dp"/>
-    <TextView android:id="@+id/ov_plan" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="" android:textColor="#8A8473" android:textSize="10sp" android:layout_marginTop="2dp"/>
+
+    <TextView
+        android:id="@+id/ov_xau"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="XAU —"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"/>
+    <TextView
+        android:id="@+id/ov_thai"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="HSH —"
+        android:textColor="#C9B48A"
+        android:textSize="12sp"
+        android:layout_marginTop="2dp"
+        android:maxLines="2"/>
+    <TextView
+        android:id="@+id/ov_signal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="WAIT"
+        android:textColor="#F5D27A"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"/>
+    <TextView
+        android:id="@+id/ov_plan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#A89F88"
+        android:textSize="11sp"
+        android:layout_marginTop="2dp"
+        android:maxLines="2"/>
+    <TextView
+        android:id="@+id/ov_updated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#6E6858"
+        android:textSize="10sp"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"/>
 </LinearLayout>

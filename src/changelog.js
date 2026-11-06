@@ -1,6 +1,34 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.0',
+    date: '2026-11-06',
+    th: [
+      'กราฟและเทคนิคอยู่หน้าแรกแล้ว (กดเต็มหน้าได้)',
+      'ข่าวล่าสุดจากหลายแหล่ง + PureFxAi วิเคราะห์ผลต่อทอง (น้องหมี)',
+      'แจ้งเตือนเมื่อข่าวมีผลแรงต่อทอง (เปิด/ปิดได้ในตั้งค่า)',
+      'หน้าต่างลอยอ่านง่าย อัปเดตราคาจริงตามเวลา · วิดเจ็ตหน้าจอหลักแสดง XAU/ทองไทย/สัญญาณ',
+    ],
+    en: [
+      'Chart and Techniques now live on Home (open full page anytime)',
+      'Latest multi-source gold news + PureFxAi impact analysis (Nong Mee)',
+      'SMS-style alerts when a headline strongly moves gold (toggle in Settings)',
+      'Floating overlay stays on-screen and refreshes live · home-screen widget for XAU/Thai gold/signal',
+    ],
+    zh: [
+      '图表与技法已放到首页（可打开全页）',
+      '多源最新黄金新闻 + PureFxAi 影响分析（小熊）',
+      '对金价影响较强的新闻会弹出通知（可在设置开关）',
+      '悬浮窗对齐并实时刷新 · 主屏小组件显示 XAU/泰国金/信号',
+    ],
+    ja: [
+      'チャートと手法をホームに配置（全画面も可）',
+      '複数ソースの最新金ニュース + PureFxAi分析（くまちゃん）',
+      '金に強く影響する見出しは通知（設定で切替）',
+      'フローティングを画面内に収めライブ更新 · ホームウィジェットで価格とシグナル',
+    ],
+  },
+  {
     version: '0.8.1',
     date: '2026-11-06',
     th: [

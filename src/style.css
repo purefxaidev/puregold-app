@@ -266,3 +266,27 @@ html[lang="en"] body,html[lang="en"] #app{font-family:Manrope,'IBM Plex Sans Tha
 html[lang="th"] body,html[lang="th"] #app{font-family:'IBM Plex Sans Thai',Manrope,system-ui,sans-serif}
 .chat-bubble,.btn,input,select{font-family:inherit}
 .big{font-family:Manrope,'IBM Plex Sans Thai',sans-serif;letter-spacing:-.4px}
+
+/* 0.9.0 — น้องหมี, home chart/tech, news AI */
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mee,.mee-avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #3a3220;box-shadow:0 0 0 2px #f5d27a33;background:#15120c;flex-shrink:0}
+.mee-avatar{width:48px;height:48px}
+.hero{position:relative}
+.hero-mee{position:absolute;right:10px;bottom:10px;width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid #3a3220;opacity:.95;pointer-events:none}
+.chart-mini{height:200px}
+@media (min-width:720px){.chart-mini{height:240px}}
+.btn.linkish{margin:0!important;width:auto!important;padding:6px 10px!important;font-size:12px}
+.pfx-news{background:#0d0f17;border:1px solid #3a3220;border-radius:14px;padding:12px;margin:0 0 12px}
+.pfx-news-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.pfx-news-head .grow{flex:1;min-width:0}
+.pfx-news-head b{color:var(--gold)}
+.pfx-news-body{font-size:13.5px;line-height:1.5;white-space:pre-wrap}
+.pfx-news .btn{margin-top:0;width:auto;padding:6px 10px;font-size:12px}
+.news-ai-line{margin-top:10px;padding:10px;border-radius:12px;background:#15120c;border:1px solid #3a322055;font-size:13px;line-height:1.45}
+.news-ai-line .who{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:var(--gold);font-weight:700}
+.news-ai-line .who img{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid #3a3220}
+.chat-bubble.bot{display:grid;grid-template-columns:36px 1fr;gap:8px;align-items:start}
+.chat-bubble.bot .mee-chat{width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #3a3220}
+.chat-bubble.bot .chat-main{min-width:0}
+.news-teaser-card{background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px;margin-top:8px}
+.news-teaser-card h3{margin:0 0 4px;font-size:14px;color:var(--white)}

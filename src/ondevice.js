@@ -156,8 +156,9 @@ async function geminiGenerate(apiKey, model, body) {
   return data;
 }
 
-async function generateText(apiKey, system, user) {
+async function generateText(apiKey, system, user, opts = {}) {
   let lastErr;
+  const maxOutputTokens = opts.maxOutputTokens || 512;
   for (const model of TEXT_MODELS) {
     try {
       const data = await geminiGenerate(apiKey, model, {
@@ -166,7 +167,7 @@ async function generateText(apiKey, system, user) {
         generationConfig: {
           temperature: 0.4,
           topP: 0.9,
-          maxOutputTokens: 512,
+          maxOutputTokens,
         },
       });
       const text = scrub(
@@ -281,6 +282,53 @@ export async function analyzeWithPureFxAi(A, lang, onProgress) {
       source: 'rules',
       error: String(e?.message || e),
     };
+  }
+}
+
+
+export async function analyzeNewsWithPureFxAi(items, lang) {
+  const key = await getApiKey();
+  if (!key) {
+    return { summary: '', items: {}, source: 'none', error: 'need_key' };
+  }
+  const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
+  const pack = (items || []).slice(0, 10).map(n => ({
+    id: n.id,
+    title: (lang === 'th' && n.title_th) ? n.title_th : (n.title_en || n.title_th || ''),
+    summary: String((lang === 'th' && n.summary_th) ? n.summary_th : (n.summary_en || n.summary_th || '')).slice(0, 280),
+    impact: n.impact || 'neutral',
+    level: n.level || 'medium',
+  }));
+  const system =
+    `You are PureFxAi, the gold-market assistant inside PUREGOLD. ` +
+    `Reply ONLY in ${langName}. Return ONLY valid JSON — no markdown fences. ` +
+    `Never mention any AI vendor or model name — you are PureFxAi only. ` +
+    `Education only, not financial advice. ` +
+    `JSON shape: {"summary":"2-4 sentences overall gold-market impact",` +
+    `"items":[{"id":"...","bias":"bullish|bearish|neutral","strength":"high|medium|low","text":"1-2 sentences why this moves gold"}]}`;
+  const user =
+    `Analyze these latest gold headlines for XAU/gold market impact.\n` +
+    JSON.stringify(pack);
+  try {
+    const raw = await generateText(key, system, user, { maxOutputTokens: 1400 });
+    const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    const parsed = JSON.parse(start >= 0 ? cleaned.slice(start, end + 1) : cleaned);
+    const map = {};
+    (parsed.items || []).forEach(it => {
+      if (!it || !it.id) return;
+      const bias = ['bullish', 'bearish', 'neutral'].includes(it.bias) ? it.bias : 'neutral';
+      const strength = ['high', 'medium', 'low', 'strong'].includes(it.strength) ? (it.strength === 'strong' ? 'high' : it.strength) : 'medium';
+      map[it.id] = { bias, strength, text: scrub(it.text || '') };
+    });
+    return {
+      summary: scrub(parsed.summary || ''),
+      items: map,
+      source: 'model',
+    };
+  } catch (e) {
+    return { summary: '', items: {}, source: 'none', error: String(e?.message || e) };
   }
 }
 

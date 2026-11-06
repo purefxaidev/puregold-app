@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 — 2026-11-06
+### TH
+- กราฟและเทคนิคอยู่หน้าแรก (กดเต็มหน้าได้) · น้องหมีมาสคอตในแอป
+- ดึงข่าวทองล่าสุดหลายแหล่ง (แดชบอร์ด, Google News EN/TH, Yahoo GC=F, Kitco) พร้อมลิงก์ต้นทาง
+- PureFxAi วิเคราะห์ข่าวและแสดงผลต่อทอง · แจ้งเตือนข่าวแรง (เคารพช่วงเวลา/ปิดเสียง)
+- หน้าต่างลอยอ่านง่ายและอัปเดตราคาตามเวลา · วิดเจ็ตหน้าจอหลัก (กดค้าง → วิดเจ็ต → PUREGOLD)
+
+### EN
+- Chart + Techniques on Home (full page still available) · Nong Mee mascot in-app
+- Latest gold news from multiple sources (dashboard, Google News EN/TH, Yahoo GC=F, Kitco) with source links
+- PureFxAi analyzes headlines for gold impact · strong-news SMS-style alerts (honors interval/mute)
+- Floating overlay stays readable and refreshes live · home-screen widget (long-press → Widgets → PUREGOLD)
+
+### ZH
+- 首页展示图表与技法 · 吉祥物小熊
+- 多源最新黄金新闻（含原文链接）+ PureFxAi 分析 · 强影响新闻通知
+
+### JA
+- ホームにチャートと手法 · マスコットくまちゃん
+- 複数ソースの最新ニュース（出典リンク付き）+ PureFxAi分析 · 重要ニュース通知
+
 ## 0.8.1 — 2026-11-06
 ### TH
 - เมนูข่าวกลับมาที่แถบล่าง (หน้าแรก / แผน / ข่าว / แชท / เมนู) — กราฟย้ายไปในเมนูเพิ่ม

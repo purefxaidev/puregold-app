@@ -5,10 +5,10 @@ import { Browser } from '@capacitor/browser';
 import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE, signupLang } from './signup.js';
 import { t as tr, LANGS, localeTag } from './i18n.js';
 import { store } from './store.js';
-import { fetchNews, titleFor, summaryFor } from './news.js';
+import { fetchNews, titleFor, summaryFor, newsCacheKey } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
-import { analyzeWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
+import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 
 const Pg = registerPlugin('PgNative');
@@ -17,12 +17,14 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.9.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
 let TG = store.loadThai()?.items || null;
 let NEWS = store.loadNews()?.items || null;
+let NEWS_META = store.loadNews() || { at: 0, sources: [] };
+let NEWS_AI = store.loadNewsAi() || null;
 let offline = false;
 const t = k => tr(L, k);
 const f2 = x => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -100,21 +102,21 @@ async function checkUpdate() {
 /* ---- Tabs ---- */
 let tab = store.getTab();
 function showTab(name) {
-  // Techniques + chart live under More; News is a first-class tab again
   if (!name) name = 'home';
   tab = name;
   store.setTab(name);
   document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
-  const navHighlight = (name === 'tech' || name === 'chart') ? 'more' : name;
+  const navHighlight = (name === 'tech' || name === 'chart') ? 'home' : name;
   document.querySelectorAll('#bnav button').forEach(b => {
     b.classList.toggle('on', b.dataset.tab === navHighlight);
   });
   try {
-    if (name === 'chart') {
+    if (name === 'home' || name === 'chart') {
       requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
     }
-    if (name === 'tech') renderTech();
-    if (name === 'news') renderNews();
+    if (name === 'home' || name === 'tech') renderTech();
+    if (name === 'home') renderHomeNewsTeaser();
+    if (name === 'news') { renderNews(); maybeAnalyzeNews(false); }
     if (name === 'plan') {
       renderPlan(); renderSignalHist(); refreshPfxStatus();
       const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; }
@@ -132,8 +134,8 @@ function wireMoreHub() {
 $('bnav').querySelectorAll('button').forEach(b => {
   b.onclick = () => showTab(b.dataset.tab);
 });
-if ($('backMoreTech')) $('backMoreTech').onclick = () => showTab('more');
-if ($('backMoreChart')) $('backMoreChart').onclick = () => showTab('more');
+if ($('backMoreTech')) $('backMoreTech').onclick = () => showTab('home');
+if ($('backMoreChart')) $('backMoreChart').onclick = () => showTab('home');
 
 /* ---- Renderers ---- */
 function renderThai() {
@@ -175,7 +177,8 @@ function renderSetup() {
   </div>
   <div class="row"><span>${t('rr')}</span><span class="v">1 : ${S.rr}</span></div>
   ${S.hyp ? `<div class="mut s">${t('waitHint')}</div>` : ''}
-  <div class="edu">${t('setupEdu')}</div>`;
+  <div class="edu">${t('setupEdu')}</div>
+  <img class="hero-mee" src="/nong-mee.jpg" alt="${esc(t('nongMee'))}">`;
 }
 
 function renderA() {
@@ -258,16 +261,17 @@ const TF_OPTS = [
   { id: '1d', label: 'D1', n: 120 },
 ];
 let chartTf = store.getTf();
-let chart = null, candleSeries = null, priceLines = [];
+let chartViews = [];
 let smcOn = store.getSmcOn();
+const chartReady = () => chartViews.some(el => el._pgSeries);
 
-function initChart() {
-  const el = $('chart');
-  if (!el || chart) {
-    if (chart && el) chart.applyOptions({ width: el.clientWidth, height: el.clientHeight || 300 });
+function makeChart(el, height) {
+  if (!el) return;
+  if (el._pg) {
+    el._pg.applyOptions({ width: el.clientWidth, height: el.clientHeight || height });
     return;
   }
-  chart = createChart(el, {
+  const c = createChart(el, {
     layout: { background: { color: '#0a0b12' }, textColor: '#9a8f73' },
     grid: { vertLines: { color: '#161822' }, horzLines: { color: '#161822' } },
     crosshair: { mode: CrosshairMode.Normal },
@@ -275,33 +279,46 @@ function initChart() {
     timeScale: { borderColor: '#2a2618', timeVisible: true, secondsVisible: false },
     localization: { locale: localeTag(L) },
   });
-  candleSeries = chart.addCandlestickSeries({
+  const series = c.addCandlestickSeries({
     upColor: '#3ddc84', downColor: '#ff5c5c',
     borderUpColor: '#3ddc84', borderDownColor: '#ff5c5c',
     wickUpColor: '#3ddc84', wickDownColor: '#ff5c5c',
   });
-  const ro = new ResizeObserver(() => {
-    chart.applyOptions({ width: el.clientWidth, height: el.clientHeight || 300 });
-  });
-  ro.observe(el);
-  chart.applyOptions({ width: el.clientWidth, height: 300 });
+  el._pg = c;
+  el._pgSeries = series;
+  el._pgLines = [];
+  new ResizeObserver(() => {
+    c.applyOptions({ width: el.clientWidth, height: el.clientHeight || height });
+  }).observe(el);
+  c.applyOptions({ width: el.clientWidth, height });
+  if (!chartViews.includes(el)) chartViews.push(el);
+}
+
+function initChart() {
+  makeChart($('homeChart'), 200);
+  makeChart($('chart'), 300);
 }
 
 function clearPriceLines() {
-  priceLines.forEach(l => { try { candleSeries.removePriceLine(l); } catch (e) {} });
-  priceLines = [];
+  chartViews.forEach(el => {
+    (el._pgLines || []).forEach(l => { try { el._pgSeries.removePriceLine(l); } catch (e) {} });
+    el._pgLines = [];
+  });
 }
 
 function addLine(price, color, title, style = 2, width = 1) {
-  if (!candleSeries || price == null || !Number.isFinite(+price)) return;
-  priceLines.push(candleSeries.createPriceLine({
-    price: +price, color, lineWidth: width, lineStyle: style,
-    axisLabelVisible: true, title,
-  }));
+  if (price == null || !Number.isFinite(+price)) return;
+  chartViews.forEach(el => {
+    if (!el._pgSeries) return;
+    el._pgLines.push(el._pgSeries.createPriceLine({
+      price: +price, color, lineWidth: width, lineStyle: style,
+      axisLabelVisible: true, title,
+    }));
+  });
 }
 
 function applyOverlays() {
-  if (!candleSeries || !A) return;
+  if (!chartReady() || !A) return;
   clearPriceLines();
   A.sup?.slice(0, 3).forEach(l => addLine(l[0], '#3ddc84', t('ovS')));
   A.res?.slice(0, 3).forEach(l => addLine(l[0], '#ff5c5c', t('ovR')));
@@ -334,32 +351,44 @@ function applyOverlays() {
 
 async function loadChart() {
   initChart();
-  $('chartNote').textContent = t('chartNote');
+  const note = t('chartNote');
+  if ($('chartNote')) $('chartNote').textContent = note;
+  if ($('homeChartNote')) $('homeChartNote').textContent = note;
   const opt = TF_OPTS.find(x => x.id === chartTf) || TF_OPTS[1];
   try {
     const raw = await klines(opt.id, opt.n);
     const basis = A?.basis || 0;
     const bars = shiftBars(raw, basis);
-    candleSeries.setData(bars);
+    chartViews.forEach(el => {
+      if (!el._pgSeries) return;
+      el._pgSeries.setData(bars);
+      el._pg.timeScale().fitContent();
+    });
     applyOverlays();
-    chart.timeScale().fitContent();
   } catch (e) {
-    $('chartNote').textContent = t('err');
+    if ($('chartNote')) $('chartNote').textContent = t('err');
+    if ($('homeChartNote')) $('homeChartNote').textContent = t('err');
   }
 }
 
 function renderTf() {
-  $('tf').innerHTML = TF_OPTS.map(o =>
-    `<button type="button" data-tf="${o.id}" class="${o.id === chartTf ? 'on' : ''}">${o.label}</button>`
-  ).join('');
-  $('tf').querySelectorAll('button').forEach(b => {
-    b.onclick = () => {
-      chartTf = b.dataset.tf;
-      store.setTf(chartTf);
-      renderTf();
-      loadChart();
-    };
-  });
+  const fill = (id) => {
+    const el = $(id);
+    if (!el) return;
+    el.innerHTML = TF_OPTS.map(o =>
+      `<button type="button" data-tf="${o.id}" class="${o.id === chartTf ? 'on' : ''}">${o.label}</button>`
+    ).join('');
+    el.querySelectorAll('button').forEach(b => {
+      b.onclick = () => {
+        chartTf = b.dataset.tf;
+        store.setTf(chartTf);
+        renderTf();
+        loadChart();
+      };
+    });
+  };
+  fill('tf');
+  fill('homeTf');
   const tog = $('smcToggle');
   if (tog) {
     tog.checked = smcOn;
@@ -373,7 +402,7 @@ function renderTf() {
 }
 
 /* ---- Settings ---- */
-const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, overlay: false };
+const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, alertStrongNews: true, overlay: false };
 let S = store.getSettings(DEF);
 
 async function saveSet() {
@@ -427,6 +456,8 @@ async function renderSet() {
     ck('mute', t('mute')) +
     ck('alertSR', t('aSR')) +
     ck('alertBias', t('aBias')) +
+    ck('alertStrongNews', t('alertStrongNews')) +
+    `<div class="mut s" style="margin:-4px 0 8px">${t('alertStrongNewsHint')}</div>` +
     (native ? `<button id="test" class="btn">${t('test')}</button>` : `<div class="mut s">${t('androidOnly')}</div>`) +
     last;
   $('set').querySelectorAll('input[type=checkbox]').forEach(i => {
@@ -556,32 +587,183 @@ function renderDon() {
   };
 }
 
+function impactLabel(imp) {
+  return imp === 'bullish' ? t('impactUp') : imp === 'bearish' ? t('impactDn') : t('impactFlat');
+}
+
+function openExt(url) {
+  return async e => {
+    e.preventDefault();
+    try {
+      if (native) await Browser.open({ url });
+      else window.open(url, '_blank', 'noopener');
+    } catch (x) { window.open(url, '_blank'); }
+  };
+}
+
+function fmtNewsTime(ms) {
+  if (!ms) return '';
+  return new Date(ms).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+}
+
+function newsAiFor(id) {
+  return NEWS_AI?.items?.[id] || null;
+}
+
+function renderNewsAiBox() {
+  const box = $('newsAiBox');
+  if (!box) return;
+  const body = NEWS_AI?.summary
+    ? `<div class="pfx-news-body">${esc(NEWS_AI.summary)}</div>`
+    : newsAiBusy
+      ? `<div class="mut s">${t('newsAnalyzing')}</div>`
+      : `<div class="mut s">${t('newsAiNeedKey')}</div>`;
+  box.innerHTML = `<div class="pfx-news">
+    <div class="pfx-news-head">
+      <img class="mee-avatar" src="/nong-mee.jpg" alt="${esc(t('nongMee'))}">
+      <div class="grow">
+        <b>PureFxAi</b> · ${esc(t('nongMee'))}
+        <div class="mut s" style="margin:2px 0 0">${t('newsAiTitle')}</div>
+      </div>
+      <button type="button" class="btn sec" id="btnNewsAnalyze">${esc(t('newsAnalyze'))}</button>
+    </div>
+    ${body}
+  </div>`;
+  const btn = $('btnNewsAnalyze');
+  if (btn) btn.onclick = () => maybeAnalyzeNews(true);
+}
+
+function bindNewsLinks(root) {
+  if (!root) return;
+  root.querySelectorAll('a[data-ext]').forEach(a => { a.onclick = openExt(a.dataset.ext); });
+}
+
+function newsCardHtml(n) {
+  const ai = newsAiFor(n.id);
+  const imp = ai?.bias || n.impact || 'neutral';
+  const link = n.url
+    ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" data-ext="${esc(n.url)}">${t('readMore')}${n.source ? ' · ' + esc(n.source) : ''}</a>`
+    : (n.source ? `<span class="mut s">${esc(n.source)}</span>` : '');
+  const aiLine = ai?.text ? `<div class="news-ai-line"><div class="who"><img src="/nong-mee.jpg" alt="">PureFxAi</div>${esc(ai.text)}</div>` : '';
+  return `<article class="news-card ${imp}">
+      <span class="im ${imp}">${esc(impactLabel(imp))}</span>
+      <h3>${esc(titleFor(n, L))}</h3>
+      <p>${esc(summaryFor(n, L))}</p>
+      ${aiLine}
+      ${link}
+    </article>`;
+}
+
 function renderNews() {
   const el = $('newsList');
+  if (!el) return;
+  const meta = $('newsMeta');
+  if (meta) {
+    const when = NEWS_META?.at ? t('newsUpdated').replace('{t}', fmtNewsTime(NEWS_META.at) + ' (Bangkok)') : '';
+    const srcs = (NEWS_META?.sources || []).length ? t('newsSources').replace('{s}', NEWS_META.sources.join(' · ')) : '';
+    const err = NEWS_META?.failed?.length ? t('newsErr') : '';
+    meta.textContent = [when, srcs, err].filter(Boolean).join(' · ');
+  }
+  renderNewsAiBox();
+  const latest = $('btnNewsLatest');
+  if (latest) {
+    latest.textContent = t('newsLatest');
+    latest.onclick = () => loadNews({ forceAnalyze: true });
+  }
+  if (!NEWS || !NEWS.length) {
+    el.innerHTML = `<div class="state-empty">${t('emptyNews')}</div>`;
+    renderHomeNewsTeaser();
+    return;
+  }
+  el.innerHTML = NEWS.map(newsCardHtml).join('');
+  bindNewsLinks(el);
+  renderHomeNewsTeaser();
+}
+
+function renderHomeNewsTeaser() {
+  const el = $('homeNewsTeaser');
+  if (!el) return;
   if (!NEWS || !NEWS.length) {
     el.innerHTML = `<div class="state-empty">${t('emptyNews')}</div>`;
     return;
   }
-  el.innerHTML = NEWS.map(n => {
-    const imp = n.impact || 'neutral';
-    const label = imp === 'bullish' ? t('impactUp') : imp === 'bearish' ? t('impactDn') : t('impactFlat');
-    return `<article class="news-card ${imp}">
-      <span class="im ${imp}">${esc(label)}</span>
+  const head = NEWS_AI?.summary
+    ? `<div class="pfx-news" style="margin-bottom:8px">
+        <div class="pfx-news-head">
+          <img class="mee-avatar" src="/nong-mee.jpg" alt="${esc(t('nongMee'))}">
+          <div class="grow"><b>PureFxAi</b> · ${esc(t('nongMee'))}
+            <div class="pfx-news-body" style="margin-top:6px">${esc(NEWS_AI.summary)}</div>
+          </div>
+        </div>
+      </div>` : '';
+  el.innerHTML = head + NEWS.slice(0, 2).map(n => {
+    const imp = newsAiFor(n.id)?.bias || n.impact || 'neutral';
+    return `<div class="news-teaser-card">
+      <span class="im ${imp}" style="display:inline-block;font-size:11px;font-weight:800;margin-bottom:4px">${esc(impactLabel(imp))}</span>
       <h3>${esc(titleFor(n, L))}</h3>
-      <p>${esc(summaryFor(n, L))}</p>
       ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" data-ext="${esc(n.url)}">${t('readMore')}${n.source ? ' · ' + esc(n.source) : ''}</a>` : ''}
-    </article>`;
+    </div>`;
   }).join('');
-  el.querySelectorAll('a[data-ext]').forEach(a => {
-    a.onclick = async e => {
-      e.preventDefault();
-      const url = a.dataset.ext;
-      try {
-        if (native) await Browser.open({ url });
-        else window.open(url, '_blank', 'noopener');
-      } catch (x) { window.open(url, '_blank'); }
-    };
-  });
+  bindNewsLinks(el);
+}
+
+let newsAiBusy = false;
+async function maybeAnalyzeNews(force) {
+  if (!NEWS || !NEWS.length) { renderNews(); return; }
+  const key = newsCacheKey(NEWS, L);
+  if (!force && NEWS_AI?.key === key && NEWS_AI?.summary) {
+    renderNews();
+    maybeAlertStrongNews();
+    return;
+  }
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    NEWS_AI = { key, summary: '', items: {}, source: 'none', error: 'need_key', at: Date.now() };
+    store.saveNewsAi(NEWS_AI);
+    renderNews();
+    maybeAlertStrongNews();
+    return;
+  }
+  if (newsAiBusy) return;
+  newsAiBusy = true;
+  renderNewsAiBox();
+  try {
+    const res = await analyzeNewsWithPureFxAi(NEWS, L);
+    NEWS_AI = { ...res, key, at: Date.now() };
+    store.saveNewsAi(NEWS_AI);
+  } catch (e) {
+    NEWS_AI = { key, summary: '', items: {}, source: 'none', error: String(e?.message || e), at: Date.now() };
+  } finally {
+    newsAiBusy = false;
+    renderNews();
+    maybeAlertStrongNews();
+  }
+}
+
+function isStrongNews(n, ai) {
+  const bias = ai?.bias || n.impact;
+  const strong = n.level === 'high' || ai?.strength === 'high';
+  return strong && (bias === 'bullish' || bias === 'bearish');
+}
+
+function maybeAlertStrongNews() {
+  if (S.alertStrongNews === false) return;
+  if (!NEWS || !NEWS.length) return;
+  const fresh = NEWS.filter(n => isStrongNews(n, newsAiFor(n.id)) && !store.wasNewsAlerted(n.id));
+  if (!fresh.length) return;
+  const n = fresh[0];
+  const ai = newsAiFor(n.id);
+  const dir = impactLabel(ai?.bias || n.impact);
+  const title = titleFor(n, L);
+  const text = t('newsAlertTpl').replace('{dir}', dir).replace('{title}', title).slice(0, 220);
+  store.markNewsAlerted(fresh.map(x => x.id));
+  store.pushAlertHist({ text, kind: 'news' });
+  if (!canNotifyPopup()) return;
+  markNotified();
+  notifyPopup('PUREGOLD', text, 'news');
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification('PUREGOLD', { body: text }); } catch (e) {}
+  }
 }
 
 
@@ -846,7 +1028,8 @@ async function renderOverlaySet() {
   try {
     const r = await Pg.overlayStatus();
     can = !!r.canDraw;
-    on = !!r.enabled || on;
+    on = !!r.enabled;
+    S.overlay = on;
   } catch (e) {}
   el.innerHTML = `<div class="mut s">${t('overlayHint')}</div>
     <label class="row"><span>${t('overlayOn')}</span>
@@ -923,8 +1106,11 @@ function ensureTechniques() {
 }
 
 function renderTech() {
-  const pick = $('techPick');
-  const detail = $('techDetail');
+  paintTech($('techPick'), $('techDetail'), false);
+  paintTech($('homeTechPick'), $('homeTechDetail'), true);
+}
+
+function paintTech(pick, detail, compact) {
   if (!pick || !detail) return;
   pick.innerHTML = TECH_IDS.map(id =>
     `<button type="button" class="chip ${id === techId ? 'on' : ''}" data-tech="${id}">${esc(techTitle(id, L))}</button>`
@@ -1016,7 +1202,7 @@ function renderTech() {
     <div class="mut s" style="margin-bottom:10px">${t(hintKey)}</div>
     <div class="big" style="font-size:20px;margin-bottom:8px">$${f2(T.price)}</div>
     ${body}
-    <div class="edu" style="margin-top:12px;font-size:11px;color:var(--muted)">${t('setupEdu')}</div>`;
+    ${compact ? '' : `<div class="edu" style="margin-top:12px;font-size:11px;color:var(--muted)">${t('setupEdu')}</div>`}`;
 }
 
 function renderAll() {
@@ -1045,7 +1231,7 @@ function renderAll() {
   wireMoreHub();
   renderChat(false);
   stamp();
-  if (chart) chart.applyOptions({ localization: { locale: localeTag(L) } });
+  chartViews.forEach(el => { try { el._pg?.applyOptions({ localization: { locale: localeTag(L) } }); } catch (e) {} });
   applyOverlays();
   if (!$('view-signup').classList.contains('hidden')) renderSignup();
 }
@@ -1116,7 +1302,7 @@ async function loadA() {
     renderSignalHist();
     checkCustomAlerts(A.price);
     await pushNativeSnapshot();
-    if (tab === 'chart' || chart) await loadChart();
+    if (tab === 'chart' || tab === 'home' || chartReady()) await loadChart();
   } catch (e) {
     if (!A) {
       $('xau').innerHTML = `<div class="state-err">${t('err')}</div>`;
@@ -1125,11 +1311,14 @@ async function loadA() {
   }
 }
 
-async function loadNews() {
+async function loadNews(opts = {}) {
   try {
-    NEWS = await fetchNews();
-    store.saveNews(NEWS);
+    const pack = await fetchNews();
+    NEWS = pack.items || [];
+    NEWS_META = { at: pack.at || Date.now(), sources: pack.sources || [], failed: pack.failed || [] };
+    store.saveNews({ at: NEWS_META.at, items: NEWS, sources: NEWS_META.sources, failed: NEWS_META.failed });
     renderNews();
+    await maybeAnalyzeNews(!!opts.forceAnalyze);
   } catch (e) {
     if (!NEWS) renderNews();
   }
@@ -1264,10 +1453,16 @@ function paintChatLog() {
     const speakBtn = m.role === 'bot'
       ? `<button type="button" class="btn sec" data-chat-speak="${idx}" style="margin:0;width:auto;padding:4px 8px;font-size:11px">${esc(t('chatSpeak'))}</button>`
       : '';
-    return `<div class="chat-bubble ${m.role}">${esc(m.text)}
-      ${m.role === 'bot' ? '<span class="chat-meta">PureFxAi</span>' : ''}
-      ${speakBtn || actions ? `<div class="chat-actions">${speakBtn}${actions}</div>` : ''}
-    </div>`;
+    if (m.role === 'bot') {
+      return `<div class="chat-bubble bot">
+        <img class="mee-chat" src="/nong-mee.jpg" alt="${esc(t('nongMee'))}">
+        <div class="chat-main">${esc(m.text)}
+          <span class="chat-meta">PureFxAi · ${esc(t('nongMee'))}</span>
+          ${speakBtn || actions ? `<div class="chat-actions">${speakBtn}${actions}</div>` : ''}
+        </div>
+      </div>`;
+    }
+    return `<div class="chat-bubble user">${esc(m.text)}</div>`;
   }).join('');
   log.querySelectorAll('[data-chat-act]').forEach(b => {
     b.onclick = () => {
@@ -1452,9 +1647,15 @@ if ($('clOk')) $('clOk').onclick = closeChangelog;
 if ($('btnChangelog')) $('btnChangelog').onclick = () => openChangelog();
 $('clModal')?.addEventListener('click', e => { if (e.target === $('clModal')) closeChangelog(); });
 
-// Techniques + chart stay as panels (opened from More); news is a main tab
+// Chart + techniques also live on Home; full panels remain available
 if (tab === 'tech' || tab === 'chart') { /* keep */ }
 else if (!['home','plan','news','chat','more'].includes(tab)) tab = 'home';
+
+
+if ($('homeChartFull')) $('homeChartFull').onclick = () => showTab('chart');
+if ($('homeTechFull')) $('homeTechFull').onclick = () => showTab('tech');
+if ($('homeNewsMore')) $('homeNewsMore').onclick = () => showTab('news');
+if ($('btnNewsLatest')) $('btnNewsLatest').onclick = () => loadNews({ forceAnalyze: true });
 
 showTab(tab);
 renderAll();

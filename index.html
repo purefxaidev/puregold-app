@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>PUREGOLD</title>
+<link rel="icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -10,7 +11,7 @@
 <div id="appWallpaper" aria-hidden="true"></div>
 <div id="view-main">
   <header class="top">
-    <div class="brand"><b>PURE</b>GOLD<small>by PureFxAi</small></div>
+    <div class="brand"><img class="brand-mee" src="/nong-mee.jpg" alt="น้องหมี" width="42" height="42"><div><b>PURE</b>GOLD<small>by PureFxAi</small></div></div>
     <div class="hb">
       <button type="button" id="btnChangelog" class="icon-btn" title="Changelog">ⓘ</button>
       <button type="button" id="ref" class="icon-btn" title="Refresh">⟳</button>
@@ -41,6 +42,31 @@
       <section>
         <h2 data-i="fc"></h2>
         <div id="fc"><div class="skel" data-i="load"></div></div>
+      </section>
+      <section class="home-chart-sec">
+        <div class="sec-head">
+          <h2 data-i="chart"></h2>
+          <button type="button" class="btn sec linkish" id="homeChartFull" data-i="chartFull"></button>
+        </div>
+        <div class="tf" id="homeTf"></div>
+        <div id="homeChart" class="chart chart-mini"></div>
+        <div id="homeChartNote" class="mut s"></div>
+      </section>
+      <section>
+        <div class="sec-head">
+          <h2 data-i="techMenu"></h2>
+          <button type="button" class="btn sec linkish" id="homeTechFull" data-i="techFull"></button>
+        </div>
+        <div class="mut s" data-i="techWorld" style="margin-top:-4px;margin-bottom:10px"></div>
+        <div id="homeTechPick" class="chip-row tech-chips"></div>
+        <div id="homeTechDetail"></div>
+      </section>
+      <section>
+        <div class="sec-head">
+          <h2 data-i="news"></h2>
+          <button type="button" class="btn sec linkish" id="homeNewsMore" data-i="newsSeeAll"></button>
+        </div>
+        <div id="homeNewsTeaser"><div class="skel" data-i="load"></div></div>
       </section>
     </div>
 
@@ -137,7 +163,10 @@
       <section>
         <div class="sec-head news-sec-head">
           <h2 data-i="news"></h2>
+          <button type="button" class="btn sec" id="btnNewsLatest" data-i="newsLatest"></button>
         </div>
+        <div id="newsMeta" class="mut s"></div>
+        <div id="newsAiBox"></div>
         <div id="newsList"><div class="skel" data-i="load"></div></div>
       </section>
     </div>
@@ -147,8 +176,8 @@
       <section>
         <h2 data-i="moreHub"></h2>
         <div class="more-hub" id="moreHub">
-          <button type="button" class="btn sec hub-btn" data-go="tech" data-i="navTech"></button>
-          <button type="button" class="btn sec hub-btn" data-go="chart" data-i="navChart"></button>
+          <button type="button" class="btn sec hub-btn" data-go="chart" data-i="chartFull"></button>
+          <button type="button" class="btn sec hub-btn" data-go="tech" data-i="techFull"></button>
         </div>
         <div class="mut s" data-i="moreHubHint" style="margin-top:8px"></div>
       </section>

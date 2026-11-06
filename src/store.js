@@ -11,6 +11,8 @@ const KEYS = {
   alertHist: 'pg_alert_hist',
   priceAlerts: 'pg_price_alerts',
   newsCache: 'pg_news_cache',
+  newsAi: 'pg_news_ai',
+  newsAlerted: 'pg_news_alerted',
   techId: 'pg_tech_id',
   signalHist: 'pg_signal_hist',
   seenVer: 'pg_seen_version',
@@ -103,8 +105,21 @@ export const store = {
     return list;
   },
 
-  saveNews: (items) => write(KEYS.newsCache, { at: Date.now(), items }),
+  saveNews: (payload) => {
+    if (Array.isArray(payload)) write(KEYS.newsCache, { at: Date.now(), items: payload });
+    else write(KEYS.newsCache, payload);
+  },
   loadNews: () => read(KEYS.newsCache, null),
+
+  saveNewsAi: (obj) => write(KEYS.newsAi, obj),
+  loadNewsAi: () => read(KEYS.newsAi, null),
+
+  wasNewsAlerted: (id) => read(KEYS.newsAlerted, []).includes(id),
+  markNewsAlerted: (ids) => {
+    const h = read(KEYS.newsAlerted, []);
+    (ids || []).forEach(id => { if (id && !h.includes(id)) h.unshift(id); });
+    write(KEYS.newsAlerted, h.slice(0, 160));
+  },
 
   getTechId: () => localStorage.getItem(KEYS.techId) || 'smc',
   setTechId: (id) => localStorage.setItem(KEYS.techId, id),

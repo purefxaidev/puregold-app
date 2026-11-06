@@ -93,14 +93,16 @@ public class PgPlugin extends Plugin {
     e.putLong("snap_at",System.currentTimeMillis());
     e.apply();
     GoldWidget.updateAll(getContext());
-    if(sp().getBoolean("overlay",false)) OverlayService.refresh(getContext());
+    if(OverlayService.isRunning()) OverlayService.refresh(getContext());
+    else if(sp().getBoolean("overlay",false) && OverlayService.canDraw(getContext())) OverlayService.start(getContext());
     c.resolve();
   }
 
   @PluginMethod public void overlayStatus(PluginCall c){
     JSObject o=new JSObject();
     o.put("canDraw", OverlayService.canDraw(getContext()));
-    o.put("enabled", sp().getBoolean("overlay",false));
+    o.put("enabled", OverlayService.isRunning());
+    o.put("running", OverlayService.isRunning());
     c.resolve(o);
   }
 

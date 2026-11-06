@@ -9,4 +9,10 @@ public class MainActivity extends BridgeActivity {
     if(p.getBoolean("overlay",false) && OverlayService.canDraw(this)) OverlayService.start(this);
     GoldWidget.updateAll(this);
   }
+  @Override public void onResume(){
+    super.onResume();
+    SharedPreferences p=getSharedPreferences("pg",0);
+    if(p.getBoolean("overlay",false) && OverlayService.canDraw(this) && !OverlayService.isRunning()) OverlayService.start(this);
+    GoldWidget.updateAll(this);
+  }
 }

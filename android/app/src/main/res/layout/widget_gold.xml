@@ -4,14 +4,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="10dp"
+    android:padding="12dp"
     android:background="@drawable/widget_bg">
     <TextView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="PUREGOLD" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="12sp"/>
+        android:text="PUREGOLD" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="12sp"
+        android:letterSpacing="0.08"/>
     <TextView android:id="@+id/w_xau" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="XAU —" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="18sp" android:layout_marginTop="2dp"/>
+        android:text="XAU —" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="20sp"
+        android:layout_marginTop="4dp" android:maxLines="1"/>
     <TextView android:id="@+id/w_thai" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="HSH —" android:textColor="#9A8F73" android:textSize="12sp"/>
+        android:text="HSH —" android:textColor="#C9B48A" android:textSize="13sp" android:layout_marginTop="2dp"
+        android:maxLines="2"/>
     <TextView android:id="@+id/w_signal" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="WAIT" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="14sp" android:layout_marginTop="4dp"/>
+        android:text="WAIT" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="15sp"
+        android:layout_marginTop="6dp" android:maxLines="1"/>
+    <TextView android:id="@+id/w_plan" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="" android:textColor="#A89F88" android:textSize="11sp" android:layout_marginTop="2dp"
+        android:maxLines="2"/>
+    <TextView android:id="@+id/w_updated" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="" android:textColor="#6E6858" android:textSize="10sp" android:layout_marginTop="6dp"
+        android:maxLines="1"/>
 </LinearLayout>

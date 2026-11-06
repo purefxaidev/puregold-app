@@ -5,6 +5,6 @@
     <string name="title_activity_main">PUREGOLD</string>
     <string name="package_name">com.purefxai.puregold</string>
     <string name="custom_url_scheme">com.purefxai.puregold</string>
-    <string name="widget_desc">Thai gold / XAU price and short signal</string>
+    <string name="widget_desc">PUREGOLD: Thai gold, XAU price, and short signal. Long-press the home screen → Widgets → PUREGOLD.</string>
     <string name="overlay_channel">PUREGOLD overlay</string>
 </resources>
