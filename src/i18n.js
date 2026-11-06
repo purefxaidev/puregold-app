@@ -1,6 +1,8 @@
 /** Lightweight i18n map: th / en / zh / ja. Missing keys fall back to en. */
 const en = {
   navHome: 'Home', navChart: 'Chart', navNews: 'News', navMore: 'More',
+  moreHub: 'More tools', moreHubHint: 'Techniques & news live here to keep the main menu simple.',
+  smsNotif: 'SMS-style pop-up alerts', smsNotifHint: 'Heads-up notifications for price, signals, and alerts (like SMS).',
   thai: 'Thai gold (Hua Seng Heng)', world: 'World gold XAUUSD',
   chart: 'Chart + analysis', sr: 'Support / Resistance',
   bias: 'Short-term bias', fc: 'Forecast (algorithmic)',
@@ -105,6 +107,8 @@ const en = {
 const th = {
   ...en,
   navHome: 'หน้าแรก', navChart: 'กราฟ', navNews: 'ข่าว', navMore: 'เมนู',
+  moreHub: 'เครื่องมือเพิ่ม', moreHubHint: 'เทคนิคและข่าวอยู่ในนี้ เพื่อให้เมนูล่างสั้นลง',
+  smsNotif: 'แจ้งเตือนป๊อปอัปแบบ SMS', smsNotifHint: 'แจ้งเตือนแบบหัวขึ้นสำหรับราคา สัญญาณ และการแจ้งเตือน (คล้าย SMS)',
   thai: 'ทองไทย (ฮั่วเซ่งเฮง)', world: 'ทองโลก XAUUSD',
   chart: 'กราฟ + การวิเคราะห์', sr: 'แนวรับ / แนวต้าน',
   bias: 'มุมมองระยะสั้น', fc: 'ระบบคาดการณ์ (อัลกอริทึม)',
@@ -209,6 +213,8 @@ const th = {
 const zh = {
   ...en,
   navHome: '首页', navChart: '图表', navNews: '新闻', navMore: '更多',
+  moreHub: '更多工具', moreHubHint: '技法与新闻放在这里，底部菜单更简洁。',
+  smsNotif: '短信式弹出通知', smsNotifHint: '价格、信号与提醒的抬头通知（类似短信）。',
   thai: '泰国金价 (Hua Seng Heng)', world: '国际金价 XAUUSD',
   chart: '图表 + 分析', sr: '支撑 / 阻力',
   bias: '短线偏向', fc: '算法预测',
@@ -313,6 +319,8 @@ const zh = {
 const ja = {
   ...en,
   navHome: 'ホーム', navChart: 'チャート', navNews: 'ニュース', navMore: 'メニュー',
+  moreHub: 'その他ツール', moreHubHint: '手法とニュースはここに集約し、下部メニューを簡潔にします。',
+  smsNotif: 'SMS風ポップアップ通知', smsNotifHint: '価格・シグナル・アラートのヘッドアップ通知（SMS風）。',
   thai: 'タイ金価格 (Hua Seng Heng)', world: '世界金価格 XAUUSD',
   chart: 'チャート + 分析', sr: 'サポート / レジスタンス',
   bias: '短期バイアス', fc: 'アルゴリズム予測',

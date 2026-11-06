@@ -4,7 +4,7 @@
  * Never expose underlying model names.
  */
 import { EXNESS_REF } from './signup.js';
-import { isMarkedReady, analyzeWithPureFxAi, ruleNarrative } from './ondevice.js';
+import { isMarkedReady, chatWithPureFxAi, ruleNarrative } from './ondevice.js';
 
 const RISK = {
   th: 'คำเตือน: การลงทุนมีความเสี่ยง คุณอาจขาดทุนได้ทั้งหมด — เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน',
@@ -343,12 +343,16 @@ export async function replyTo(userText, ctx) {
     return { text: replySignup(lang), actions: signupActions(), source: 'rules' };
   }
   if (intent === 'plan') {
-    // Prefer installed PureFxAi narrative when available
+    // Prefer installed PureFxAi narrative when available (no re-download from chat)
     if (isMarkedReady() && A) {
       try {
-        const r = await analyzeWithPureFxAi(A, lang, null);
+        const r = await chatWithPureFxAi(
+          lang === 'th' ? 'สรุปแผนวันนี้' : lang === 'zh' ? '总结今日计划' : "Summarize today's plan",
+          A,
+          lang
+        );
         const base = stripModelNames(r.text || ruleNarrative(A, lang));
-        return { text: base + '\n\n' + riskShort(lang), source: r.source || 'model', actions: signupActions().slice(0, 0) };
+        return { text: base + '\n\n' + riskShort(lang), source: r.source || 'model' };
       } catch {
         /* fall through */
       }
@@ -359,20 +363,13 @@ export async function replyTo(userText, ctx) {
     return { text: replyTrade(A, lang), actions: signupActions(), source: 'rules' };
   }
 
-  // Free-form: use PureFxAi if pack already installed; else helpful rules reply
+  // Free-form: use PureFxAi only if pack already installed (never trigger install from chat)
   if (isMarkedReady() && A) {
     try {
-      const r = await analyzeWithPureFxAi(A, lang, null);
-      // Re-prompt style: append user question framing via rules + model plan card
-      const header =
-        lang === 'th'
-          ? `ตอบคำถาม: “${String(userText).slice(0, 120)}”\n\n`
-          : lang === 'zh'
-            ? `关于：“${String(userText).slice(0, 120)}”\n\n`
-            : `About: “${String(userText).slice(0, 120)}”\n\n`;
+      const r = await chatWithPureFxAi(userText, A, lang);
       const body = stripModelNames(r.text || ruleNarrative(A, lang));
       return {
-        text: header + body + '\n\n' + riskShort(lang),
+        text: body + '\n\n' + riskShort(lang),
         source: r.source || 'model',
         actions: /exness|สมัคร|注册|signup|sign up/i.test(userText) ? signupActions() : undefined,
       };

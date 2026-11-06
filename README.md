@@ -6,13 +6,15 @@
 
 **ZH:** 泰国金与国际金（XAUUSD）分析应用：PureFxAi 聊天、计划页、小组件、悬浮窗、图表等。
 
-## Features (0.7.0)
+## Features (0.8.0)
 - **Chat bot (PureFxAi)** — type to chat; optional spoken replies (TTS). Guides educational trading plans and Exness signup.
 - **PureFxAi** on-device plan analysis — compact pack (~0.5 GB), auto-installs on first use (UI shows Installing / กำลังติดตั้ง / 正在安装 + %). Delete from Plan tab to free storage. Never shows third-party model names.
 - Rule engine remains the baseline on the Plan tab; PureFxAi enhances the narrative
 - Fuller-screen UI (less padding; larger chat/plan areas)
 - Dedicated **Plan** tab, changelog, home widget, floating overlay, signal history
 - Techniques, SMC OB/FVG, news, custom price alerts
+- SMS-style heads-up notifications (price / signals)
+- Simplified bottom nav (Techniques & News under More)
 - Languages: Thai / English / 中文 / 日本語
 - Exness partner signup · IB `https://one.toexness.com/a/s2didh6p`
 

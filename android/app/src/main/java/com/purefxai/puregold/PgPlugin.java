@@ -155,22 +155,53 @@ public class PgPlugin extends Plugin {
   /* ---- On-device PureFxAi pack download ---- */
 
   @PluginMethod public void deviceModelStatus(PluginCall c){
-    String name=sp().getString("deviceModelFile","purefxai-device.gguf");
+    String name=c.getString("fileName", sp().getString("deviceModelFile","purefxai-device.gguf"));
+    if(name==null||name.isEmpty()) name="purefxai-device.gguf";
     File out=new File(modelDir(), name);
     File part=new File(modelDir(), name+".part");
     long expect=c.getData().has("size") ? c.getLong("size",532517120L) : sp().getLong("deviceModelSize",532517120L);
-    if(c.getData().has("size")) sp().edit().putLong("deviceModelSize",expect).apply();
+    String wantSha=c.getString("sha256", sp().getString("deviceModelSha",""));
+    SharedPreferences.Editor ed=sp().edit();
+    ed.putLong("deviceModelSize",expect).putString("deviceModelFile",name);
+    if(wantSha!=null && !wantSha.isEmpty()) ed.putString("deviceModelSha",wantSha);
+    ed.apply();
+    String verifiedSha=sp().getString("deviceModelVerifiedSha","");
+    boolean shaMatch=wantSha!=null && !wantSha.isEmpty() && wantSha.equalsIgnoreCase(verifiedSha);
     JSObject o=new JSObject();
-    boolean sizeOk=out.isFile() && out.length()>=Math.max(1, expect-1024) && out.length()<=expect+1048576L;
-    boolean ready=sizeOk;
-    if(out.isFile() && !sizeOk){ /* stale pack from older app build */ //noinspection ResultOfMethodCallIgnored
-      out.delete(); }
+    boolean sizeOk=out.isFile() && out.length()>=Math.max(1, expect-65536L) && out.length()<=expect+1048576L;
+    // Once SHA-verified, keep ready as long as the file still exists (avoid flicker / accidental delete).
+    boolean ready=out.isFile() && (shaMatch || sizeOk);
+    if(out.isFile() && !ready && !shaMatch){
+      // Only delete clearly wrong-size unverified leftovers (e.g. old 2B pack).
+      if(out.length()<expect/2 || out.length()>expect*2){
+        //noinspection ResultOfMethodCallIgnored
+        out.delete();
+      }
+    }
+    if(ready && shaMatch){
+      // sticky verified
+    } else if(ready && !shaMatch && wantSha!=null && !wantSha.isEmpty() && !downloading.get()){
+      // Lazy verify in background once; do not block status.
+      final File f=out; final String sha=wantSha; final String fname=name;
+      io.execute(() -> {
+        try{
+          String got=sha256(f);
+          if(got.equalsIgnoreCase(sha)){
+            sp().edit().putString("deviceModelVerifiedSha",sha).apply();
+            JSObject readyEv=new JSObject();
+            readyEv.put("ready",true); readyEv.put("path",f.getAbsolutePath());
+            notifyListeners("deviceModelReady", readyEv);
+          }
+        }catch(Exception ignored){}
+      });
+    }
     o.put("ready", ready);
     o.put("path", ready ? out.getAbsolutePath() : "");
     o.put("downloading", downloading.get());
     o.put("done", ready ? expect : (downloading.get() ? dlDone : part.length()));
     o.put("total", expect);
     o.put("fileName", name);
+    o.put("verified", shaMatch);
     c.resolve(o);
   }
 
@@ -200,6 +231,7 @@ public class PgPlugin extends Plugin {
         }
       }
     }
+    sp().edit().remove("deviceModelVerifiedSha").apply();
     JSObject o=new JSObject();
     o.put("ok", true);
     o.put("freed", freed);
@@ -220,7 +252,23 @@ public class PgPlugin extends Plugin {
       //noinspection ResultOfMethodCallIgnored
       out.delete();
     }
-    if(out.isFile() && out.length()>=Math.max(1, size-1024) && out.length()<=size+1048576L){
+    String verified=sp().getString("deviceModelVerifiedSha","");
+    boolean alreadyOk=out.isFile() && (
+      (sha!=null && !sha.isEmpty() && sha.equalsIgnoreCase(verified)) ||
+      (out.length()>=Math.max(1, size-65536L) && out.length()<=size+1048576L)
+    );
+    if(alreadyOk){
+      if(sha!=null && !sha.isEmpty() && !sha.equalsIgnoreCase(verified)){
+        // verify async; still treat as ready to avoid UI flicker
+        final File f=out; final String want=sha;
+        io.execute(() -> {
+          try{
+            String got=sha256(f);
+            if(got.equalsIgnoreCase(want)) sp().edit().putString("deviceModelVerifiedSha",want).apply();
+            else { /* leave unverified; next ensure may re-download if size wrong */ }
+          }catch(Exception ignored){}
+        });
+      }
       JSObject o=new JSObject(); o.put("ready",true); o.put("path",out.getAbsolutePath());
       notifyListeners("deviceModelReady", o);
       c.resolve(o); return;
@@ -285,6 +333,8 @@ public class PgPlugin extends Plugin {
         if(out.exists()) //noinspection ResultOfMethodCallIgnored
           out.delete();
         if(!part.renameTo(out)) throw new Exception("rename");
+        if(sha!=null && !sha.isEmpty())
+          sp().edit().putString("deviceModelVerifiedSha",sha).putString("deviceModelSha",sha).apply();
         JSObject ready=new JSObject();
         ready.put("ready",true); ready.put("path",out.getAbsolutePath());
         notifyListeners("deviceModelReady", ready);
@@ -319,5 +369,26 @@ public class PgPlugin extends Plugin {
       catch(Exception ignored){}
       c.resolve();
     });
+  }
+
+  /** SMS-style heads-up notification (HIGH importance channel). */
+  @PluginMethod public void notifyPopup(PluginCall c){
+    final String title=c.getString("title","PUREGOLD");
+    final String text=c.getString("text","");
+    final String kind=c.getString("kind","alert"); // alert|signal|chat|price
+    if(text==null||text.isEmpty()){ c.resolve(); return; }
+    try{
+      GoldWorker.popup(getContext(), title, text, kind);
+      c.resolve();
+    }catch(Exception e){ c.reject(String.valueOf(e.getMessage())); }
+  }
+
+  @PluginMethod public void requestNotifPermission(PluginCall c){
+    try{
+      if(Build.VERSION.SDK_INT>=33){
+        getActivity().requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 91);
+      }
+      c.resolve();
+    }catch(Exception e){ c.resolve(); }
   }
 }

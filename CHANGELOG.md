@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.0 — 2026-11-06
+### TH
+- แก้ PureFxAi โหลดมาๆ หายๆ — คงสถานะหลังติดตั้ง + SHA-256 + ดาวน์โหลดต่อ
+- แชทเสถียรขึ้น ไม่กระพริบสถานะติดตั้ง
+- แจ้งเตือนป๊อปอัปแบบ SMS (heads-up) สำหรับราคา/สัญญาณ
+- ย่อเมนูล่าง (เทคนิค/ข่าวอยู่ในเมนู)
+- เต็มจอสม่ำเสมอ + ปรับความเสถียร
+
+### EN
+- Stable PureFxAi install/load (SHA-256 + resume); no flicker
+- Reliable chat without re-triggering install UI
+- SMS-style heads-up notifications
+- Simplified bottom nav; Techniques/News under More
+- Consistent edge-to-edge layout + stability polish
+
+### ZH
+- 稳定 PureFxAi 安装/加载（SHA-256 + 续传），消除闪烁
+- 聊天更可靠，不再反复触发安装界面
+- 短信式抬头通知
+- 精简底部菜单；技法/新闻在「更多」
+- 统一满屏与稳定性优化
+
+
 ## 0.7.0 — 2026-11-06
 ### TH
 - แพ็ก PureFxAi บนเครื่องเล็กลง (~0.5 GB) — ติดตั้งอัตโนมัติ แสดง “กำลังติดตั้ง”

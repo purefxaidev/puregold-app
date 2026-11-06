@@ -13,6 +13,9 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:statusBarColor">#07080d</item>
+        <item name="android:navigationBarColor">#0a0b12</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
 

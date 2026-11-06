@@ -1,6 +1,31 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.8.0',
+    date: '2026-11-06',
+    th: [
+      'แก้ PureFxAi โหลดมาๆ หายๆ — ติดตั้งแล้วคงสถานะ พร้อมตรวจ SHA-256 และดาวน์โหลดต่อได้',
+      'แชทเสถียรขึ้น — ตอบจากกฎ/ PureFxAi โดยไม่กระตุ้นติดตั้งซ้ำจน UI กะพริบ',
+      'แจ้งเตือนป๊อปอัปแบบ SMS (heads-up) สำหรับราคา / สัญญาณ',
+      'ย่อเมนูล่างเหลือ หน้าแรก · แผน · แชท · กราฟ · เมนู (เทคนิค/ข่าวอยู่ในเมนู)',
+      'เต็มจอสม่ำเสมอ + ปรับความเสถียรรวม',
+    ],
+    en: [
+      'Stable PureFxAi pack — stays installed; SHA-256 verify + resume download',
+      'More reliable chat — no install-state flicker while chatting',
+      'SMS-style heads-up notifications for price / signals',
+      'Simpler bottom nav: Home · Plan · Chat · Chart · More (Techniques/News under More)',
+      'Consistent full-screen layout + stability polish',
+    ],
+    zh: [
+      'PureFxAi 安装状态稳定 — 校验 SHA-256，支持断点续传',
+      '聊天更稳定 — 不再因安装状态闪烁',
+      '短信式抬头通知（价格 / 信号）',
+      '底部菜单精简：首页 · 计划 · 聊天 · 图表 · 更多（技法/新闻在更多里）',
+      '统一满屏布局 + 稳定性优化',
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-11-06',
     th: [

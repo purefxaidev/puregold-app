@@ -79,12 +79,49 @@ public class GoldWorker extends Worker {
     }catch(Exception e){}
     if(!once) schedule(c,true);
     return Result.success(); }
+  static final String CH_POP="pg_popup_sms";
+  static void ensureChannels(NotificationManager nm){
+    if(android.os.Build.VERSION.SDK_INT>=26){
+      NotificationChannel def=new NotificationChannel(CH,"PUREGOLD alerts",NotificationManager.IMPORTANCE_DEFAULT);
+      def.setDescription("Price and bias alerts");
+      nm.createNotificationChannel(def);
+      // SMS-style heads-up: HIGH importance + vibration (like messaging popups)
+      NotificationChannel pop=new NotificationChannel(CH_POP,"PUREGOLD pop-up",NotificationManager.IMPORTANCE_HIGH);
+      pop.setDescription("SMS-style heads-up for price, signal, and chat alerts");
+      pop.enableVibration(true);
+      pop.setVibrationPattern(new long[]{0,180,80,180});
+      pop.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+      pop.setShowBadge(true);
+      nm.createNotificationChannel(pop);
+    }
+  }
+  /** SMS-like heads-up popup (HIGH channel). */
+  static void popup(Context c,String title,String text,String kind){
+    NotificationManager nm=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
+    ensureChannels(nm);
+    PendingIntent pi=PendingIntent.getActivity(c,0,new Intent(c,MainActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
+    int id=2100 + Math.abs((kind==null?"a":kind).hashCode()%80);
+    try{
+      NotificationCompat.Builder b=new NotificationCompat.Builder(c,CH_POP)
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setContentTitle(title==null||title.isEmpty()?"PUREGOLD":title)
+        .setContentText(text)
+        .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
+        .setContentIntent(pi)
+        .setAutoCancel(true)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        .setDefaults(NotificationCompat.DEFAULT_ALL)
+        .setVibrate(new long[]{0,180,80,180});
+      nm.notify(id,b.build());
+    }catch(SecurityException e){}
+  }
   static void alert(Context c,String text,SharedPreferences p){
     NotificationManager nm=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
-    if(android.os.Build.VERSION.SDK_INT>=26) nm.createNotificationChannel(new NotificationChannel(CH,"PUREGOLD alerts",NotificationManager.IMPORTANCE_DEFAULT));
-    PendingIntent pi=PendingIntent.getActivity(c,0,new Intent(c,MainActivity.class),PendingIntent.FLAG_IMMUTABLE);
-    try{nm.notify(1001,new NotificationCompat.Builder(c,CH).setSmallIcon(R.mipmap.ic_launcher).setContentTitle("PUREGOLD").setContentText(text)
-      .setStyle(new NotificationCompat.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true).build());}catch(SecurityException e){}
+    ensureChannels(nm);
+    // Prefer SMS-style heads-up for actionable price/bias alerts
+    popup(c,"PUREGOLD",text,"alert");
     boolean dnd=nm.getCurrentInterruptionFilter()>NotificationManager.INTERRUPTION_FILTER_ALL;
     if(p.getBoolean("voice",true)&&!p.getBoolean("mute",false)&&!dnd) speak(c,text,"th".equals(p.getString("lang","th")));
   }

@@ -17,7 +17,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.8.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -100,21 +100,40 @@ async function checkUpdate() {
 /* ---- Tabs ---- */
 let tab = store.getTab();
 function showTab(name) {
+  // Legacy tabs tech/news still exist as panels; highlight More when opened from hub
+  if (!name) name = 'home';
   tab = name;
   store.setTab(name);
   document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
-  document.querySelectorAll('#bnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
-  if (name === 'chart') {
-    requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
-  }
-  if (name === 'tech') renderTech();
-  if (name === 'plan') { renderPlan(); renderSignalHist(); refreshPfxStatus(); const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; } }
-  if (name === 'chat') { renderChat(); }
-  if (name === 'more') { renderChangelogBox(); renderOverlaySet(); }
+  const navHighlight = (name === 'tech' || name === 'news') ? 'more' : name;
+  document.querySelectorAll('#bnav button').forEach(b => {
+    b.classList.toggle('on', b.dataset.tab === navHighlight);
+  });
+  try {
+    if (name === 'chart') {
+      requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
+    }
+    if (name === 'tech') renderTech();
+    if (name === 'news') renderNews();
+    if (name === 'plan') {
+      renderPlan(); renderSignalHist(); refreshPfxStatus();
+      const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; }
+      const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; }
+    }
+    if (name === 'chat') { renderChat(); }
+    if (name === 'more') { renderChangelogBox(); renderOverlaySet(); wireMoreHub(); }
+  } catch (e) { console.warn('showTab', e); }
+}
+function wireMoreHub() {
+  document.querySelectorAll('#moreHub [data-go]').forEach(btn => {
+    btn.onclick = () => showTab(btn.dataset.go);
+  });
 }
 $('bnav').querySelectorAll('button').forEach(b => {
   b.onclick = () => showTab(b.dataset.tab);
 });
+if ($('backMoreTech')) $('backMoreTech').onclick = () => showTab('more');
+if ($('backMoreNews')) $('backMoreNews').onclick = () => showTab('more');
 
 /* ---- Renderers ---- */
 function renderThai() {
@@ -557,20 +576,37 @@ async function refreshPfxStatus() {
   const st = $('pfxStatus');
   const del = $('btnPfxDelete');
   if (!st) return;
+  // While analyzing/installing, do not overwrite progress text
+  if (pfxBusy) return;
   try {
     const s = await nativeStatus();
     const ready = !!(s.ready || isMarkedReady());
-    if (ready) st.textContent = t('pureFxAiReady');
-    else if (s.downloading) {
-      const pct = s.total ? Math.floor((s.done / s.total) * 100) : 0;
+    if (ready) {
+      st.textContent = t('pureFxAiReady');
+      $('pfxBar')?.classList.add('hidden');
+    } else if (s.downloading) {
+      const pct = s.total ? Math.min(99, Math.floor((s.done / s.total) * 100)) : 0;
       st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
-    } else st.textContent = '';
+      $('pfxBar')?.classList.remove('hidden');
+      const fill = $('pfxBarFill');
+      if (fill) fill.style.width = pct + '%';
+    } else {
+      // Keep last non-empty status if any; otherwise blank (not "installing")
+      if (!st.textContent || /install|ติดตั้ง|安装|Installing|กำลัง/i.test(st.textContent)) {
+        st.textContent = t('pureFxAiNotInstalled');
+      }
+    }
     if (del) {
       del.classList.toggle('hidden', !ready);
       del.textContent = t('pureFxAiDelete');
       del.onclick = removePureFxAiPack;
     }
-  } catch { st.textContent = ''; if (del) del.classList.add('hidden'); }
+  } catch {
+    if (isMarkedReady()) {
+      st.textContent = t('pureFxAiReady');
+      if (del) del.classList.remove('hidden');
+    }
+  }
 }
 
 async function removePureFxAiPack() {
@@ -792,6 +828,18 @@ async function pushNativeSnapshot() {
   } catch (e) {}
 }
 
+async function notifyPopup(title, text, kind) {
+  if (!native || !text) return;
+  try {
+    await Pg.notifyPopup({ title: title || 'PUREGOLD', text: String(text).slice(0, 240), kind: kind || 'alert' });
+  } catch (e) {}
+}
+
+async function ensureNotifPerm() {
+  if (!native) return;
+  try { await Pg.requestNotifPermission?.(); } catch (e) {}
+}
+
 async function renderOverlaySet() {
   const el = $('overlaySet');
   if (!el) return;
@@ -966,6 +1014,7 @@ function renderAll() {
   renderNews();
   renderTech();
   renderSignTeaser();
+  wireMoreHub();
   renderChat(false);
   stamp();
   if (chart) chart.applyOptions({ localization: { locale: localeTag(L) } });
@@ -1020,7 +1069,7 @@ async function loadA() {
   try {
     A = await analyze();
     store.saveAnalysis(A);
-    store.recordSignal(A);
+    (() => { const sg = store.recordSignal(A); if (sg) { notifyPopup('PUREGOLD', `${sg.side} · $${Number(A.price).toFixed(0)}`, 'signal'); } return sg; })();
     store.updateSignalOutcomes(A.price);
     setOffline(false);
     renderA();
@@ -1297,9 +1346,14 @@ if ($('clOk')) $('clOk').onclick = closeChangelog;
 if ($('btnChangelog')) $('btnChangelog').onclick = () => openChangelog();
 $('clModal')?.addEventListener('click', e => { if (e.target === $('clModal')) closeChangelog(); });
 
+// Migrate old bottom-nav tabs into More hub
+if (tab === 'tech' || tab === 'news') { /* keep */ }
+else if (!['home','plan','chat','chart','more'].includes(tab)) tab = 'home';
+
 showTab(tab);
 renderAll();
 saveSet();
+ensureNotifPerm();
 refresh().then(() => maybeShowWhatsNew());
 setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
