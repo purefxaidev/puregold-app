@@ -2,7 +2,7 @@ import { analyze, klines, shiftBars, smcNote } from './engine.js';
 import { createChart, CrosshairMode } from 'lightweight-charts';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE } from './signup.js';
+import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE, signupLang } from './signup.js';
 import { t as tr, LANGS, localeTag } from './i18n.js';
 import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
@@ -13,7 +13,7 @@ const $ = id => document.getElementById(id);
 const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
-const APP_VERSION = '0.3.1';
+const APP_VERSION = '0.3.2';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -74,8 +74,8 @@ async function checkUpdate() {
       ban.className = 'banner update';
       $('offlineBanner').after(ban);
     }
-    ban.innerHTML = `<div class="upd-row"><span>${esc(L === 'th' ? `มีเวอร์ชันใหม่ ${tag}` : L === 'zh' ? `有新版本 ${tag}` : L === 'ja' ? `新バージョン ${tag}` : `Update available ${tag}`)}</span>
-      <button type="button" class="btn upd-btn" id="btnUpdate">${esc(L === 'th' ? 'อัปเดต' : L === 'zh' ? '更新' : L === 'ja' ? '更新' : 'Update')}</button></div>`;
+    ban.innerHTML = `<div class="upd-row"><span>${esc(t('updAvail') + ' ' + tag)}</span>
+      <button type="button" class="btn upd-btn" id="btnUpdate">${esc(t('updBtn'))}</button></div>`;
     ban.classList.remove('hidden');
     $('btnUpdate').onclick = async () => {
       const url = d.html_url || RELEASES_LATEST;
@@ -281,9 +281,9 @@ function addLine(price, color, title, style = 2, width = 1) {
 function applyOverlays() {
   if (!candleSeries || !A) return;
   clearPriceLines();
-  A.sup?.slice(0, 3).forEach(l => addLine(l[0], '#3ddc84', L === 'th' ? 'รับ' : 'S'));
-  A.res?.slice(0, 3).forEach(l => addLine(l[0], '#ff5c5c', L === 'th' ? 'ต้าน' : 'R'));
-  addLine(A.price, '#f5d27a', L === 'th' ? 'ราคา' : 'Px', 0, 1);
+  A.sup?.slice(0, 3).forEach(l => addLine(l[0], '#3ddc84', t('ovS')));
+  A.res?.slice(0, 3).forEach(l => addLine(l[0], '#ff5c5c', t('ovR')));
+  addLine(A.price, '#f5d27a', t('ovPx'), 0, 1);
 
   const S = A.setup;
   if (S) {
@@ -662,11 +662,9 @@ function checkCustomAlerts(price) {
     else if (a.dir === 'below') hit = price <= a.price && (last > a.price || !last);
     else hit = last && ((last < a.price && price >= a.price) || (last > a.price && price <= a.price));
     if (hit) {
-      const text = L === 'th'
-        ? `ราคาทองถึง ${Math.round(a.price)} แล้ว ตอนนี้ ${Math.round(price)}`
-        : L === 'zh' ? `金价触及 ${Math.round(a.price)}，现价 ${Math.round(price)}`
-          : L === 'ja' ? `金価格が ${Math.round(a.price)} に到達、現在 ${Math.round(price)}`
-            : `Gold hit ${Math.round(a.price)}, now ${Math.round(price)}`;
+      const text = t('alertHitTpl')
+        .replace('{p}', String(Math.round(a.price)))
+        .replace('{n}', String(Math.round(price)));
       store.markPriceAlertHit(a.id);
       store.pushAlertHist({ text, kind: 'price' });
       if (native) {
@@ -748,7 +746,7 @@ async function openExness() {
 }
 
 async function openWebGuide() {
-  const u = EXNESS_WEB_GUIDE + (L === 'en' ? '?lang=en' : '?lang=th');
+  const u = EXNESS_WEB_GUIDE + (signupLang(L) === 'th' ? '?lang=th' : '?lang=en');
   try {
     if (native) await Browser.open({ url: u });
     else window.open(u, '_blank', 'noopener');
@@ -773,7 +771,7 @@ function showSignup(on) {
 }
 
 function renderSignup() {
-  const lang = (L === 'en') ? 'en' : 'th';
+  const lang = signupLang(L);
   const Steps = signupSteps(lang);
   if (signI > Steps.length - 1) signI = Steps.length - 1;
   const s = Steps[signI];

@@ -4,10 +4,11 @@
 
 **EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R, Order Blocks & FVG (Smart Money), algorithmic forecast, clear entry/exit (Entry / SL / TP / Invalidation), gold news analysis, minute + custom price alerts, multi-language (TH / EN / ZH / JA), USDT donate, Exness sign-up wizard.
 
-## Features (0.3.1)
+## Features (0.3.2)
 - Production bottom-nav UI (Home / Chart / Techniques / News / More), dark gold theme
 - Techniques menu (worldwide XAU): Smart Money, S/R, Pivot, Trend/MTF, Fibonacci, Session
-- Languages: Thai, English, Chinese, Japanese
+- Exness signup wizard fully localized TH / ZH / EN
+- Languages: full UI in Thai / English / Chinese (日本語 optional)
 - Entry/Exit setup card: side, entry zone, SL, TP, invalidation, RR (educational)
 - Chart overlays: S/R, entry/SL/TP/invalidation, Order Blocks & FVG (toggle)
 - SMC list from gold-dashboard rules (deterministic)

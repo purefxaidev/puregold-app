@@ -57,6 +57,9 @@ const en = {
   techSessionHint: 'Which global session is active and how XAU often behaves.',
   nearest: 'Nearest', vsPivot: 'vs Pivot', swing: 'Swing', levels: 'Levels',
   donOpenQr: 'Show QR', 
+  updAvail: 'Update available', updBtn: 'Update',
+  ovS: 'S', ovR: 'R', ovPx: 'Px',
+  alertHitTpl: 'Gold hit {p}, now {n}',
   androidOnly: 'Voice test: Android only',
 };
 
@@ -119,6 +122,9 @@ const th = {
   techSessionHint: 'เซสชันทั่วโลกที่กำลังเปิด และพฤติกรรมทองโดยทั่วไป',
   nearest: 'ใกล้สุด', vsPivot: 'เทียบ Pivot', swing: 'สวิง', levels: 'ระดับ',
   donOpenQr: 'แสดง QR',
+  updAvail: 'มีเวอร์ชันใหม่', updBtn: 'อัปเดต',
+  ovS: 'รับ', ovR: 'ต้าน', ovPx: 'ราคา',
+  alertHitTpl: 'ราคาทองถึง {p} แล้ว ตอนนี้ {n}',
   androidOnly: 'ทดสอบเสียง: เฉพาะ Android',
 };
 
@@ -181,6 +187,9 @@ const zh = {
   techSessionHint: '当前全球交易时段及黄金常见表现。',
   nearest: '最近', vsPivot: '相对枢轴', swing: '波段', levels: '水平',
   donOpenQr: '显示二维码',
+  updAvail: '有新版本', updBtn: '更新',
+  ovS: '支撑', ovR: '阻力', ovPx: '现价',
+  alertHitTpl: '金价触及 {p}，现价 {n}',
   androidOnly: '语音测试：仅 Android',
 };
 
@@ -243,6 +252,9 @@ const ja = {
   techSessionHint: '現在の世界セッションと金の典型的な動き。',
   nearest: '最寄り', vsPivot: 'ピボット比', swing: 'スイング', levels: '水準',
   donOpenQr: 'QRを表示',
+  updAvail: '新バージョン', updBtn: '更新',
+  ovS: 'サポ', ovR: 'レジ', ovPx: '価格',
+  alertHitTpl: '金価格が {p} に到達、現在 {n}',
   androidOnly: '音声テスト: Androidのみ',
 };
 
