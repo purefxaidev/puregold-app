@@ -1,10 +1,10 @@
 # PUREGOLD (PureFxAi)
 
-**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง: ทองแท่ง, สมาคมฯ, รูปพรรณ) และทองโลก XAUUSD พร้อมกราฟแท่งเทียน แนวรับ/แนวต้านซ้อนทับ ระบบคาดการณ์ระยะสั้นจากกฎอัลกอริทึม มุมมองและแผนเทรด (SL/TP/RR) สลับภาษาไทย/อังกฤษ รันอัตโนมัติเบื้องหลัง (WorkManager) ตั้งช่วงแจ้งเตือนเป็นนาที เปิด/ปิดเสียงภาษาไทย (Android TTS) เมื่อเบรกแนวสำคัญหรือมุมมองเปลี่ยน
+**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง: ทองแท่ง, สมาคมฯ, รูปพรรณ) และทองโลก XAUUSD พร้อมกราฟแท่งเทียน แนวรับ/แนวต้านซ้อนทับ ระบบคาดการณ์ระยะสั้นจากกฎอัลกอริทึม มุมมองและแผนเทรด (SL/TP/RR) สลับภาษาไทย/อังกฤษ รันอัตโนมัติเบื้องหลัง (WorkManager) ตั้งช่วงแจ้งเตือนเป็นนาที เปิด/ปิดเสียงภาษาไทย (Android TTS) เมื่อเบรกแนวสำคัญหรือมุมมองเปลี่ยน รวมคู่มือสมัคร Exness ทีละขั้น (ลิงก์ partner)
 
-**EN:** Android app analyzing Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R overlays, short-term algorithmic forecast, bias + rule-based plan (SL/TP/RR), TH/EN toggle, background auto-refresh, alert interval in minutes, voice on/off (Android TTS) for S/R breaks and bias changes.
+**EN:** Android app analyzing Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R overlays, short-term algorithmic forecast, bias + rule-based plan (SL/TP/RR), TH/EN toggle, background auto-refresh, alert interval in minutes, voice on/off (Android TTS) for S/R breaks and bias changes, plus an in-app Exness sign-up wizard (partner link).
 
-## Features (0.2.0)
+## Features (0.2.1)
 - Interactive XAU chart (M15 / H1 / H4 / D1) via TradingView **lightweight-charts**
 - Support (green) / resistance (red) / current price overlays
 - Forecast card: direction, confidence %, entry zone, invalidation, short reasons (same rule engine — no on-device LLM)
@@ -21,6 +21,17 @@ Requires JDK 17, Android SDK (build-tools 35), and a release keystore kept OUTSI
 - Thai gold: apicheckprice.huasengheng.com
 - Spot: api.gold-api.com/price/XAU
 - Candles: Binance PAXGUSDT (XAU proxy) — shifted by spot−PAXG basis so chart levels match XAU spot
+
+
+## Exness sign-up guide
+In-app step wizard (TH/EN) adapted from the web guide. Partner referral link (code `s2didh6p`):
+`https://one.toexness.com/a/s2didh6p`
+
+Opening the CTA uses Capacitor Browser so Exness can set the partner/IB cookie on its domain (no forged cookies). Optional offscreen WebView warm via `PgNative.warmPartner`.
+
+Web fallback: https://purefxaidev.github.io/gold-dashboard/signup.html
+
+Includes partner disclosure + CFD / XAUUSD risk warning.
 
 ## Background / Doze
 WorkManager schedules the next run after each success using your interval. Android Doze / battery optimizations may delay jobs; reboot-persistent exact alarms are not required for this version.

@@ -5,7 +5,9 @@ KS=${KS:-/home/box/secrets/purefxai-release.jks};export PW=$(grep storePassword 
 source ./version.env
 sed -i -E "s/versionCode [0-9]+/versionCode $VERSION_CODE/; s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
 npx vite build && npx cap sync android
-sed -i 's/VERSION_21/VERSION_17/g' android/app/capacitor.build.gradle android/capacitor-cordova-android-plugins/build.gradle node_modules/@capacitor/android/capacitor/build.gradle 2>/dev/null || true
+# Capacitor 7 defaults to Java 21; this box uses JDK 17.
+find android node_modules/@capacitor -type f -name '*.gradle' -print0 2>/dev/null | xargs -0 sed -i 's/VERSION_21/VERSION_17/g' 2>/dev/null || true
+find android/capacitor-cordova-android-plugins android/app -type f -name '*.gradle' -print0 2>/dev/null | xargs -0 sed -i 's/VERSION_21/VERSION_17/g' 2>/dev/null || true
 (cd android && ./gradlew assembleRelease -q --no-daemon)
 $BT/zipalign -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/pg-al.apk
 mkdir -p dist && $BT/apksigner sign --ks "$KS" --ks-key-alias purefxai --ks-pass env:PW --out dist/PUREGOLD.apk /tmp/pg-al.apk && rm -f dist/*.idsig

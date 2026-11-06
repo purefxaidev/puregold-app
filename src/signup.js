@@ -1,0 +1,71 @@
+/** Exness signup wizard adapted from gold-dashboard/signup.html. Partner code s2didh6p. */
+export const EXNESS_REF = 'https://one.toexness.com/a/s2didh6p';
+export const EXNESS_WEB_GUIDE = 'https://purefxaidev.github.io/gold-dashboard/signup.html';
+
+const EXT = `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>`;
+
+function ctaHtml(lang, label) {
+  const t = label || (lang === 'en' ? 'Open the Exness sign-up page' : 'เปิดหน้าสมัคร Exness');
+  return `<button type="button" class="cta" data-ex-open="1">${t} ${EXT}</button>
+ <div class="qr-row"><img src="/exness-qr.png" alt="Exness QR"><div>${lang === 'en'
+   ? 'Scan to open the same partner link<br>Partner referral · code s2didh6p'
+   : 'สแกนเพื่อเปิดลิงก์ partner เดียวกัน<br>ลิงก์แนะนำ · รหัส s2didh6p'}</div></div>`;
+}
+
+export function steps(lang) {
+  if (lang === 'en') return [
+    { t: 'Open the link and register', b: `<ol><li>Tap the button below to open the Exness website</li><li>Tap Register / Sign up (the button name may differ slightly)</li><li>Choose your country of residence</li><li>Enter an email you actually use and set a strong password (upper and lower case, numbers and symbols)</li><li>Read the terms, then confirm your registration</li></ol>
+      <div class="tip">Use an email and password you don't use elsewhere, and never share your password with anyone, including AI assistants.</div>${ctaHtml('en')}`,
+      c: ['Opened the sign-up link', 'Entered email, country and password'] },
+    { t: 'Verify email and phone', b: `<ol><li>Open the email from Exness and enter the verification code (check spam/promotions if you can't find it)</li><li>You may be asked for a mobile number; enter the SMS code correctly</li><li>Turn on two-step verification if offered</li></ol><div class="tip">Codes expire quickly. If one expires, request a new one.</div>`,
+      c: ['Email verified', 'Phone verified'] },
+    { t: 'Complete profile and verify identity (KYC)', b: `<ol><li>Enter personal details exactly as on your ID card or passport (name, date of birth, address)</li><li>Upload an ID document: national ID card or passport</li><li>You may be asked for a selfie or face video to match the document</li><li>Proof of address: e.g. a utility bill or bank statement showing the same name and address (within the allowed age)</li></ol>
+      <div class="tip">To pass quickly: shoot in good light with no glare, all 4 corners visible, sharp text, no editing, and the same spelling of your name everywhere.</div><div class="tip">Review can take from a few minutes to several hours. You can do some of the next steps meanwhile.</div>`,
+      c: ['Profile completed', 'Uploaded ID/passport and selfie', 'Uploaded proof of address'] },
+    { t: 'Choose an account type', b: `<ul><li><b>Standard Cent (USC)</b>: good for beginners. The balance is shown in cents, so you can trade real money in small amounts with smaller risk per trade.</li><li><b>Standard</b>: the basic USD account, for when you understand risk management.</li><li>Always try a <b>Demo account</b> first.</li></ul>
+      <div class="tip">Account names and conditions (spread, commission, minimum deposit) can change. Check on the Exness website before choosing.</div>${ctaHtml('en', 'Log in to Exness to open an account')}`,
+      c: ['Tried a Demo account', 'Opened a real account that suits me'] },
+    { t: 'Deposit', b: `<ol><li>In your account area, choose Deposit (the name may differ slightly)</li><li>Pick a payment method available in your country, such as bank transfer, QR payment or others (methods and fees may change)</li><li>Enter the amount and follow the on-screen steps</li><li>The bank account you pay from should be in your own name</li></ol>
+      <div class="warn">Start with a small amount you can afford to lose completely. Never use borrowed money or money you need to live on.</div>`,
+      c: ['Deposited an amount I can afford to lose'] },
+    { t: 'Install the app or use the web terminal', b: `<ul><li><b>Mobile:</b> install the Exness trading app from the App Store / Google Play (check the developer really is Exness)</li><li><b>Computer:</b> use the Web Terminal in your browser, or MetaTrader 5</li><li>Log in with your trading account and check you picked the right one (Demo or real)</li></ul><div class="tip">Beware of fake websites and apps. Only use official links or app stores.</div>`,
+      c: ['Installed the app / opened the Web Terminal', 'Logged in to my trading account'] },
+    { t: 'Find XAUUSD and open your first trade', b: `<ol><li>Search for the symbol <b>XAUUSD</b> (gold)</li><li>Check PUREGOLD analysis in this app: bias, entry zone, SL and TP</li><li>Use a small lot size, e.g. 0.01–0.1 (Cent account)</li><li><b>Always set SL and TP</b> before confirming the order</li><li>Double-check every value, then confirm</li></ol>
+      <div class="tip">SL = automatic stop loss · TP = automatic take profit · If unsure, practise on Demo first.</div>`,
+      c: ['Found XAUUSD', 'Opened my first trade with SL and TP'] },
+    { t: 'Risk management rules', b: `<ul><li>Risk no more than 1–2% of your account per trade</li><li>Every trade needs SL and TP · reward-to-risk (RR) of at least 1.5</li><li>Never average down a losing trade and never move your SL further away</li><li>Don't open new trades 15–30 minutes before and after major news (CPI, NFP, FOMC)</li><li>After 3 losses in a row or a 10% drawdown, stop for the day</li><li>Journal every trade to learn from mistakes</li></ul>
+      <div class="warn">No system or AI can guarantee profits. Trading is high risk.</div>`,
+      c: ['I understand and will follow the risk rules'] },
+  ];
+  return [
+    { t: 'เปิดลิงก์และลงทะเบียน', b: `<ol><li>กดปุ่มด้านล่างเพื่อเปิดหน้าเว็บ Exness</li><li>กดปุ่มลงทะเบียน/สมัครสมาชิก (ชื่อปุ่มอาจต่างกันเล็กน้อย)</li><li>เลือกประเทศที่พำนัก: <b>ไทย</b></li><li>กรอกอีเมลที่ใช้งานจริง และตั้งรหัสผ่านที่เดายาก (ผสมตัวพิมพ์ใหญ่ เล็ก ตัวเลข และสัญลักษณ์)</li><li>อ่านเงื่อนไข แล้วกดยืนยันการสมัคร</li></ol>
+      <div class="tip">ใช้อีเมลและรหัสผ่านที่ไม่ซ้ำกับบริการอื่น และห้ามบอกรหัสผ่านกับใคร รวมถึงผู้ช่วย AI</div>${ctaHtml('th')}`,
+      c: ['เปิดลิงก์สมัครแล้ว', 'กรอกอีเมล ประเทศ และรหัสผ่านเรียบร้อย'] },
+    { t: 'ยืนยันอีเมลและเบอร์โทร', b: `<ol><li>เปิดอีเมล หาข้อความจาก Exness แล้วนำรหัสยืนยันไปกรอก (ถ้าไม่เจอให้ดูในโฟลเดอร์สแปม/โปรโมชัน)</li><li>ระบบอาจขอเบอร์มือถือ ให้รับรหัส SMS แล้วกรอกให้ถูกต้อง</li><li>แนะนำให้เปิดการยืนยันตัวตน 2 ขั้นตอน (ถ้ามีให้เลือก)</li></ol><div class="tip">รหัสยืนยันมักมีอายุสั้น ถ้าหมดอายุให้กดขอรหัสใหม่</div>`,
+      c: ['ยืนยันอีเมลแล้ว', 'ยืนยันเบอร์โทรแล้ว'] },
+    { t: 'กรอกโปรไฟล์และยืนยันตัวตน (KYC)', b: `<ol><li>กรอกข้อมูลส่วนตัวให้ตรงกับบัตรประชาชน/พาสปอร์ต (ชื่อ-นามสกุลภาษาอังกฤษ วันเกิด ที่อยู่)</li><li>อัปโหลดเอกสารยืนยันตัวตน: บัตรประชาชน หรือ พาสปอร์ต</li><li>ระบบอาจขอถ่ายเซลฟี่/วิดีโอใบหน้าเพื่อเทียบกับเอกสาร</li><li>เอกสารยืนยันที่อยู่: เช่น บิลค่าน้ำ ค่าไฟ หรือ statement ธนาคาร ที่มีชื่อและที่อยู่ตรงกับที่กรอก (อายุเอกสารตามที่ระบบกำหนด)</li></ol>
+      <div class="tip">เคล็ดลับให้ผ่านเร็ว: ถ่ายในที่สว่าง ไม่มีแสงสะท้อน เห็นมุมเอกสารครบ 4 มุม ตัวอักษรชัด ไม่ตัดต่อ และชื่อสะกดตรงกันทุกที่</div><div class="tip">การตรวจสอบอาจใช้เวลาตั้งแต่ไม่กี่นาทีถึงหลายชั่วโมง ระหว่างนี้ทำขั้นตอนถัดไปบางส่วนได้</div>`,
+      c: ['กรอกโปรไฟล์ครบ', 'อัปโหลดบัตร/พาสปอร์ตและเซลฟี่แล้ว', 'อัปโหลดเอกสารยืนยันที่อยู่แล้ว'] },
+    { t: 'เลือกประเภทบัญชี', b: `<ul><li><b>Standard Cent (หน่วย USC)</b>: เหมาะกับมือใหม่ ยอดเงินแสดงเป็นเซนต์ ทำให้ทดลองเทรดด้วยเงินจริงจำนวนน้อยได้ ความเสี่ยงต่อไม้เล็กลง</li><li><b>Standard</b>: บัญชีพื้นฐานหน่วยดอลลาร์ เหมาะเมื่อเข้าใจการบริหารความเสี่ยงแล้ว</li><li>แนะนำให้ลอง <b>บัญชีทดลอง (Demo)</b> ก่อนเสมอ</li></ul>
+      <div class="tip">ชื่อและเงื่อนไขของบัญชีแต่ละประเภท (สเปรด ค่าคอมมิชชั่น เงินฝากขั้นต่ำ) อาจเปลี่ยนได้ ให้ตรวจสอบบนเว็บ Exness ก่อนเลือก</div>${ctaHtml('th', 'เข้าสู่ระบบ Exness เพื่อเปิดบัญชี')}`,
+      c: ['ลองบัญชี Demo แล้ว', 'เปิดบัญชีจริงประเภทที่เหมาะกับตัวเองแล้ว'] },
+    { t: 'ฝากเงิน', b: `<ol><li>ในหน้าบัญชี เลือกเมนูฝากเงิน (ชื่ออาจต่างกันเล็กน้อย)</li><li>เลือกวิธีฝากที่มีให้ในไทย ซึ่งอาจเป็นการโอนผ่านธนาคาร, QR พร้อมเพย์ หรือช่องทางอื่น (วิธีและค่าธรรมเนียมอาจเปลี่ยนแปลงได้)</li><li>ใส่จำนวนเงินและทำรายการตามขั้นตอนบนหน้าจอ</li><li>บัญชีธนาคารที่ใช้โอนควรเป็นชื่อเดียวกับผู้สมัคร</li></ol>
+      <div class="warn">เริ่มด้วยเงินจำนวนน้อยที่เสียได้ทั้งหมด อย่าใช้เงินกู้หรือเงินที่จำเป็นต่อการใช้ชีวิต</div>`,
+      c: ['ฝากเงินจำนวนที่ยอมเสียได้แล้ว'] },
+    { t: 'ติดตั้งแอปหรือใช้เว็บเทรด', b: `<ul><li><b>มือถือ:</b> ติดตั้งแอปเทรดของ Exness จาก App Store / Google Play (ตรวจสอบว่าผู้พัฒนาคือ Exness จริง)</li><li><b>คอมพิวเตอร์:</b> ใช้ Web Terminal ผ่านเบราว์เซอร์ หรือ MetaTrader 5</li><li>ล็อกอินด้วยบัญชีเทรดที่เปิดไว้ และตรวจว่าเลือกบัญชีถูก (Demo หรือ บัญชีจริง)</li></ul><div class="tip">ระวังเว็บ/แอปปลอม เข้าผ่านลิงก์ทางการหรือร้านค้าแอปเท่านั้น</div>`,
+      c: ['ติดตั้งแอป/เปิด Web Terminal แล้ว', 'ล็อกอินบัญชีเทรดได้'] },
+    { t: 'หา XAUUSD และเปิดไม้แรก', b: `<ol><li>ค้นหาสัญลักษณ์ <b>XAUUSD</b> (ทองคำ) ในรายการสินค้า</li><li>ดูการวิเคราะห์จากแอป PUREGOLD: มุมมอง โซนเข้า SL และ TP</li><li>ตั้งขนาดล็อตเล็กๆ เช่น 0.01–0.1 (บัญชี Cent)</li><li><b>ต้องตั้ง SL และ TP ทุกครั้ง</b> ก่อนกดยืนยันคำสั่ง</li><li>ตรวจทานทุกค่าอีกครั้ง แล้วจึงยืนยัน</li></ol>
+      <div class="tip">SL = จุดตัดขาดทุนอัตโนมัติ · TP = จุดรับกำไรอัตโนมัติ · ถ้าไม่แน่ใจ ลองบนบัญชี Demo ก่อน</div>`,
+      c: ['หา XAUUSD เจอแล้ว', 'เปิดไม้แรกพร้อม SL และ TP แล้ว'] },
+    { t: 'กฎบริหารความเสี่ยง', b: `<ul><li>เสี่ยงต่อไม้ไม่เกิน 1–2% ของเงินในบัญชี</li><li>ทุกไม้ต้องมี SL และ TP · อัตรากำไรต่อความเสี่ยง (RR) อย่างน้อย 1.5</li><li>ห้ามถัวไม้ที่ขาดทุน และห้ามเลื่อน SL หนี</li><li>ไม่เปิดไม้ใหม่ช่วง 15–30 นาทีก่อนและหลังข่าวแรง (CPI, NFP, FOMC)</li><li>ขาดทุนติดกัน 3 ไม้ หรือพอร์ตลด 10% ให้หยุดพักวันนั้น</li><li>จดบันทึกทุกไม้ เพื่อเรียนรู้จากความผิดพลาด</li></ul>
+      <div class="warn">ไม่มีระบบหรือ AI ใดรับประกันกำไรได้ การเทรดมีความเสี่ยงสูง</div>`,
+      c: ['เข้าใจและจะทำตามกฎความเสี่ยง'] },
+  ];
+}
+
+export const DISC = {
+  th: `<b>การเปิดเผยข้อมูล:</b> ลิงก์สมัครในหน้านี้เป็นลิงก์แนะนำ (partner) ของผู้จัดทำ (รหัส s2didh6p) หากสมัครผ่านลิงก์ ผู้จัดทำอาจได้รับค่าตอบแทนจาก Exness โดยไม่มีค่าใช้จ่ายเพิ่มสำหรับคุณ<br>
+<b>คำเตือนความเสี่ยง:</b> CFD และทองคำ (XAUUSD) เป็นสินค้าที่มีเลเวอเรจและความเสี่ยงสูง คุณอาจขาดทุนเงินลงทุนได้ทั้งหมดอย่างรวดเร็ว ลงทุนเฉพาะเงินที่เสียได้ ข้อมูลนี้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน และขั้นตอน/ชื่อปุ่มบนเว็บ Exness อาจเปลี่ยนแปลงได้`,
+  en: `<b>Disclosure:</b> The sign-up link on this page is the author's partner referral link (code s2didh6p). If you register through it, the author may receive a commission from Exness at no extra cost to you.<br>
+<b>Risk warning:</b> CFDs and gold (XAUUSD) are leveraged, high-risk products. You can lose all of your investment quickly. Only invest money you can afford to lose. This is for education only, not investment advice, and the steps/button names on the Exness site may change.`,
+};
