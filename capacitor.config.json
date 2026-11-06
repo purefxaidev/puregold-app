@@ -1,0 +1,1 @@
+{"appId":"com.purefxai.puregold","appName":"PUREGOLD","webDir":"dist-web","android":{"backgroundColor":"#07080d"},"server":{"androidScheme":"https"},"plugins":{"CapacitorHttp":{"enabled":true}}}
