@@ -76,6 +76,7 @@
     <!-- CHART -->
     <div class="panel panel-dense hidden" data-panel="chart">
       <section>
+        <button type="button" class="btn sec" id="backMoreChart" style="margin:0 0 8px;width:auto;padding:6px 12px">←</button>
         <div class="sec-head">
           <h2 data-i="chart"></h2>
           <label class="tog"><input type="checkbox" id="smcToggle"><span data-i="smc"></span></label>
@@ -103,9 +104,11 @@
           <h2 style="margin:0" data-i="navChat"></h2>
           <label class="tog"><input type="checkbox" id="chatVoice" checked><span data-i="chatVoice"></span></label>
         </div>
-        <label class="row" style="margin:0 0 8px"><span data-i="voicePick"></span>
+        <label class="row" style="margin:0 0 8px;flex-wrap:wrap"><span data-i="voicePick"></span>
           <select id="chatVoicePick" style="width:auto;min-width:120px"></select>
+          <button type="button" class="btn sec" id="btnVoiceTest" data-i="voiceTest" style="margin:0;width:auto;padding:6px 10px"></button>
         </label>
+        <div id="chatVoiceStatus" class="mut s" style="margin:0 0 8px"></div>
         <div class="chat-risk" id="chatRisk"></div>
         <div id="chatLog" class="chat-log" aria-live="polite"></div>
         <div id="chatChips" class="chip-row chat-chips"></div>
@@ -132,8 +135,9 @@
     <!-- NEWS -->
     <div class="panel panel-dense hidden" data-panel="news">
       <section>
-        <button type="button" class="btn sec" id="backMoreNews" style="margin:0 0 8px;width:auto;padding:6px 12px">←</button>
-        <h2 data-i="news"></h2>
+        <div class="sec-head news-sec-head">
+          <h2 data-i="news"></h2>
+        </div>
         <div id="newsList"><div class="skel" data-i="load"></div></div>
       </section>
     </div>
@@ -144,7 +148,7 @@
         <h2 data-i="moreHub"></h2>
         <div class="more-hub" id="moreHub">
           <button type="button" class="btn sec hub-btn" data-go="tech" data-i="navTech"></button>
-          <button type="button" class="btn sec hub-btn" data-go="news" data-i="navNews"></button>
+          <button type="button" class="btn sec hub-btn" data-go="chart" data-i="navChart"></button>
         </div>
         <div class="mut s" data-i="moreHubHint" style="margin-top:8px"></div>
       </section>
@@ -196,8 +200,8 @@
   <nav class="bnav" id="bnav">
     <button type="button" data-tab="home" class="on"><span class="ni">⌂</span><span data-i="navHome"></span></button>
     <button type="button" data-tab="plan"><span class="ni">◎</span><span data-i="navPlan"></span></button>
+    <button type="button" data-tab="news"><span class="ni">✦</span><span data-i="navNews"></span></button>
     <button type="button" data-tab="chat"><span class="ni">💬</span><span data-i="navChat"></span></button>
-    <button type="button" data-tab="chart"><span class="ni">▣</span><span data-i="navChart"></span></button>
     <button type="button" data-tab="more"><span class="ni">⋯</span><span data-i="navMore"></span></button>
   </nav>
 </div>

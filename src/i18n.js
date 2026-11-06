@@ -2,7 +2,7 @@
 const en = {
   navHome: 'Home', navChart: 'Chart', navNews: 'News', navMore: 'More',
   moreHub: 'More tools',
-  wallpaper: 'PureGold wallpaper', wallpaperHint: 'Official PureGold by PureFxAi phone wallpaper. Save then set in phone settings.', wallpaperSave: 'Save wallpaper', wallpaperSaved: 'Saved — set it from Gallery/Photos.', wallpaperFail: 'Could not save wallpaper', wallpaperPreview: 'In-app background uses a soft version of the same art.', moreHubHint: 'Techniques & news live here to keep the main menu simple.',
+  wallpaper: 'PureGold wallpaper', wallpaperHint: 'Official PureGold by PureFxAi phone wallpaper. Save then set in phone settings.', wallpaperSave: 'Save wallpaper', wallpaperSaved: 'Saved — set it from Gallery/Photos.', wallpaperFail: 'Could not save wallpaper', wallpaperPreview: 'In-app background uses a soft version of the same art.', moreHubHint: 'Techniques and the chart live here.',
   smsNotif: 'SMS-style pop-up alerts', smsNotifHint: 'Heads-up notifications for price, signals, and alerts (like SMS).',
   thai: 'Thai gold (Hua Seng Heng)', world: 'World gold XAUUSD',
   chart: 'Chart + analysis', sr: 'Support / Resistance',
@@ -112,6 +112,9 @@ const en = {
   chatRiskShort: 'Investing involves risk',
   chatSpeak: 'Speak',
   chatStop: 'Stop',
+  voiceTest: 'Test PureFxAi voice',
+  voiceTestSample: 'Hello, this is PureFxAi.',
+  voiceCloudFail: 'PureFxAi voice isn’t available. Using device voice for now.',
 };
 
 
@@ -119,7 +122,7 @@ const th = {
   ...en,
   navHome: 'หน้าแรก', navChart: 'กราฟ', navNews: 'ข่าว', navMore: 'เมนู',
   moreHub: 'เครื่องมือเพิ่ม',
-  wallpaper: 'วอลเปเปอร์ PureGold', wallpaperHint: 'วอลเปเปอร์ PureGold by PureFxAi — บันทึกแล้วตั้งเป็นพื้นหลังได้', wallpaperSave: 'บันทึกวอลเปเปอร์', wallpaperSaved: 'บันทึกแล้ว — ตั้งจากแกลเลอรี', wallpaperFail: 'บันทึกไม่สำเร็จ', wallpaperPreview: 'พื้นหลังในแอปใช้ภาพเวอร์ชันอ่อน', moreHubHint: 'เทคนิคและข่าวอยู่ในนี้ เพื่อให้เมนูล่างสั้นลง',
+  wallpaper: 'วอลเปเปอร์ PureGold', wallpaperHint: 'วอลเปเปอร์ PureGold by PureFxAi — บันทึกแล้วตั้งเป็นพื้นหลังได้', wallpaperSave: 'บันทึกวอลเปเปอร์', wallpaperSaved: 'บันทึกแล้ว — ตั้งจากแกลเลอรี', wallpaperFail: 'บันทึกไม่สำเร็จ', wallpaperPreview: 'พื้นหลังในแอปใช้ภาพเวอร์ชันอ่อน', moreHubHint: 'เทคนิคและกราฟอยู่ในนี้',
   smsNotif: 'แจ้งเตือนป๊อปอัปแบบ SMS', smsNotifHint: 'แจ้งเตือนแบบหัวขึ้นสำหรับราคา สัญญาณ และการแจ้งเตือน (คล้าย SMS)',
   thai: 'ทองไทย (ฮั่วเซ่งเฮง)', world: 'ทองโลก XAUUSD',
   chart: 'กราฟ + การวิเคราะห์', sr: 'แนวรับ / แนวต้าน',
@@ -229,6 +232,9 @@ const th = {
   chatRiskShort: 'การลงทุนมีความเสี่ยง',
   chatSpeak: 'ฟังเสียง',
   chatStop: 'หยุด',
+  voiceTest: 'ทดสอบเสียง PureFxAi',
+  voiceTestSample: 'สวัสดี นี่คือ PureFxAi',
+  voiceCloudFail: 'เสียง PureFxAi ไม่พร้อม ใช้เสียงเครื่องชั่วคราว',
 };
 
 
@@ -236,7 +242,7 @@ const zh = {
   ...en,
   navHome: '首页', navChart: '图表', navNews: '新闻', navMore: '更多',
   moreHub: '更多工具',
-  wallpaper: 'PureGold 壁纸', wallpaperHint: '官方 PureGold by PureFxAi 壁纸，保存后在系统设为壁纸。', wallpaperSave: '保存壁纸', wallpaperSaved: '已保存 — 请在相册设为壁纸', wallpaperFail: '保存失败', wallpaperPreview: '应用内背景为柔化版。', moreHubHint: '技法与新闻放在这里，底部菜单更简洁。',
+  wallpaper: 'PureGold 壁纸', wallpaperHint: '官方 PureGold by PureFxAi 壁纸，保存后在系统设为壁纸。', wallpaperSave: '保存壁纸', wallpaperSaved: '已保存 — 请在相册设为壁纸', wallpaperFail: '保存失败', wallpaperPreview: '应用内背景为柔化版。', moreHubHint: '技法与图表放在这里。',
   smsNotif: '短信式弹出通知', smsNotifHint: '价格、信号与提醒的抬头通知（类似短信）。',
   thai: '泰国金价 (Hua Seng Heng)', world: '国际金价 XAUUSD',
   chart: '图表 + 分析', sr: '支撑 / 阻力',
@@ -340,6 +346,9 @@ const zh = {
   chatRiskShort: '投资有风险',
   chatSpeak: '朗读',
   chatStop: '停止',
+  voiceTest: '测试 PureFxAi 语音',
+  voiceTestSample: '你好，我是 PureFxAi。',
+  voiceCloudFail: 'PureFxAi 语音暂不可用，先使用本机语音。',
 };
 
 
@@ -347,7 +356,7 @@ const ja = {
   ...en,
   navHome: 'ホーム', navChart: 'チャート', navNews: 'ニュース', navMore: 'メニュー',
   moreHub: 'その他ツール',
-  wallpaper: 'PureGold壁紙', wallpaperHint: '公式 PureGold by PureFxAi 壁紙。保存して端末で設定。', wallpaperSave: '壁紙を保存', wallpaperSaved: '保存しました', wallpaperFail: '保存に失敗', wallpaperPreview: 'アプリ背景はソフト版です。', moreHubHint: '手法とニュースはここに集約し、下部メニューを簡潔にします。',
+  wallpaper: 'PureGold壁紙', wallpaperHint: '公式 PureGold by PureFxAi 壁紙。保存して端末で設定。', wallpaperSave: '壁紙を保存', wallpaperSaved: '保存しました', wallpaperFail: '保存に失敗', wallpaperPreview: 'アプリ背景はソフト版です。', moreHubHint: '手法とチャートはここにあります。',
   smsNotif: 'SMS風ポップアップ通知', smsNotifHint: '価格・シグナル・アラートのヘッドアップ通知（SMS風）。',
   thai: 'タイ金価格 (Hua Seng Heng)', world: '世界金価格 XAUUSD',
   chart: 'チャート + 分析', sr: 'サポート / レジスタンス',
@@ -451,6 +460,9 @@ const ja = {
   chatRiskShort: '投資にはリスクがあります',
   chatSpeak: '読み上げ',
   chatStop: '停止',
+  voiceTest: 'PureFxAi音声をテスト',
+  voiceTestSample: 'こんにちは、PureFxAiです。',
+  voiceCloudFail: 'PureFxAi音声が使えないため、端末の音声を使います。',
 };
 
 

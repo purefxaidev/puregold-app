@@ -8,7 +8,8 @@ public class GoldWorker extends Worker {
   static SharedPreferences sp(Context c){return c.getSharedPreferences("pg",0);}
   static void schedule(Context c,boolean replace){ SharedPreferences p=sp(c); WorkManager wm=WorkManager.getInstance(c);
     if(!p.getBoolean("auto",true)){wm.cancelUniqueWork(NAME);return;}
-    OneTimeWorkRequest r=new OneTimeWorkRequest.Builder(GoldWorker.class).setInitialDelay(Math.max(5,p.getInt("interval",10)),TimeUnit.MINUTES)
+    int iv=Math.max(1,p.getInt("interval",10));
+    OneTimeWorkRequest r=new OneTimeWorkRequest.Builder(GoldWorker.class).setInitialDelay(iv,TimeUnit.MINUTES)
       .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build();
     wm.enqueueUniqueWork(NAME,replace?ExistingWorkPolicy.REPLACE:ExistingWorkPolicy.KEEP,r); }
   static void runOnce(Context c,boolean force){ WorkManager.getInstance(c).enqueue(new OneTimeWorkRequest.Builder(GoldWorker.class).setInputData(new Data.Builder().putBoolean("force",force).putBoolean("once",true).build()).build()); }
@@ -75,7 +76,7 @@ public class GoldWorker extends Worker {
         p.edit().putString("priceAlerts",keep.toString()).putFloat("pxAlertLast",(float)spot).apply();
         if(anyHit && !(flip||brk||force)) { /* already alerted above */ }
       }catch(Exception ignore){}
-      if(flip||brk||force) alert(c,text,p);
+      if(flip||brk||force) alert(c,text,p, force && once);
     }catch(Exception e){}
     if(!once) schedule(c,true);
     return Result.success(); }
@@ -95,8 +96,23 @@ public class GoldWorker extends Worker {
       nm.createNotificationChannel(pop);
     }
   }
+  static boolean allowAlert(SharedPreferences p,String text){
+    int iv=Math.max(1,p.getInt("interval",10));
+    long now=System.currentTimeMillis();
+    long last=p.getLong("lastAlertAt",0);
+    if(now-last < iv*60_000L) return false;
+    String prev=p.getString("lastAlertText","");
+    if(text!=null && text.equals(prev) && now-last < iv*60_000L) return false;
+    return true;
+  }
+  static void noteAlert(SharedPreferences p,String text){
+    p.edit().putLong("lastAlertAt",System.currentTimeMillis()).putString("lastAlertText",text==null?"":text).apply();
+  }
   /** SMS-like heads-up popup (HIGH channel). */
-  static void popup(Context c,String title,String text,String kind){
+  static void popup(Context c,String title,String text,String kind){ popup(c,title,text,kind,false); }
+  static void popup(Context c,String title,String text,String kind,boolean bypass){
+    SharedPreferences p=sp(c);
+    if(!bypass && !allowAlert(p,text)) return;
     NotificationManager nm=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
     ensureChannels(nm);
     PendingIntent pi=PendingIntent.getActivity(c,0,new Intent(c,MainActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
@@ -115,13 +131,16 @@ public class GoldWorker extends Worker {
         .setDefaults(NotificationCompat.DEFAULT_ALL)
         .setVibrate(new long[]{0,180,80,180});
       nm.notify(id,b.build());
+      noteAlert(p,text);
     }catch(SecurityException e){}
   }
-  static void alert(Context c,String text,SharedPreferences p){
+  static void alert(Context c,String text,SharedPreferences p){ alert(c,text,p,false); }
+  static void alert(Context c,String text,SharedPreferences p,boolean bypass){
+    if(!bypass && !allowAlert(p,text)) return;
     NotificationManager nm=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
     ensureChannels(nm);
     // Prefer SMS-style heads-up for actionable price/bias alerts
-    popup(c,"PUREGOLD",text,"alert");
+    popup(c,"PUREGOLD",text,"alert",true);
     boolean dnd=nm.getCurrentInterruptionFilter()>NotificationManager.INTERRUPTION_FILTER_ALL;
     if(p.getBoolean("voice",true)&&!p.getBoolean("mute",false)&&!dnd) speak(c,text,"th".equals(p.getString("lang","th")));
   }

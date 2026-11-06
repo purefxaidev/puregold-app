@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.8.1',
+    date: '2026-11-06',
+    th: [
+      'เมนูข่าวกลับมาที่แถบล่าง — เห็นชัดขึ้น (กราฟย้ายไปเมนูเพิ่ม)',
+      'เสียง PureFxAi เล่นจากคลาวด์ได้จริง ไม่สลับไปเสียงเครื่องโดยไม่บอก',
+      'แจ้งเตือนเคารพช่วงเวลาที่ตั้งในตั้งค่า ไม่เด้งซ้ำถี่ๆ',
+    ],
+    en: [
+      'News is back on the bottom nav (Chart moved into More)',
+      'PureFxAi cloud voice plays correctly instead of silently using device TTS',
+      'Alerts honor the Settings interval and stop repeating so often',
+    ],
+    zh: [
+      '新闻重新回到底部菜单（图表移入“更多”）',
+      'PureFxAi 云端语音可正常播放，不再悄悄改用系统语音',
+      '通知遵守设置间隔，不再频繁重复弹出',
+    ],
+    ja: [
+      'ニュースを下部メニューに再表示（チャートはその他へ）',
+      'PureFxAiクラウド音声が正しく再生されます',
+      '通知が設定の間隔を守り、頻繁に繰り返さなくなりました',
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-11-06',
     th: [

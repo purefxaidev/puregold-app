@@ -100,12 +100,12 @@ async function checkUpdate() {
 /* ---- Tabs ---- */
 let tab = store.getTab();
 function showTab(name) {
-  // Legacy tabs tech/news still exist as panels; highlight More when opened from hub
+  // Techniques + chart live under More; News is a first-class tab again
   if (!name) name = 'home';
   tab = name;
   store.setTab(name);
   document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
-  const navHighlight = (name === 'tech' || name === 'news') ? 'more' : name;
+  const navHighlight = (name === 'tech' || name === 'chart') ? 'more' : name;
   document.querySelectorAll('#bnav button').forEach(b => {
     b.classList.toggle('on', b.dataset.tab === navHighlight);
   });
@@ -133,7 +133,7 @@ $('bnav').querySelectorAll('button').forEach(b => {
   b.onclick = () => showTab(b.dataset.tab);
 });
 if ($('backMoreTech')) $('backMoreTech').onclick = () => showTab('more');
-if ($('backMoreNews')) $('backMoreNews').onclick = () => showTab('more');
+if ($('backMoreChart')) $('backMoreChart').onclick = () => showTab('more');
 
 /* ---- Renderers ---- */
 function renderThai() {
@@ -415,6 +415,7 @@ async function renderSet() {
     <div id="apiKeyStatus" class="mut s" style="margin:6px 0 12px">${key ? t('pureFxAiReady') : t('pureFxAiNeedKey')}</div>
     <label class="row"><span>${t('voicePick')}</span>
       <select id="voicePickSet">${voiceOpts}</select></label>
+    <button type="button" class="btn sec" id="voiceTestSet" style="margin:8px 0">${t('voiceTest')}</button>
     <div class="mut s" style="margin-bottom:10px">${t('voicePickHint')}</div>` +
     ck('auto', t('auto')) +
     `<label class="row"><span>${t('iv')}</span>
@@ -468,6 +469,7 @@ async function renderSet() {
     setVoiceId(vp.value);
     syncChatVoicePick();
   };
+  if ($('voiceTestSet')) $('voiceTestSet').onclick = () => testPureFxAiVoice();
 }
 
 function renderLang() {
@@ -563,7 +565,7 @@ function renderNews() {
   el.innerHTML = NEWS.map(n => {
     const imp = n.impact || 'neutral';
     const label = imp === 'bullish' ? t('impactUp') : imp === 'bearish' ? t('impactDn') : t('impactFlat');
-    return `<article class="news-card">
+    return `<article class="news-card ${imp}">
       <span class="im ${imp}">${esc(label)}</span>
       <h3>${esc(titleFor(n, L))}</h3>
       <p>${esc(summaryFor(n, L))}</p>
@@ -1064,12 +1066,16 @@ function checkCustomAlerts(price) {
         .replace('{n}', String(Math.round(price)));
       store.markPriceAlertHit(a.id);
       store.pushAlertHist({ text, kind: 'price' });
-      if (native) {
-        try { Pg.runNow({ force: true, customText: text }); } catch (e) {}
+      if (canNotifyPopup()) {
+        markNotified();
+        if (native) {
+          try { Pg.runNow({ force: true, customText: text }); } catch (e) {}
+        }
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try { new Notification('PUREGOLD', { body: text }); } catch (e) {}
+        }
       }
-      if ('Notification' in window && Notification.permission === 'granted') {
-        try { new Notification('PUREGOLD', { body: text }); } catch (e) {}
-      }
+      saveSet();
     }
   });
   localStorage.setItem('pg_last_px', String(price));
@@ -1095,7 +1101,14 @@ async function loadA() {
   try {
     A = await analyze();
     store.saveAnalysis(A);
-    (() => { const sg = store.recordSignal(A); if (sg) { notifyPopup('PUREGOLD', `${sg.side} · $${Number(A.price).toFixed(0)}`, 'signal'); } return sg; })();
+    (() => {
+      const sg = store.recordSignal(A);
+      if (sg && canNotifyPopup()) {
+        markNotified();
+        notifyPopup('PUREGOLD', `${sg.side} · $${Number(A.price).toFixed(0)}`, 'signal');
+      }
+      return sg;
+    })();
     store.updateSignalOutcomes(A.price);
     setOffline(false);
     renderA();
@@ -1152,6 +1165,47 @@ function stopSpeak() {
   try { stopCloudSpeech(); } catch (e) {}
 }
 
+const ALERT_AT_KEY = 'pg_last_alert_at';
+function alertIntervalMs() {
+  return Math.max(1, +S.interval || 10) * 60 * 1000;
+}
+function canNotifyPopup() {
+  const last = +localStorage.getItem(ALERT_AT_KEY) || 0;
+  return Date.now() - last >= alertIntervalMs();
+}
+function markNotified() {
+  localStorage.setItem(ALERT_AT_KEY, String(Date.now()));
+}
+
+function showVoiceFallbackStatus() {
+  const msg = t('voiceCloudFail');
+  const el = $('chatVoiceStatus');
+  if (el) {
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4500);
+  }
+}
+
+async function testPureFxAiVoice() {
+  const sample = t('voiceTestSample');
+  stopSpeak();
+  try { stopCloudSpeech(); } catch (e) {}
+  try {
+    const r = await speakWithPureFxAi(sample, L);
+    if (r === 'played') return;
+    if (r === 'failed') showVoiceFallbackStatus();
+  } catch (e) { showVoiceFallbackStatus(); }
+  if (native) {
+    try { await Pg.speak({ text: sample, lang: L }); return; } catch (e) {}
+  }
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(sample);
+    u.lang = ttsLocale(L);
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
 async function speakText(text) {
   if (!text || !chatVoiceOn) return;
   if (S.mute) return;
@@ -1161,8 +1215,9 @@ async function speakText(text) {
   // Prefer PureFxAi cloud voice when key + non-device voice
   try {
     const used = await speakWithPureFxAi(plain, L);
-    if (used) return;
-  } catch (e) { /* fall through */ }
+    if (used === 'played' || used === true) return;
+    if (used === 'failed') showVoiceFallbackStatus();
+  } catch (e) { showVoiceFallbackStatus(); }
   if (native) {
     try {
       await Pg.speak({ text: plain, lang: L });
@@ -1247,6 +1302,8 @@ function renderChat(resetWelcome = true) {
     };
   }
   syncChatVoicePick();
+  const vt = $('btnVoiceTest');
+  if (vt) { vt.textContent = t('voiceTest'); vt.onclick = () => testPureFxAiVoice(); }
   const chips = $('chatChips');
   if (chips) {
     chips.innerHTML = quickPrompts(L).map(q =>
@@ -1395,9 +1452,9 @@ if ($('clOk')) $('clOk').onclick = closeChangelog;
 if ($('btnChangelog')) $('btnChangelog').onclick = () => openChangelog();
 $('clModal')?.addEventListener('click', e => { if (e.target === $('clModal')) closeChangelog(); });
 
-// Migrate old bottom-nav tabs into More hub
-if (tab === 'tech' || tab === 'news') { /* keep */ }
-else if (!['home','plan','chat','chart','more'].includes(tab)) tab = 'home';
+// Techniques + chart stay as panels (opened from More); news is a main tab
+if (tab === 'tech' || tab === 'chart') { /* keep */ }
+else if (!['home','plan','news','chat','more'].includes(tab)) tab = 'home';
 
 showTab(tab);
 renderAll();

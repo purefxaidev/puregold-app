@@ -84,13 +84,17 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--gold);flex-shrink
 .smc-item .r{font-size:13px;color:var(--white);font-variant-numeric:tabular-nums}
 .smc-item .m{font-size:11px;color:var(--muted);margin-top:2px}
 
-.news-card{background:#0d0f17;border:1px solid var(--line2);border-radius:14px;padding:12px;margin:0 0 10px}
-.news-card .im{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;margin-bottom:6px}
-.news-card .im.bullish{background:#0f2418;color:var(--up)}
-.news-card .im.bearish{background:#2a1214;color:var(--dn)}
+.news-sec-head h2{font-size:18px;letter-spacing:.3px}
+.news-card{background:#0d0f17;border:1px solid var(--line2);border-radius:14px;padding:14px;margin:0 0 12px;border-left:4px solid var(--line2)}
+.news-card.bullish{border-left-color:var(--up);background:linear-gradient(90deg,#0a2418,#0d0f17 40%)}
+.news-card.bearish{border-left-color:var(--dn);background:linear-gradient(90deg,#2a1014,#0d0f17 40%)}
+.news-card.neutral{border-left-color:var(--gold-dim)}
+.news-card .im{display:inline-block;font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;margin-bottom:8px;letter-spacing:.02em}
+.news-card .im.bullish{background:#0a3d24;color:#3dff9a}
+.news-card .im.bearish{background:#4a1216;color:#ff6b75}
 .news-card .im.neutral{background:#1a1a22;color:var(--gold-dim)}
-.news-card h3{margin:0 0 6px;font-size:14px;color:var(--white);line-height:1.35;font-weight:600}
-.news-card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.news-card h3{margin:0 0 6px;font-size:16px;color:var(--white);line-height:1.35;font-weight:700}
+.news-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
 .news-card a{color:var(--gold);font-size:12px;display:inline-block;margin-top:8px;text-decoration:none}
 
 .addr{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;background:#0d0f17;border:1px solid var(--line2);border-radius:10px;padding:10px;margin:8px 0;color:var(--gold)}

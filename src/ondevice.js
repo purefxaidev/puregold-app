@@ -15,8 +15,9 @@ const TEXT_MODELS = [
   'gemini-1.5-flash',
 ];
 const TTS_MODELS = [
-  'gemini-3.8-flash-tts',
   'gemini-2.5-flash-preview-tts',
+  'gemini-3.1-flash-tts-preview',
+  'gemini-3.8-flash-tts',
 ];
 
 const KEY_LS = 'pg_pfx_api_key';
@@ -307,51 +308,108 @@ export function stopCloudSpeech() {
   lastAudio = null;
 }
 
+function writeAscii(view, offset, str) {
+  for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+
+/** Wrap raw 16-bit PCM in a WAV container so HTML Audio can play it. */
+function pcmToWav(pcmBytes, sampleRate = 24000) {
+  const dataSize = pcmBytes.length;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const out = new Uint8Array(buffer);
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+  out.set(pcmBytes, 44);
+  return out;
+}
+
+function sampleRateFromMime(mime) {
+  const m = /rate=(\d+)/i.exec(mime || '');
+  return m ? parseInt(m[1], 10) : 24000;
+}
+
+function audioBytesForPlayback(bytes, mime) {
+  const m = String(mime || '').toLowerCase();
+  const hasRiff = bytes.length >= 4 &&
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+  const rawPcm = /l16|pcm|raw/.test(m) || (!hasRiff && !/wav|mpeg|mp3|ogg|mp4|aac|webm/.test(m));
+  if (rawPcm) {
+    return { bytes: pcmToWav(bytes, sampleRateFromMime(mime)), mime: 'audio/wav' };
+  }
+  return { bytes, mime: m.includes('audio') ? mime : 'audio/wav' };
+}
+
+function isPreviewTts(model) {
+  return /2\.5|3\.1|preview-tts/.test(model || '');
+}
+
+function ttsRequestBody(model, plain, voiceName, langCode) {
+  if (isPreviewTts(model)) {
+    return {
+      contents: [{ parts: [{ text: plain }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+          languageCode: langCode,
+        },
+      },
+    };
+  }
+  return {
+    contents: [{
+      role: 'user',
+      parts: [{
+        text: plain,
+        speechMetadata: { style: 'clear, friendly trading assistant' },
+      }],
+    }],
+    generationConfig: {
+      responseModalities: ['AUDIO'],
+      speechConfig: { voiceConfig: { voice: voiceName } },
+    },
+  };
+}
+
 /**
  * Speak with PureFxAi cloud voice when key + non-device voice selected.
- * Returns true if cloud audio played; false → caller should use device TTS.
+ * Returns 'played' | 'device' | 'failed'.
  */
 export async function speakWithPureFxAi(text, lang) {
   const plain = String(text || '').replace(/\n+/g, '. ').slice(0, 500);
-  if (!plain) return false;
+  if (!plain) return 'device';
   const meta = voiceMeta(getVoiceId());
-  if (!meta.voice) return false; // device voice
+  if (!meta.voice) return 'device';
   const key = await getApiKey();
-  if (!key) return false;
+  if (!key) return 'device';
 
   const langCode = { th: 'th-TH', en: 'en-US', zh: 'zh-CN', ja: 'ja-JP' }[lang] || 'en-US';
-  let lastErr;
   for (const model of TTS_MODELS) {
     try {
-      const data = await geminiGenerate(key, model, {
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: plain,
-            speechMetadata: { style: 'clear, friendly trading assistant' },
-          }],
-        }],
-        generationConfig: {
-          responseModalities: ['AUDIO'],
-          speechConfig: {
-            languageCode: langCode,
-            voiceConfig: {
-              voice: meta.voice,
-              prebuiltVoiceConfig: { voiceName: meta.voice },
-            },
-          },
-        },
-      });
+      const data = await geminiGenerate(key, model, ttsRequestBody(model, plain, meta.voice, langCode));
       const part = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
       const inline = part?.inlineData || part?.inline_data;
       const b64 = inline?.data;
-      const mime = inline?.mimeType || inline?.mime_type || 'audio/wav';
+      const mime = inline?.mimeType || inline?.mime_type || 'audio/L16;codec=pcm;rate=24000';
       if (!b64) throw new Error('no_audio');
       stopCloudSpeech();
       const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime.includes('audio') ? mime : 'audio/wav' });
+      const raw = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
+      const play = audioBytesForPlayback(raw, mime);
+      const blob = new Blob([play.bytes], { type: play.mime });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       lastAudio = audio;
@@ -360,14 +418,13 @@ export async function speakWithPureFxAi(text, lang) {
         audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error('play')); };
         audio.play().catch(reject);
       });
-      return true;
+      return 'played';
     } catch (e) {
-      lastErr = e;
       if (e.status === 404 || /not found|NOT_FOUND/i.test(String(e.message))) continue;
       continue;
     }
   }
-  return false;
+  return 'failed';
 }
 
 export async function unloadModel() { stopCloudSpeech(); }

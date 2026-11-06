@@ -6,12 +6,13 @@
 
 **ZH:** 泰国金与国际金（XAUUSD）分析应用：PureFxAi 聊天、计划页、小组件、悬浮窗、图表等。
 
-## Features (0.8.0)
+## Features (0.8.1)
 - **PureFxAi** chat + plan analysis via your free API key (Settings) — no on-device model download
-- Multiple **PureFxAi voices** (cloud when key present; device TTS fallback)
+- Multiple **PureFxAi voices** (cloud when key present; device TTS fallback) · test-voice button
 - Signal history with **accuracy %**, SMS-style heads-up alerts, widget, overlay
-- Simpler bottom nav · consistent full-screen · new bull/bear launcher icon
-- Techniques & news under More · Exness partner signup
+- Bottom nav: Home / Plan / News / Chat / More · Techniques + Chart under More
+- Alerts honor the interval set in Settings (no spam popups)
+- Exness partner signup
 - Languages: Thai / English / 中文 / 日本語
 - UI never shows third-party model/vendor names — branded PureFxAi only
 

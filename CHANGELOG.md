@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.1 — 2026-11-06
+### TH
+- เมนูข่าวกลับมาที่แถบล่าง (หน้าแรก / แผน / ข่าว / แชท / เมนู) — กราฟย้ายไปในเมนูเพิ่ม
+- เสียง PureFxAi เล่นไฟล์คลาวด์ได้จริง (ไม่เงียบแล้วไปใช้เสียงเครื่องโดยไม่บอก)
+- แจ้งเตือนเคารพช่วงนาทีที่ตั้งไว้ ไม่เด้งซ้ำถี่ๆ
+
+### EN
+- News is a bottom-nav tab again (Home / Plan / News / Chat / More); Chart moved into More
+- PureFxAi cloud voice actually plays (raw PCM wrapped as WAV) instead of silently falling back
+- Alerts honor the Settings interval and no longer spam the same popup
+
+### ZH
+- 新闻重新出现在底部菜单（首页 / 计划 / 新闻 / 聊天 / 更多）；图表移入“更多”
+- PureFxAi 云端语音可正常播放（不再悄悄改用系统语音）
+- 通知遵守设置中的间隔，不再频繁重复弹出
+
+
 ## 0.8.0 — 2026-11-06
 ### TH
 - PureFxAi ใช้ API key ฟรีในตั้งค่า — ไม่โหลดแพ็กโมเดลในเครื่อง (แก้แฮง)
