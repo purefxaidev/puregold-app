@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build + sign release APK. Keystore lives OUTSIDE the repo (/home/box/secrets). Never commit it.
-set -e;export JAVA_HOME=${JAVA_HOME:-/opt/jdk};export PATH=$JAVA_HOME/bin:$PATH;cd "$(dirname "$0")";export ANDROID_HOME=${ANDROID_HOME:-/home/box/android};BT=$ANDROID_HOME/build-tools/35.0.0
+set -e;export JAVA_HOME=${JAVA_HOME:-/home/box/jdk/current};export PATH=$JAVA_HOME/bin:$PATH;cd "$(dirname "$0")";export ANDROID_HOME=${ANDROID_HOME:-/home/box/android};BT=$ANDROID_HOME/build-tools/35.0.0
 KS=${KS:-/home/box/secrets/purefxai-release.jks};export PW=$(grep storePassword ${KS_TXT:-/home/box/secrets/purefxai-keystore.txt}|cut -d= -f2)
 source ./version.env
 sed -i -E "s/versionCode [0-9]+/versionCode $VERSION_CODE/; s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle

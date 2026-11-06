@@ -6,14 +6,17 @@
   --text:#e8e3d3;--white:#fff;--radius:14px;--bnav:58px;
 }
 html,body{margin:0;background:var(--bg);color:var(--text);
-  font-family:Prompt,'Noto Sans SC','Noto Sans JP','Noto Sans Thai',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased}
+  font-family:'IBM Plex Sans Thai',Manrope,'Noto Sans SC','Noto Sans JP',system-ui,-apple-system,sans-serif;
+  font-feature-settings:'kern' 1,'liga' 1;
+  letter-spacing:0.01em;line-height:1.45;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility}
 #app{min-height:100dvh}
 #view-main{padding:env(safe-area-inset-top) 8px calc(var(--bnav) + env(safe-area-inset-bottom) + 6px)}
 #view-signup{padding:env(safe-area-inset-top) 8px 20px}
 
 .top{display:flex;justify-content:space-between;align-items:center;padding:8px 0 6px;position:sticky;top:0;z-index:20;background:linear-gradient(180deg,rgba(7,8,13,.98),rgba(7,8,13,.88) 70%,transparent);backdrop-filter:blur(8px)}
-.brand{font-size:20px;letter-spacing:1.5px;color:var(--gold);font-weight:700}
+.brand{font-size:21px;letter-spacing:1.8px;color:var(--gold);font-weight:800;font-family:Manrope,'IBM Plex Sans Thai',sans-serif}
 .brand b{color:var(--white)}.brand small{display:block;font-size:11px;color:var(--gold-dim);letter-spacing:1px;font-weight:500;margin-top:1px}
 .hb{display:flex;gap:6px}
 .hb button,.icon-btn{background:#151722;color:var(--gold);border:1px solid #3a3220;border-radius:12px;padding:8px 12px;font:inherit;cursor:pointer;min-width:42px}
@@ -25,7 +28,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);
 section{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .sec-head h2{margin:0}
-h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--gold);letter-spacing:.3px}
+h2{margin:0 0 10px;font-size:15px;font-weight:700;color:var(--gold);letter-spacing:.4px;font-family:Manrope,'IBM Plex Sans Thai','Noto Sans SC',sans-serif}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .c{background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px}.c b{font-size:12px;color:#d9c48a;font-weight:600}
 .row{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-top:5px;gap:8px}
@@ -243,3 +246,19 @@ html,body{height:100%;width:100%;overflow-x:hidden}
 .more-hub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .hub-btn{margin:0!important}
 .bnav{grid-template-columns:repeat(5,1fr)}
+
+
+/* PureGold wallpaper (in-app) + typography polish */
+#app{position:relative;isolation:isolate}
+#appWallpaper{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:#07080d url('/wallpaper-app.jpg') center/cover no-repeat;
+  opacity:.55;
+}
+#view-main,#view-signup,#clModal{position:relative;z-index:1}
+html[lang="zh"] body,html[lang="zh"] #app{font-family:'Noto Sans SC',Manrope,system-ui,sans-serif}
+html[lang="ja"] body,html[lang="ja"] #app{font-family:'Noto Sans JP',Manrope,system-ui,sans-serif}
+html[lang="en"] body,html[lang="en"] #app{font-family:Manrope,'IBM Plex Sans Thai',system-ui,sans-serif}
+html[lang="th"] body,html[lang="th"] #app{font-family:'IBM Plex Sans Thai',Manrope,system-ui,sans-serif}
+.chat-bubble,.btn,input,select{font-family:inherit}
+.big{font-family:Manrope,'IBM Plex Sans Thai',sans-serif;letter-spacing:-.4px}

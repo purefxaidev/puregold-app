@@ -121,7 +121,7 @@ function showTab(name) {
       const d=$('btnPfxCleanup'); if(d){ d.textContent=t('pureFxAiCleanup'); d.onclick=cleanupPureFxAiLeftover; }
     }
     if (name === 'chat') { renderChat(); }
-    if (name === 'more') { renderChangelogBox(); renderOverlaySet(); wireMoreHub(); }
+    if (name === 'more') { renderChangelogBox(); renderOverlaySet(); renderWallpaperSet(); wireMoreHub(); }
   } catch (e) { console.warn('showTab', e); }
 }
 function wireMoreHub() {
@@ -877,6 +877,39 @@ async function renderOverlaySet() {
   if (bp) bp.onclick = async () => { try { await Pg.requestOverlayPermission(); } catch (e) {} };
 }
 
+
+async function renderWallpaperSet() {
+  const el = $('wallpaperSet');
+  if (!el) return;
+  el.innerHTML = `<div class="mut s">${t('wallpaperHint')}</div>
+    <img src="/wallpaper.jpg" alt="PureGold wallpaper" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--line2);margin:8px 0;display:block">
+    <div class="mut s">${t('wallpaperPreview')}</div>
+    <button type="button" class="btn" id="btnSaveWp">${t('wallpaperSave')}</button>
+    <div id="wpStatus" class="mut s"></div>`;
+  const btn = $('btnSaveWp');
+  if (btn) btn.onclick = async () => {
+    const st = $('wpStatus');
+    try {
+      const r = await fetch('/wallpaper.jpg');
+      const blob = await r.blob();
+      const file = new File([blob], 'PureGold-by-PureFxAi-wallpaper.jpg', { type: 'image/jpeg' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'PureGold by PureFxAi' });
+        if (st) st.textContent = t('wallpaperSaved');
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'PureGold-by-PureFxAi-wallpaper.jpg';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      if (st) st.textContent = t('wallpaperSaved');
+    } catch (e) {
+      if (st) st.textContent = t('wallpaperFail');
+    }
+  };
+}
+
 /* ---- Techniques menu (worldwide XAU) ---- */
 let techId = store.getTechId();
 
@@ -999,6 +1032,7 @@ function renderAll() {
   renderTf();
   renderSet();
   renderOverlaySet();
+  renderWallpaperSet();
   renderPriceAlerts();
   renderAlertHist();
   renderChangelogBox();

@@ -1,6 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">PUREGOLD</string>
+    <string name="splash_brand">PureGold by PureFxAi</string>
     <string name="title_activity_main">PUREGOLD</string>
     <string name="package_name">com.purefxai.puregold</string>
     <string name="custom_url_scheme">com.purefxai.puregold</string>
