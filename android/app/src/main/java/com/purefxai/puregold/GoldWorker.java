@@ -88,9 +88,24 @@ public class GoldWorker extends Worker {
     boolean dnd=nm.getCurrentInterruptionFilter()>NotificationManager.INTERRUPTION_FILTER_ALL;
     if(p.getBoolean("voice",true)&&!p.getBoolean("mute",false)&&!dnd) speak(c,text,"th".equals(p.getString("lang","th")));
   }
-  static void speak(Context c,String text,boolean th){ CountDownLatch ok=new CountDownLatch(1),done=new CountDownLatch(1); final TextToSpeech[] t=new TextToSpeech[1];
+  static void speak(Context c,String text,boolean th){ speakLang(c,text, th?"th":"en"); }
+  static void speakLang(Context c,String text,String lang){
+    CountDownLatch ok=new CountDownLatch(1),done=new CountDownLatch(1); final TextToSpeech[] t=new TextToSpeech[1];
     t[0]=new TextToSpeech(c,st->ok.countDown());
-    try{ ok.await(10,TimeUnit.SECONDS); t[0].setLanguage(th?new Locale("th","TH"):Locale.US);
+    try{
+      ok.await(10,TimeUnit.SECONDS);
+      Locale loc;
+      if("th".equals(lang)) loc=new Locale("th","TH");
+      else if("zh".equals(lang)) loc=Locale.SIMPLIFIED_CHINESE;
+      else if("ja".equals(lang)) loc=Locale.JAPAN;
+      else loc=Locale.US;
+      int r=t[0].setLanguage(loc);
+      if(r==TextToSpeech.LANG_MISSING_DATA||r==TextToSpeech.LANG_NOT_SUPPORTED) t[0].setLanguage(Locale.US);
       t[0].setOnUtteranceProgressListener(new UtteranceProgressListener(){public void onStart(String u){} public void onDone(String u){done.countDown();} public void onError(String u){done.countDown();}});
-      t[0].speak(text,TextToSpeech.QUEUE_FLUSH,null,"pg"); done.await(30,TimeUnit.SECONDS);}catch(Exception e){} finally{t[0].shutdown();} }
+      // Cap chat replies so TTS does not run forever
+      String say=text.length()>600?text.substring(0,600):text;
+      t[0].speak(say,TextToSpeech.QUEUE_FLUSH,null,"pg");
+      done.await(45,TimeUnit.SECONDS);
+    }catch(Exception e){} finally{try{t[0].shutdown();}catch(Exception ignored){}}
+  }
 }

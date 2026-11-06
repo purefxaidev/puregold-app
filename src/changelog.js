@@ -1,6 +1,25 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.6.0',
+    date: '2026-11-06',
+    th: [
+      'แชทบอท PureFxAi ในแอป — พิมพ์คุยได้ พูดทวนคำตอบ (TTS ไทย/อังกฤษ/จีน)',
+      'แนะนำแผนเทรดจากกฎ + PureFxAi และสอนสมัคร Exness (ลิงก์ partner ในแอป)',
+      'คำเตือนเล็กๆ ในแชทและ README: การลงทุนมีความเสี่ยง / Investing involves risk / 投资有风险',
+    ],
+    en: [
+      'In-app PureFxAi chat bot — type to chat; spoken replies (TTS TH/EN/ZH)',
+      'Trading guidance from rules + PureFxAi, plus Exness signup help (in-app partner link)',
+      'Small risk disclaimer in chat and README: Investing involves risk',
+    ],
+    zh: [
+      '应用内 PureFxAi 聊天机器人 — 可打字对话，并朗读回复（TTS 泰/英/中）',
+      '基于规则 + PureFxAi 的交易指引，以及 Exness 注册引导（应用内合作链接）',
+      '聊天与 README 中的小字风险提示：投资有风险',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-11-06',
     th: [

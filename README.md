@@ -1,10 +1,13 @@
 # PUREGOLD (PureFxAi)
 
-**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมเมนูแผนแยก, PureFxAi ในเครื่อง, วิดเจ็ต, หน้าต่างลอย, กราฟ, SMC, แจ้งเตือน และหลายภาษา
+**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมแชทบอท PureFxAi, เมนูแผน, วิดเจ็ต, หน้าต่างลอย, กราฟ, SMC, แจ้งเตือน และหลายภาษา
 
-**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: Plan tab, on-device PureFxAi, widget, overlay, charts, SMC, alerts, multi-language.
+**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: PureFxAi chat, Plan tab, widget, overlay, charts, SMC, alerts, multi-language.
 
-## Features (0.5.0)
+**ZH:** 泰国金与国际金（XAUUSD）分析应用：PureFxAi 聊天、计划页、小组件、悬浮窗、图表等。
+
+## Features (0.6.0)
+- **Chat bot (PureFxAi)** — type to chat; optional spoken replies (TTS). Guides educational trading plans and Exness signup.
 - **PureFxAi** on-device plan analysis — auto-installs on first use (UI shows Installing / กำลังติดตั้ง / 正在安装 + %). Never shows third-party model names.
 - Rule engine remains the baseline on the Plan tab; PureFxAi enhances the narrative
 - Dedicated **Plan** tab, changelog, home widget, floating overlay, signal history
@@ -23,5 +26,7 @@ npm i && ./build-apk.sh   # output: dist/PUREGOLD.apk
 ```
 Requires JDK 17 (`/opt/jdk`), Android SDK, release keystore outside the repo.
 
-## Disclaimer
-Education only. Not financial advice. / ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
+## Disclaimer / คำเตือน / 风险提示
+**TH:** การลงทุนมีความเสี่ยง · ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน  
+**EN:** Investing involves risk. Education only. Not financial advice.  
+**ZH:** 投资有风险。仅供教育，非投资建议。

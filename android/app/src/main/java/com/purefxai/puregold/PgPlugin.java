@@ -271,4 +271,16 @@ public class PgPlugin extends Plugin {
     for(byte x: md.digest()) sb.append(String.format("%02x",x));
     return sb.toString();
   }
+
+  /** Speak text via Android TTS without posting a notification. */
+  @PluginMethod public void speak(PluginCall c){
+    final String text=c.getString("text","");
+    if(text==null||text.isEmpty()){ c.resolve(); return; }
+    final String lang=c.getString("lang", sp().getString("lang","th"));
+    io.execute(() -> {
+      try{ GoldWorker.speakLang(getContext(), text, lang); }
+      catch(Exception ignored){}
+      c.resolve();
+    });
+  }
 }

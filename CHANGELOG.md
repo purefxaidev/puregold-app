@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 — 2026-11-06
+### TH
+- แชทบอท PureFxAi — พิมพ์คุยได้ + เสียงพูด (TTS)
+- แนะนำแผนเทรด / สมัคร Exness (ลิงก์ partner)
+- คำเตือนเล็กๆ: การลงทุนมีความเสี่ยง
+
+### EN
+- PureFxAi in-app chat + spoken replies (TTS)
+- Trading guidance + Exness signup help (partner link)
+- Small disclaimer: Investing involves risk
+
+### ZH
+- PureFxAi 应用内聊天 + 语音朗读
+- 交易指引 + Exness 注册引导
+- 小字提示：投资有风险
+
+
 ## 0.5.0 — 2026-11-06
 ### TH
 - วิเคราะห์แผนด้วย PureFxAi ในเครื่อง + ติดตั้งอัตโนมัติ (กำลังติดตั้ง + %)

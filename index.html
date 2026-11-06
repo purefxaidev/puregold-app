@@ -92,6 +92,24 @@
       </section>
     </div>
 
+
+    <!-- CHAT -->
+    <div class="panel hidden" data-panel="chat">
+      <section class="chat-wrap">
+        <div class="sec-head" style="margin-bottom:6px">
+          <h2 style="margin:0" data-i="navChat"></h2>
+          <label class="tog"><input type="checkbox" id="chatVoice" checked><span data-i="chatVoice"></span></label>
+        </div>
+        <div class="chat-risk" id="chatRisk"></div>
+        <div id="chatLog" class="chat-log" aria-live="polite"></div>
+        <div id="chatChips" class="chip-row chat-chips"></div>
+        <form id="chatForm" class="chat-form" autocomplete="off">
+          <input type="text" id="chatInput" maxlength="500" enterkeyhint="send" />
+          <button type="submit" class="btn chat-send" id="chatSend" data-i="chatSend"></button>
+        </form>
+      </section>
+    </div>
+
     <!-- TECHNIQUES -->
     <div class="panel hidden" data-panel="tech">
       <section>
@@ -158,6 +176,7 @@
   <nav class="bnav" id="bnav">
     <button type="button" data-tab="home" class="on"><span class="ni">⌂</span><span data-i="navHome"></span></button>
     <button type="button" data-tab="plan"><span class="ni">◎</span><span data-i="navPlan"></span></button>
+    <button type="button" data-tab="chat"><span class="ni">💬</span><span data-i="navChat"></span></button>
     <button type="button" data-tab="chart"><span class="ni">▣</span><span data-i="navChart"></span></button>
     <button type="button" data-tab="tech"><span class="ni">◆</span><span data-i="navTech"></span></button>
     <button type="button" data-tab="news"><span class="ni">☰</span><span data-i="navNews"></span></button>

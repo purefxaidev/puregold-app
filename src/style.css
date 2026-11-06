@@ -183,3 +183,25 @@ footer{font-size:11px;color:#7d776a;line-height:1.6;padding:4px 0}
 .pfx-bar{height:8px;background:#151722;border:1px solid #3a3220;border-radius:999px;overflow:hidden;margin:8px 0 12px}
 .pfx-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width .25s ease}
 .pfx-out{white-space:pre-wrap;background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:12px;font:inherit;font-size:13px;line-height:1.5;color:var(--text);margin:0 0 10px;max-height:280px;overflow:auto}
+
+/* 7-tab bottom nav */
+.bnav{grid-template-columns:repeat(7,1fr)}
+.bnav button{font-size:7.5px;padding:5px 0}
+@media (min-width:400px){.bnav button{font-size:8.5px}}
+
+/* Chat bot */
+.chat-wrap{display:flex;flex-direction:column;min-height:calc(100dvh - var(--bnav) - 120px);padding-bottom:4px}
+.chat-risk{font-size:11px;color:var(--muted);line-height:1.4;margin:0 0 8px;padding:6px 10px;border-radius:10px;background:#f5d27a10;border:1px solid #3a322055}
+.chat-log{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 12px;max-height:52dvh;min-height:220px}
+.chat-bubble{max-width:92%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.chat-bubble.bot{align-self:flex-start;background:#0d0f17;border:1px solid var(--line2);color:var(--text);border-bottom-left-radius:4px}
+.chat-bubble.user{align-self:flex-end;background:linear-gradient(135deg,#2a2414,#1a160c);border:1px solid #3a3220;color:var(--gold);border-bottom-right-radius:4px}
+.chat-bubble .chat-meta{display:block;font-size:10px;color:var(--muted);margin-top:6px}
+.chat-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chat-actions button{margin:0;width:auto;padding:6px 10px;font-size:12px}
+.chat-chips{margin:4px 0 8px}
+.chat-chips .chip{font-size:12px;padding:6px 12px}
+.chat-form{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;position:sticky;bottom:0;padding-top:6px;background:linear-gradient(180deg,transparent,var(--card) 30%)}
+.chat-form input{width:100%;min-width:0}
+.chat-send{margin:0!important;width:auto!important;padding:10px 16px!important;white-space:nowrap}
+.chat-bubble.typing{opacity:.75;font-style:italic}

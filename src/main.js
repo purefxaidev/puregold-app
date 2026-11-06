@@ -9,6 +9,7 @@ import { fetchNews, titleFor, summaryFor } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, nativeStatus, isMarkedReady } from './ondevice.js';
+import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -16,7 +17,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -108,6 +109,7 @@ function showTab(name) {
   }
   if (name === 'tech') renderTech();
   if (name === 'plan') { renderPlan(); renderSignalHist(); refreshPfxStatus(); const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } }
+  if (name === 'chat') { renderChat(); }
   if (name === 'more') { renderChangelogBox(); renderOverlaySet(); }
 }
 $('bnav').querySelectorAll('button').forEach(b => {
@@ -932,6 +934,7 @@ function renderAll() {
   renderNews();
   renderTech();
   renderSignTeaser();
+  renderChat(false);
   stamp();
   if (chart) chart.applyOptions({ localization: { locale: localeTag(L) } });
   applyOverlays();
@@ -1025,6 +1028,151 @@ addEventListener('touchend', e => {
   if (y0 != null && e.changedTouches[0].clientY - y0 > 90) refresh();
   y0 = null;
 }, { passive: true });
+
+
+/* ---- Chat bot (PureFxAi) ---- */
+let chatMsgs = [];
+let chatBusy = false;
+let chatVoiceOn = localStorage.getItem('pg_chat_voice') !== '0';
+let chatBooted = false;
+
+function ttsLocale(lang) {
+  return { th: 'th-TH', en: 'en-US', zh: 'zh-CN', ja: 'ja-JP' }[lang] || 'en-US';
+}
+
+function stopSpeak() {
+  try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+}
+
+async function speakText(text) {
+  if (!text || !chatVoiceOn) return;
+  if (S.mute) return;
+  const plain = String(text).replace(/\n+/g, '. ').slice(0, 600);
+  stopSpeak();
+  if (native) {
+    try {
+      await Pg.speak({ text: plain, lang: L });
+      return;
+    } catch (e) { /* fall through to web TTS */ }
+  }
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(plain);
+    u.lang = ttsLocale(L);
+    u.rate = L === 'th' ? 1.05 : 1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+function appendBubble(role, text, opts = {}) {
+  chatMsgs.push({ role, text, actions: opts.actions || null, at: Date.now() });
+  if (chatMsgs.length > 80) chatMsgs = chatMsgs.slice(-60);
+  paintChatLog();
+}
+
+function paintChatLog() {
+  const log = $('chatLog');
+  if (!log) return;
+  log.innerHTML = chatMsgs.map((m, idx) => {
+    const actions = (m.actions || []).map(a =>
+      `<button type="button" class="btn sec" data-chat-act="${esc(a.id)}" data-idx="${idx}">${esc(a.label)}</button>`
+    ).join('');
+    const speakBtn = m.role === 'bot'
+      ? `<button type="button" class="btn sec" data-chat-speak="${idx}" style="margin:0;width:auto;padding:4px 8px;font-size:11px">${esc(t('chatSpeak'))}</button>`
+      : '';
+    return `<div class="chat-bubble ${m.role}">${esc(m.text)}
+      ${m.role === 'bot' ? '<span class="chat-meta">PureFxAi</span>' : ''}
+      ${speakBtn || actions ? `<div class="chat-actions">${speakBtn}${actions}</div>` : ''}
+    </div>`;
+  }).join('');
+  log.querySelectorAll('[data-chat-act]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.chatAct;
+      if (id === 'openSignup') showSignup(true);
+      if (id === 'openExness') openExness();
+    };
+  });
+  log.querySelectorAll('[data-chat-speak]').forEach(b => {
+    b.onclick = () => {
+      const m = chatMsgs[+b.dataset.chatSpeak];
+      if (m) speakText(m.text);
+    };
+  });
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderChat(resetWelcome = true) {
+  const risk = $('chatRisk');
+  if (risk) risk.textContent = '⚠ ' + (t('chatRiskShort') || riskShort(L));
+  const inp = $('chatInput');
+  if (inp) inp.placeholder = t('chatPlaceholder');
+  const send = $('chatSend');
+  if (send) send.textContent = t('chatSend');
+  const voice = $('chatVoice');
+  if (voice) {
+    voice.checked = chatVoiceOn;
+    voice.onchange = () => {
+      chatVoiceOn = !!voice.checked;
+      localStorage.setItem('pg_chat_voice', chatVoiceOn ? '1' : '0');
+      if (!chatVoiceOn) stopSpeak();
+    };
+  }
+  const chips = $('chatChips');
+  if (chips) {
+    chips.innerHTML = quickPrompts(L).map(q =>
+      `<button type="button" class="chip" data-q="${esc(q.id)}">${esc(q.label)}</button>`
+    ).join('');
+    chips.querySelectorAll('button').forEach(b => {
+      b.onclick = () => sendChat(b.textContent || b.dataset.q);
+    });
+  }
+  if (!chatBooted || (resetWelcome && chatMsgs.length === 0)) {
+    chatMsgs = [{ role: 'bot', text: welcomeMessage(L), at: Date.now() }];
+    chatBooted = true;
+  } else if (resetWelcome === false && chatMsgs.length && chatMsgs[0]?.role === 'bot') {
+    // language change: refresh welcome if only welcome present
+    if (chatMsgs.length === 1) chatMsgs[0].text = welcomeMessage(L);
+  }
+  paintChatLog();
+}
+
+async function sendChat(raw) {
+  const text = String(raw || '').trim();
+  if (!text || chatBusy) return;
+  const inp = $('chatInput');
+  if (inp) inp.value = '';
+  appendBubble('user', text);
+  chatBusy = true;
+  appendBubble('bot', t('chatTyping'));
+  const typingIdx = chatMsgs.length - 1;
+  try {
+    const res = await replyTo(text, { lang: L, analysis: A });
+    chatMsgs[typingIdx] = {
+      role: 'bot',
+      text: res.text,
+      actions: res.actions || null,
+      at: Date.now(),
+    };
+    paintChatLog();
+    await speakText(res.text);
+  } catch (e) {
+    chatMsgs[typingIdx] = {
+      role: 'bot',
+      text: t('err'),
+      at: Date.now(),
+    };
+    paintChatLog();
+  } finally {
+    chatBusy = false;
+  }
+}
+
+if ($('chatForm')) {
+  $('chatForm').onsubmit = e => {
+    e.preventDefault();
+    sendChat($('chatInput')?.value || '');
+  };
+}
 
 /* ---- Exness signup ---- */
 let signI = Math.min(+(localStorage.getItem('ex_step') || 0), 7);
