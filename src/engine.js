@@ -1,5 +1,7 @@
-// Rule-based analysis (adapted from PUREGOLD engine).
+// Rule-based analysis (adapted from PUREGOLD engine + gold-dashboard SMC).
 // Data: Binance PAXGUSDT proxy (OHLC) + gold-api.com XAU spot. Education only.
+import { analyseSmc, smcNote } from './smc.js';
+
 const HOSTS = ['https://data-api.binance.vision', 'https://api.binance.com', 'https://api1.binance.com'];
 
 async function gj(u) {
@@ -22,10 +24,11 @@ export async function klines(tf, n = 200) {
   return rows.map(r => ({
     time: Math.floor(r[0] / 1000),
     open: +r[1], high: +r[2], low: +r[3], close: +r[4],
+    t: Math.floor(r[0] / 1000), o: +r[1], h: +r[2], l: +r[3], c: +r[4],
   }));
 }
 
-const kl = async (tf, n) => (await klines(tf, n)).map(b => ({ h: b.high, l: b.low, c: b.close }));
+const kl = async (tf, n) => (await klines(tf, n)).map(b => ({ t: b.time, o: b.open, h: b.high, l: b.low, c: b.close }));
 
 function ema(a, n) {
   const k = 2 / (n + 1);
@@ -78,7 +81,6 @@ function clu(v, tol) {
 
 const r2 = x => Math.round(x * 100) / 100;
 
-/** Short-term algorithmic forecast from the same rule engine (no LLM). */
 function forecast(bias, price, res, sup, a15, r1) {
   const dir = bias.dir;
   const conf = Math.min(92, Math.max(40, bias.conf + (Math.abs(r1 - 50) > 15 ? 4 : 0)));
@@ -97,16 +99,50 @@ function forecast(bias, price, res, sup, a15, r1) {
     entryHi = r2(price + 0.5 * a15);
     invalid = r2(price - 1.8 * a15);
   }
-  const horizon = { th: 'ไม่กี่ชั่วโมงถึงสิ้นเซสชัน', en: 'Next few hours / session' };
+  const horizon = {
+    th: 'ไม่กี่ชั่วโมงถึงสิ้นเซสชัน', en: 'Next few hours / session',
+    zh: '数小时至本交易时段', ja: '数時間〜セッション終了',
+  };
   const reasons = bias.reasons.slice(0, 3);
-  if (sup[0] && dir === 'up') reasons.push({ th: `ใกล้แนวรับ ${r2(sup[0][0])} เป็นโซนรับแรง`, en: `Near support ${r2(sup[0][0])} as demand zone` });
-  if (res[0] && dir === 'down') reasons.push({ th: `ใกล้แนวต้าน ${r2(res[0][0])} เป็นโซนขาย`, en: `Near resistance ${r2(res[0][0])} as supply zone` });
+  if (sup[0] && dir === 'up') reasons.push({
+    th: `ใกล้แนวรับ ${r2(sup[0][0])} เป็นโซนรับแรง`,
+    en: `Near support ${r2(sup[0][0])} as demand zone`,
+    zh: `靠近支撑 ${r2(sup[0][0])}`, ja: `サポート ${r2(sup[0][0])} 付近`,
+  });
+  if (res[0] && dir === 'down') reasons.push({
+    th: `ใกล้แนวต้าน ${r2(res[0][0])} เป็นโซนขาย`,
+    en: `Near resistance ${r2(res[0][0])} as supply zone`,
+    zh: `靠近阻力 ${r2(res[0][0])}`, ja: `レジスタンス ${r2(res[0][0])} 付近`,
+  });
   return {
     dir, conf, horizon,
     entry: [entryLo, entryHi],
     invalid,
     target: sn ? r2(price + sn * 1.6 * a15) : null,
     reasons: reasons.slice(0, 3),
+  };
+}
+
+/** Clear entry/exit recommendation for UI + chart overlays. */
+function buildSetup(bias, price, res, sup, a15, plan, fc) {
+  const hyp = bias.dir === 'side';
+  const side = hyp ? 'WAIT' : plan.side;
+  const sn = side === 'BUY' ? 1 : side === 'SELL' ? -1 : 0;
+  const entry = [plan.e1, plan.e2];
+  const sl = plan.sl;
+  const tp = plan.tp;
+  let invalid = fc?.invalid;
+  if (invalid == null) {
+    if (side === 'BUY') invalid = r2(sup[0] ? Math.min(sup[0][0], price - 1.2 * a15) : price - 1.5 * a15);
+    else if (side === 'SELL') invalid = r2(res[0] ? Math.max(res[0][0], price + 1.2 * a15) : price + 1.5 * a15);
+    else invalid = r2(price - 1.8 * a15);
+  }
+  return {
+    side, hyp,
+    entry, entryMid: r2((entry[0] + entry[1]) / 2),
+    sl, tp, invalid,
+    rr: plan.rr,
+    conf: bias.conf,
   };
 }
 
@@ -134,15 +170,22 @@ export async function analyze() {
   const tH = (e20 - e50) / a1;
   s += Math.max(-1, Math.min(1, tH)) * 0.4;
   R.push(tH > 0
-    ? { th: 'H1: EMA20 อยู่เหนือ EMA50 แนวโน้มขึ้น', en: 'H1: EMA20 above EMA50, uptrend' }
-    : { th: 'H1: EMA20 อยู่ใต้ EMA50 แนวโน้มลง', en: 'H1: EMA20 below EMA50, downtrend' });
+    ? { th: 'H1: EMA20 อยู่เหนือ EMA50 แนวโน้มขึ้น', en: 'H1: EMA20 above EMA50, uptrend', zh: 'H1: EMA20高于EMA50，偏多', ja: 'H1: EMA20がEMA50上、上昇傾向' }
+    : { th: 'H1: EMA20 อยู่ใต้ EMA50 แนวโน้มลง', en: 'H1: EMA20 below EMA50, downtrend', zh: 'H1: EMA20低于EMA50，偏空', ja: 'H1: EMA20がEMA50下、下落傾向' });
   const tM = (e20m - e50m) / a15;
   s += Math.max(-1, Math.min(1, tM)) * 0.3;
-  R.push({ th: `M15: ${tM > 0 ? 'โมเมนตัมขึ้น' : 'โมเมนตัมลง'}`, en: `M15: momentum ${tM > 0 ? 'up' : 'down'}` });
+  R.push({
+    th: `M15: ${tM > 0 ? 'โมเมนตัมขึ้น' : 'โมเมนตัมลง'}`,
+    en: `M15: momentum ${tM > 0 ? 'up' : 'down'}`,
+    zh: `M15: 动量${tM > 0 ? '向上' : '向下'}`,
+    ja: `M15: モメンタム${tM > 0 ? '上' : '下'}`,
+  });
   s += Math.max(-1, Math.min(1, (r1 - 50) / 20)) * 0.3;
   R.push({
     th: `RSI H1 ${r1.toFixed(0)}${r1 > 70 ? ' ซื้อมากเกิน ระวังย่อ' : r1 < 30 ? ' ขายมากเกิน ระวังเด้ง' : ''}`,
     en: `RSI H1 ${r1.toFixed(0)}${r1 > 70 ? ' overbought, watch pullback' : r1 < 30 ? ' oversold, watch bounce' : ''}`,
+    zh: `RSI H1 ${r1.toFixed(0)}${r1 > 70 ? ' 超买' : r1 < 30 ? ' 超卖' : ''}`,
+    ja: `RSI H1 ${r1.toFixed(0)}${r1 > 70 ? ' 買われすぎ' : r1 < 30 ? ' 売られすぎ' : ''}`,
   });
   const conf = Math.round(Math.min(90, 50 + Math.abs(s) * 45));
   const dir = s > 0.2 ? 'up' : s < -0.2 ? 'down' : 'side';
@@ -152,6 +195,17 @@ export async function analyze() {
   if (ref && Math.abs(price - ref[0]) < 2.5 * a15) sl = Math.max(sl, Math.abs(price - ref[0]) + 0.3 * a15);
   sl = Math.min(sl, 3 * a15);
   const bias = { dir, conf, reasons: R };
+  const plan = {
+    side, hyp: dir === 'side',
+    e1: r2(price - sn * 0.25 * a15),
+    e2: r2(price),
+    sl: r2(price - sn * sl),
+    tp: r2(price + sn * sl * 2),
+    rr: 2,
+  };
+  const fc = forecast(bias, price, res, sup, a15, r1);
+  const setup = buildSetup(bias, price, res, sup, a15, plan, fc);
+  const smc = analyseSmc(h1, basis);
   return {
     price: r2(price),
     basis: r2(basis),
@@ -159,15 +213,11 @@ export async function analyze() {
     chp: +tk.priceChangePercent,
     res, sup, bias,
     atr15: a15,
-    plan: {
-      side, hyp: dir === 'side',
-      e1: r2(price - sn * 0.25 * a15),
-      e2: r2(price),
-      sl: r2(price - sn * sl),
-      tp: r2(price + sn * sl * 2),
-      rr: 2,
-    },
-    forecast: forecast(bias, price, res, sup, a15, r1),
+    plan,
+    forecast: fc,
+    setup,
+    smc,
+    smcNote,
   };
 }
 
@@ -182,3 +232,5 @@ export function shiftBars(bars, basis) {
     close: r2(b.close + basis),
   }));
 }
+
+export { analyseSmc, smcNote };

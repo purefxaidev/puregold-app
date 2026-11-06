@@ -16,9 +16,21 @@ public class PgPlugin extends Plugin {
   @PluginMethod public void setSettings(PluginCall c){ SharedPreferences.Editor e=sp().edit();
     e.putBoolean("auto",c.getBoolean("auto",true)); e.putInt("interval",c.getInt("interval",10)); e.putBoolean("voice",c.getBoolean("voice",true));
     e.putBoolean("mute",c.getBoolean("mute",false)); e.putBoolean("alertSR",c.getBoolean("alertSR",true)); e.putBoolean("alertBias",c.getBoolean("alertBias",true));
-    e.putString("lang",c.getString("lang","th")); e.apply(); GoldWorker.schedule(getContext(),true); c.resolve(); }
+    e.putString("lang",c.getString("lang","th"));
+    String pa=c.getString("priceAlerts",null);
+    if(pa!=null) e.putString("priceAlerts",pa);
+    e.apply(); GoldWorker.schedule(getContext(),true); c.resolve(); }
   @PluginMethod public void getLast(PluginCall c){ JSObject o=new JSObject(); o.put("text",sp().getString("lastText",""));o.put("at",sp().getLong("lastAt",0));o.put("json",sp().getString("lastJson",""));c.resolve(o); }
-  @PluginMethod public void runNow(PluginCall c){ GoldWorker.runOnce(getContext(),c.getBoolean("force",true)); c.resolve(); }
+  @PluginMethod public void runNow(PluginCall c){
+    String custom=c.getString("customText",null);
+    if(custom!=null&&!custom.isEmpty()){
+      SharedPreferences p=sp();
+      p.edit().putString("lastText",custom).putLong("lastAt",System.currentTimeMillis()).apply();
+      GoldWorker.alert(getContext(),custom,p);
+      c.resolve(); return;
+    }
+    GoldWorker.runOnce(getContext(),c.getBoolean("force",true)); c.resolve();
+  }
 
   /** Load partner URL in an offscreen WebView so Exness can plant the IB cookie in CookieManager. Does not forge cookies. */
   @PluginMethod public void warmPartner(PluginCall c){

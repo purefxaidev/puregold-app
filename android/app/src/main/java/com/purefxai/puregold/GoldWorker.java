@@ -32,7 +32,7 @@ public class GoldWorker extends Worker {
       double sc=Math.max(-1,Math.min(1,(e20[n-1]-e50[n-1])/atr))*.6+Math.max(-1,Math.min(1,(rsi-50)/20))*.4;
       String bias=sc>.2?"up":sc<-.2?"down":"side";
       String thai=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("HSH".equals(o.optString("GoldType")))thai=o.optString("Sell");}}catch(Exception e){}
-      boolean th=!"en".equals(p.getString("lang","th"));
+      boolean th="th".equals(p.getString("lang","th"));
       String lastBias=p.getString("bias",""); double lastPx=p.getFloat("px",0f), lastRes=p.getFloat("res",0f), lastSup=p.getFloat("sup",0f);
       boolean flip=!lastBias.isEmpty()&&!lastBias.equals(bias)&&p.getBoolean("alertBias",true);
       boolean brk=lastPx>0&&p.getBoolean("alertSR",true)&&((lastRes>0&&lastPx<lastRes&&spot>lastRes)||(lastSup>0&&lastPx>lastSup&&spot<lastSup));
@@ -42,6 +42,36 @@ public class GoldWorker extends Worker {
       if(brk) text=(th?"ราคาเบรกแนวสำคัญ ":"Key level broken. ")+text; else if(flip) text=(th?"มุมมองเปลี่ยน ":"Bias changed. ")+text;
       JSONObject js=new JSONObject().put("price",spot).put("res",res).put("sup",sup).put("bias",bias).put("rsi",rsi).put("thaiSell",thai);
       p.edit().putString("bias",bias).putFloat("px",(float)spot).putFloat("res",(float)res).putFloat("sup",(float)sup).putString("lastText",text).putLong("lastAt",System.currentTimeMillis()).putString("lastJson",js.toString()).apply();
+      // Custom price alerts from SharedPreferences JSON
+      try{
+        String paj=p.getString("priceAlerts","[]");
+        org.json.JSONArray arr=new org.json.JSONArray(paj==null||paj.isEmpty()?"[]":paj);
+        double lastPxAlert=p.getFloat("pxAlertLast",0f);
+        org.json.JSONArray keep=new org.json.JSONArray();
+        boolean anyHit=false;
+        for(int i=0;i<arr.length();i++){
+          org.json.JSONObject a=arr.getJSONObject(i);
+          if(!a.optBoolean("active",true)){ keep.put(a); continue; }
+          double ap=a.getDouble("price");
+          String dir=a.optString("dir","cross");
+          boolean hit=false;
+          if("above".equals(dir)) hit=spot>=ap && (lastPxAlert<ap || lastPxAlert==0);
+          else if("below".equals(dir)) hit=spot<=ap && (lastPxAlert>ap || lastPxAlert==0);
+          else hit=lastPxAlert>0 && ((lastPxAlert<ap && spot>=ap)||(lastPxAlert>ap && spot<=ap));
+          if(hit){
+            anyHit=true;
+            String ct=th?("ราคาทองถึง"+ThaiNum.say(Math.round(ap))+" ตอนนี้"+ThaiNum.say(Math.round(spot)))
+                        :("Gold hit "+Math.round(ap)+", now "+Math.round(spot));
+            alert(c,ct,p);
+            a.put("active",false); a.put("hitAt",System.currentTimeMillis());
+            // also flip main text if not already alerting
+            if(!flip&&!brk&&!force) text=ct;
+          }
+          keep.put(a);
+        }
+        p.edit().putString("priceAlerts",keep.toString()).putFloat("pxAlertLast",(float)spot).apply();
+        if(anyHit && !(flip||brk||force)) { /* already alerted above */ }
+      }catch(Exception ignore){}
       if(flip||brk||force) alert(c,text,p);
     }catch(Exception e){}
     if(!once) schedule(c,true);
@@ -53,7 +83,7 @@ public class GoldWorker extends Worker {
     try{nm.notify(1001,new NotificationCompat.Builder(c,CH).setSmallIcon(R.mipmap.ic_launcher).setContentTitle("PUREGOLD").setContentText(text)
       .setStyle(new NotificationCompat.BigTextStyle().bigText(text)).setContentIntent(pi).setAutoCancel(true).build());}catch(SecurityException e){}
     boolean dnd=nm.getCurrentInterruptionFilter()>NotificationManager.INTERRUPTION_FILTER_ALL;
-    if(p.getBoolean("voice",true)&&!p.getBoolean("mute",false)&&!dnd) speak(c,text,!"en".equals(p.getString("lang","th")));
+    if(p.getBoolean("voice",true)&&!p.getBoolean("mute",false)&&!dnd) speak(c,text,"th".equals(p.getString("lang","th")));
   }
   static void speak(Context c,String text,boolean th){ CountDownLatch ok=new CountDownLatch(1),done=new CountDownLatch(1); final TextToSpeech[] t=new TextToSpeech[1];
     t[0]=new TextToSpeech(c,st->ok.countDown());

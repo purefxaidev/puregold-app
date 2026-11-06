@@ -1,15 +1,21 @@
 # PUREGOLD (PureFxAi)
 
-**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง: ทองแท่ง, สมาคมฯ, รูปพรรณ) และทองโลก XAUUSD พร้อมกราฟแท่งเทียน แนวรับ/แนวต้านซ้อนทับ ระบบคาดการณ์ระยะสั้นจากกฎอัลกอริทึม มุมมองและแผนเทรด (SL/TP/RR) สลับภาษาไทย/อังกฤษ รันอัตโนมัติเบื้องหลัง (WorkManager) ตั้งช่วงแจ้งเตือนเป็นนาที เปิด/ปิดเสียงภาษาไทย (Android TTS) เมื่อเบรกแนวสำคัญหรือมุมมองเปลี่ยน รวมคู่มือสมัคร Exness ทีละขั้น (ลิงก์ partner)
+**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมกราฟแท่งเทียน แนวรับ/แนวต้าน Order Block / FVG (Smart Money) ระบบคาดการณ์ จุดเข้า–ออก (Entry / SL / TP / Invalidation) วิเคราะห์ข่าวทอง แจ้งเตือนเป็นนาที + ราคาที่ตั้งเอง หลายภาษา (ไทย / English / 中文 / 日本語) โดเนท USDT และคู่มือสมัคร Exness
 
-**EN:** Android app analyzing Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R overlays, short-term algorithmic forecast, bias + rule-based plan (SL/TP/RR), TH/EN toggle, background auto-refresh, alert interval in minutes, voice on/off (Android TTS) for S/R breaks and bias changes, plus an in-app Exness sign-up wizard (partner link).
+**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R, Order Blocks & FVG (Smart Money), algorithmic forecast, clear entry/exit (Entry / SL / TP / Invalidation), gold news analysis, minute + custom price alerts, multi-language (TH / EN / ZH / JA), USDT donate, Exness sign-up wizard.
 
-## Features (0.2.1)
-- Interactive XAU chart (M15 / H1 / H4 / D1) via TradingView **lightweight-charts**
-- Support (green) / resistance (red) / current price overlays
-- Forecast card: direction, confidence %, entry zone, invalidation, short reasons (same rule engine — no on-device LLM)
-- Alert settings: presets 5/10/15/30/60 min + custom minutes; voice on/off; mute; S/R + bias alerts
-- Thai HSH spot cards + world XAU spot
+## Features (0.3.0)
+- Production bottom-nav UI (Home / Chart / News / More), dark gold theme
+- Languages: Thai, English, Chinese, Japanese
+- Entry/Exit setup card: side, entry zone, SL, TP, invalidation, RR (educational)
+- Chart overlays: S/R, entry/SL/TP/invalidation, Order Blocks & FVG (toggle)
+- SMC list from gold-dashboard rules (deterministic)
+- Forecast + bias from rule engine (no model names in UI)
+- News cards from PUREGOLD dashboard feed (impact up/down/neutral)
+- Alerts: interval minutes, voice on/off, custom price alerts, history
+- On-device persistence: last analysis, levels, settings, alerts, news cache
+- In-app update check against GitHub Releases (Update button → latest release)
+- USDT ERC20 donate + Exness partner signup wizard (IB cookie via Capacitor Browser)
 
 ## Build
 ```
@@ -20,42 +26,26 @@ Requires JDK 17, Android SDK (build-tools 35), and a release keystore kept OUTSI
 ## Data sources
 - Thai gold: apicheckprice.huasengheng.com
 - Spot: api.gold-api.com/price/XAU
-- Candles: Binance PAXGUSDT (XAU proxy) — shifted by spot−PAXG basis so chart levels match XAU spot
-
+- Candles: Binance PAXGUSDT (XAU proxy) — shifted by spot−PAXG basis
+- News: https://purefxaidev.github.io/gold-dashboard/news.json
+- Updates: GitHub Releases API for purefxaidev/puregold-app
 
 ## Exness sign-up guide
-In-app step wizard (TH/EN) adapted from the web guide. Partner referral link (code `s2didh6p`):
-`https://one.toexness.com/a/s2didh6p`
+Partner referral link (code `s2didh6p`): `https://one.toexness.com/a/s2didh6p`
 
-Opening the CTA uses Capacitor Browser so Exness can set the partner/IB cookie on its domain (no forged cookies). Optional offscreen WebView warm via `PgNative.warmPartner`.
+## 💚 Support PureFxAi (USDT)
 
-Web fallback: https://purefxaidev.github.io/gold-dashboard/signup.html
-
-Includes partner disclosure + CFD / XAUUSD risk warning.
-
-## Background / Doze
-WorkManager schedules the next run after each success using your interval. Android Doze / battery optimizations may delay jobs; reboot-persistent exact alarms are not required for this version.
-
-## Local model (planned, not in 0.2.0)
-Alerts remain template-based + system Thai TTS. An optional on-device wording model may come later. **No model name is shown in the app UI.**
-
-## 💚 Support PureFxAi / สนับสนุน PureFxAi (USDT)
-
-**Network: Ethereum (ERC20) only / เครือข่าย Ethereum (ERC20) เท่านั้น**
+**Network: Ethereum (ERC20) only**
 
 ```
 0x920deab53daf94ca2030ad5ceec2265bf5686941
 ```
 
 ⚠️ Send **only USDT via ERC20**. Other networks or tokens may be lost permanently.
-ส่งเฉพาะ **USDT ผ่าน ERC20** เท่านั้น เครือข่ายหรือเหรียญอื่นอาจสูญหายถาวร
 
 Donations are voluntary support — **not an investment**, with no returns or rewards.
-การบริจาคเป็นการสนับสนุนโดยสมัครใจ **ไม่ใช่การลงทุน** และไม่มีผลตอบแทนใด ๆ
 
-<img src="docs/usdt-erc20-qr.png" width="200" alt="USDT ERC20 QR">
-
-Donation page with QR: https://purefxaidev.github.io/driftwatch-video/
+Donation page: https://purefxaidev.github.io/driftwatch-video/
 
 ## Disclaimer
-ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน / Education only, not financial advice.
+Education only. Not financial advice. / ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน

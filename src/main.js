@@ -1,96 +1,113 @@
-import { analyze, klines, shiftBars } from './engine.js';
+import { analyze, klines, shiftBars, smcNote } from './engine.js';
 import { createChart, CrosshairMode } from 'lightweight-charts';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE } from './signup.js';
+import { t as tr, LANGS, localeTag } from './i18n.js';
+import { store } from './store.js';
+import { fetchNews, titleFor, summaryFor } from './news.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
 const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const DONATE_PAGE = 'https://purefxaidev.github.io/driftwatch-video/';
+const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
+const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
+const APP_VERSION = '0.3.0';
 
-const T = {
-  th: {
-    thai: 'ทองไทย (ฮั่วเซ่งเฮง)', world: 'ทองโลก XAUUSD', chart: 'กราฟ + การวิเคราะห์',
-    sr: 'แนวรับ / แนวต้าน', bias: 'มุมมองระยะสั้น', fc: 'ระบบคาดการณ์ (อัลกอริทึม)',
-    plan: 'แผนแนะนำ (อัลกอริทึม)', buy: 'รับซื้อ', sell: 'ขายออก',
-    HSH: 'ทองแท่ง ฮั่วเซ่งเฮง', REF: 'ทองแท่ง สมาคมฯ', JEWEL: 'ทองรูปพรรณ',
-    res: 'แนวต้าน', sup: 'แนวรับ', up: 'ขาขึ้น', down: 'ขาลง', side: 'ไซด์เวย์',
-    conf: 'ความมั่นใจ', upd: 'อัปเดต', err: 'โหลดข้อมูลไม่สำเร็จ จะลองใหม่', load: 'กำลังโหลด...',
-    entry: 'โซนเข้า', dir: 'ทิศทาง', wait: 'ยังไม่มีสัญญาณชัด แผนนี้เป็นสมมติฐาน รอยืนยัน',
-    ch24: 'เปลี่ยนแปลง 24 ชม.', src: 'ที่มา: huasengheng.com · รีเฟรช 30 วินาที',
-    set: 'ตั้งค่าการแจ้งเตือน', auto: 'รันอัตโนมัติเบื้องหลัง', iv: 'ทุก (นาที)',
-    custom: 'กำหนดเอง (นาที)', voice: 'เปิดเสียงแจ้งเตือน', mute: 'ปิดเสียงชั่วคราว',
-    aSR: 'แจ้งเมื่อเบรกแนวรับ/แนวต้าน', aBias: 'แจ้งเมื่อมุมมองเปลี่ยน',
-    test: 'ทดสอบเสียงแจ้งเตือน', last: 'แจ้งเตือนล่าสุด',
-    horizon: 'ขอบเขตเวลา', invalid: 'จุดยกเลิก', target: 'เป้าหมายสั้น',
-    fcNote: 'คาดการณ์จากกฎทางเทคนิคอัตโนมัติ (การศึกษา) ไม่ใช่คำแนะนำ',
-    chartNote: 'กราฟ PAXGUSDT (พร็อกซีทองโลก) ปรับเทียบกับสปอต XAU · เขียว=แนวรับ แดง=แนวต้าน',
-    don: 'สนับสนุน PureFxAi (USDT)', donNet: 'เครือข่าย Ethereum (ERC20) เท่านั้น',
-    copy: 'คัดลอกที่อยู่', open: 'เปิดหน้า QR', copied: 'คัดลอกแล้ว',
-    donWarn: 'ส่งเฉพาะ USDT ผ่าน ERC20 เท่านั้น เครือข่ายหรือเหรียญอื่นอาจสูญหายถาวร',
-    donNote: 'การบริจาคเป็นการสนับสนุนโดยสมัครใจ ไม่ใช่การลงทุน และไม่มีผลตอบแทนใด ๆ',
-    sign: 'สอนสมัคร Exness',
-    signSub: 'สอนสมัคร EXNESS',
-    signTeaser: 'เปิดคู่มือทีละขั้น + ลิงก์ partner',
-    signOpen: 'เปิดคู่มือสมัคร',
-    webGuide: 'คู่มือเว็บ (สำรอง)',
-    stepOf: 'ขั้นที่',
-    of: 'จาก',
-    stepsDone: 'ขั้นเสร็จแล้ว',
-    next: 'ถัดไป',
-    prev: 'ย้อนกลับ',
-    finish: 'เสร็จสิ้น',
-    tickDone: 'ทำเสร็จแล้วติ๊ก:',
-    disc: 'ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน แผนเทรดคำนวณจากกฎทางเทคนิคอัตโนมัติ การเทรดทองมีความเสี่ยงสูง โปรดตัดสินใจด้วยตนเอง',
-  },
-  en: {
-    thai: 'Thai gold (Hua Seng Heng)', world: 'World gold XAUUSD', chart: 'Chart + analysis',
-    sr: 'Support / Resistance', bias: 'Short-term bias', fc: 'Forecast (algorithmic)',
-    plan: 'Best plan (algorithmic)', buy: 'Buy', sell: 'Sell',
-    HSH: 'HSH gold bar', REF: 'Association bar', JEWEL: 'Jewelry',
-    res: 'Resistance', sup: 'Support', up: 'Up', down: 'Down', side: 'Sideways',
-    conf: 'Confidence', upd: 'Updated', err: 'Failed to load, retrying', load: 'Loading...',
-    entry: 'Entry zone', dir: 'Direction', wait: 'No clear signal; hypothetical plan, wait for confirmation',
-    ch24: '24h change', src: 'Source: huasengheng.com · refresh 30s',
-    set: 'Alert settings', auto: 'Background auto-run', iv: 'Every (min)',
-    custom: 'Custom (min)', voice: 'Voice alerts on', mute: 'Mute',
-    aSR: 'Alert on S/R break', aBias: 'Alert on bias change',
-    test: 'Test voice alert', last: 'Last alert',
-    horizon: 'Horizon', invalid: 'Invalidation', target: 'Short target',
-    fcNote: 'Algorithmic technical forecast (educational), not advice',
-    chartNote: 'PAXGUSDT candles (world-gold proxy) shifted to XAU spot · green=support red=resistance',
-    don: 'Support PureFxAi (USDT)', donNet: 'Network: Ethereum (ERC20) only',
-    copy: 'Copy address', open: 'Open QR page', copied: 'Copied',
-    donWarn: 'Send only USDT via ERC20. Other networks or tokens may be lost permanently.',
-    donNote: 'Donations are voluntary support — not an investment, with no returns or rewards.',
-    sign: 'Exness sign-up guide',
-    signSub: 'EXNESS SIGN-UP',
-    signTeaser: 'Step-by-step guide + partner link',
-    signOpen: 'Open sign-up guide',
-    webGuide: 'Web guide (fallback)',
-    stepOf: 'Step',
-    of: 'of',
-    stepsDone: 'steps done',
-    next: 'Next',
-    prev: 'Back',
-    finish: 'Done',
-    tickDone: 'Tick when done:',
-    disc: 'Education only. Not financial advice. Plans are generated by technical rules automatically. Gold trading is high risk; decide for yourself.',
-  },
-};
-
-let L = localStorage.getItem('pg_lang') || 'th', A = null, TG = null;
-const t = k => T[L][k] || k;
+let L = store.getLang();
+let A = store.loadAnalysis();
+let TG = store.loadThai()?.items || null;
+let NEWS = store.loadNews()?.items || null;
+let offline = false;
+const t = k => tr(L, k);
 const f2 = x => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const reason = r => (r && (r[L] || r.en || r.th)) || '';
+const native = Capacitor.isNativePlatform();
 
 function stamp() {
-  $('upd').textContent = t('upd') + ' ' + new Date().toLocaleTimeString(L === 'th' ? 'th-TH' : 'en-GB', { timeZone: 'Asia/Bangkok' }) + ' (Bangkok)';
+  $('upd').textContent = t('upd') + ' ' + new Date().toLocaleTimeString(localeTag(L), { timeZone: 'Asia/Bangkok' }) + ' (Bangkok)';
 }
 
+function setOffline(on) {
+  offline = on;
+  const b = $('offlineBanner');
+  if (!b) return;
+  b.classList.toggle('hidden', !on);
+  b.textContent = on ? t('savedOffline') : '';
+}
+
+/* ---- Update check (GitHub releases) ---- */
+function parseVer(v) {
+  return String(v || '').replace(/^v/i, '').trim().split(/[.+-]/).map(x => parseInt(x, 10) || 0);
+}
+function isNewer(remote, local) {
+  const a = parseVer(remote), b = parseVer(local);
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const x = a[i] || 0, y = b[i] || 0;
+    if (x > y) return true;
+    if (x < y) return false;
+  }
+  return false;
+}
+
+async function checkUpdate() {
+  try {
+    const r = await fetch(RELEASES_API, {
+      cache: 'no-store',
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const tag = d.tag_name || d.name || '';
+    if (!isNewer(tag, APP_VERSION)) {
+      const old = document.getElementById('updateBanner');
+      if (old) old.remove();
+      return;
+    }
+    let ban = document.getElementById('updateBanner');
+    if (!ban) {
+      ban = document.createElement('div');
+      ban.id = 'updateBanner';
+      ban.className = 'banner update';
+      $('offlineBanner').after(ban);
+    }
+    ban.innerHTML = `<div class="upd-row"><span>${esc(L === 'th' ? `มีเวอร์ชันใหม่ ${tag}` : L === 'zh' ? `有新版本 ${tag}` : L === 'ja' ? `新バージョン ${tag}` : `Update available ${tag}`)}</span>
+      <button type="button" class="btn upd-btn" id="btnUpdate">${esc(L === 'th' ? 'อัปเดต' : L === 'zh' ? '更新' : L === 'ja' ? '更新' : 'Update')}</button></div>`;
+    ban.classList.remove('hidden');
+    $('btnUpdate').onclick = async () => {
+      const url = d.html_url || RELEASES_LATEST;
+      try {
+        if (native) await Browser.open({ url });
+        else window.open(url, '_blank', 'noopener');
+      } catch (e) { window.open(RELEASES_LATEST, '_blank'); }
+    };
+  } catch (e) { /* ignore network errors */ }
+}
+
+/* ---- Tabs ---- */
+let tab = store.getTab();
+function showTab(name) {
+  tab = name;
+  store.setTab(name);
+  document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== name));
+  document.querySelectorAll('#bnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  if (name === 'chart') {
+    requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
+  }
+}
+$('bnav').querySelectorAll('button').forEach(b => {
+  b.onclick = () => showTab(b.dataset.tab);
+});
+
+/* ---- Renderers ---- */
 function renderThai() {
-  if (!TG) return;
+  if (!TG || !TG.length) {
+    $('tg').innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+    return;
+  }
   $('tg').innerHTML = TG.map(x => {
     const ch = +x.BuyChange || 0;
     return `<div class="c"><b>${esc(t(x.GoldType))} ${esc(x.GoldCode)}%</b>
@@ -102,8 +119,40 @@ function renderThai() {
   $('tgSrc').textContent = t('src');
 }
 
+function renderSetup() {
+  const el = $('setupHero');
+  if (!A?.setup) {
+    el.innerHTML = `<div class="skel">${t('load')}</div>`;
+    return;
+  }
+  const S = A.setup;
+  const sideClass = S.side === 'BUY' ? 'BUY' : S.side === 'SELL' ? 'SELL' : 'WAIT';
+  const sideLabel = S.side === 'BUY' ? t('sideBuy') : S.side === 'SELL' ? t('sideSell') : t('sideWait');
+  el.innerHTML = `<div class="row" style="margin:0;align-items:flex-start">
+    <div><div class="mut s" style="margin:0 0 6px">${t('setupTitle')}</div>
+      <span class="side-pill ${sideClass}">${sideLabel}</span>
+      <span class="mut" style="margin-left:8px">${t('conf')} ${S.conf}%</span></div>
+    <div class="big" style="font-size:22px">$${f2(A.price)}</div>
+  </div>
+  <div class="levels">
+    <div class="lv"><div class="k">${t('entry')}</div><div class="n">${f2(S.entry[0])} – ${f2(S.entry[1])}</div></div>
+    <div class="lv"><div class="k">${t('sl')}</div><div class="n dn">${f2(S.sl)}</div></div>
+    <div class="lv"><div class="k">${t('tp')}</div><div class="n up">${f2(S.tp)}</div></div>
+    <div class="lv"><div class="k">${t('invalid')}</div><div class="n dn">${f2(S.invalid)}</div></div>
+  </div>
+  <div class="row"><span>${t('rr')}</span><span class="v">1 : ${S.rr}</span></div>
+  ${S.hyp ? `<div class="mut s">${t('waitHint')}</div>` : ''}
+  <div class="edu">${t('setupEdu')}</div>`;
+}
+
 function renderA() {
-  if (!A) return;
+  if (!A) {
+    ['xau', 'sr', 'bias', 'plan', 'fc', 'smcList'].forEach(id => {
+      if ($(id)) $(id).innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+    });
+    renderSetup();
+    return;
+  }
   const p = A.price;
   $('xau').innerHTML = `<div class="big">$${f2(p)}</div>
  <div class="${A.ch >= 0 ? 'up' : 'dn'}">${t('ch24')}: ${A.ch >= 0 ? '+' : ''}${f2(A.ch)} (${A.chp.toFixed(2)}%)</div>
@@ -114,29 +163,68 @@ function renderA() {
  </div><div class="c"><b>${t('sup')}</b>${A.sup.map(l => row(l, 'up')).join('') || '-'}</div></div>`;
   const b = A.bias;
   $('bias').innerHTML = `<span class="tag ${b.dir === 'up' ? 'up' : b.dir === 'down' ? 'dn' : ''}">${t(b.dir)}</span>
- <span class="mut">${t('conf')} ${b.conf}%</span><ul>${b.reasons.map(r => `<li>${esc(r[L])}</li>`).join('')}</ul>`;
-  const P = A.plan;
-  $('plan').innerHTML = `<div class="row"><span>${t('dir')}</span><span class="v ${P.side === 'BUY' ? 'up' : 'dn'}">${P.side}</span></div>
- <div class="row"><span>${t('entry')}</span><span class="v">${f2(P.e1)} – ${f2(P.e2)}</span></div>
- <div class="row"><span>SL</span><span class="v dn">${f2(P.sl)}</span></div>
- <div class="row"><span>TP</span><span class="v up">${f2(P.tp)}</span></div>
- <div class="row"><span>RR</span><span class="v">1 : ${P.rr}</span></div>
- ${P.hyp ? `<div class="mut s">${t('wait')}</div>` : ''}
- <div class="mut s">${L === 'th' ? 'คำนวณอัตโนมัติ ไม่ใช่คำแนะนำ' : 'Algorithmic, not advice'}</div>`;
+ <span class="mut">${t('conf')} ${b.conf}%</span><ul>${b.reasons.map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>`;
+  const P = A.setup || A.plan;
+  const side = P.side;
+  $('plan').innerHTML = `<div class="row"><span>${t('dir')}</span><span class="v ${side === 'BUY' ? 'up' : side === 'SELL' ? 'dn' : ''}">${side === 'BUY' ? t('sideBuy') : side === 'SELL' ? t('sideSell') : t('sideWait')}</span></div>
+ <div class="row"><span>${t('entry')}</span><span class="v">${f2(P.entry ? P.entry[0] : P.e1)} – ${f2(P.entry ? P.entry[1] : P.e2)}</span></div>
+ <div class="row"><span>${t('sl')}</span><span class="v dn">${f2(P.sl)}</span></div>
+ <div class="row"><span>${t('tp')}</span><span class="v up">${f2(P.tp)}</span></div>
+ <div class="row"><span>${t('invalid')}</span><span class="v dn">${f2(P.invalid ?? A.forecast?.invalid)}</span></div>
+ <div class="row"><span>${t('rr')}</span><span class="v">1 : ${P.rr}</span></div>
+ ${P.hyp ? `<div class="mut s">${t('waitHint')}</div>` : ''}
+ <div class="mut s">${t('setupEdu')}</div>`;
   renderFc();
+  renderSmcList();
+  renderSetup();
 }
 
 function renderFc() {
   if (!A?.forecast) return;
   const F = A.forecast;
+  const hz = F.horizon[L] || F.horizon.en;
   $('fc').innerHTML = `<span class="tag ${F.dir === 'up' ? 'up' : F.dir === 'down' ? 'dn' : ''}">${t(F.dir)}</span>
  <span class="mut">${t('conf')} ${F.conf}%</span>
- <div class="row"><span>${t('horizon')}</span><span class="v">${esc(F.horizon[L])}</span></div>
+ <div class="row"><span>${t('horizon')}</span><span class="v">${esc(hz)}</span></div>
  <div class="row"><span>${t('entry')}</span><span class="v">${f2(F.entry[0])} – ${f2(F.entry[1])}</span></div>
  <div class="row"><span>${t('invalid')}</span><span class="v dn">${f2(F.invalid)}</span></div>
  ${F.target != null ? `<div class="row"><span>${t('target')}</span><span class="v up">${f2(F.target)}</span></div>` : ''}
- <ul>${F.reasons.map(r => `<li>${esc(r[L])}</li>`).join('')}</ul>
+ <ul>${F.reasons.map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>
  <div class="mut s">${t('fcNote')}</div>`;
+}
+
+function renderSmcList() {
+  const el = $('smcList');
+  const note = $('smcNote');
+  if (!A?.smc) {
+    el.innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+    note.textContent = '';
+    return;
+  }
+  const smc = A.smc;
+  note.textContent = typeof A.smcNote === 'function' ? A.smcNote(smc, L) : smcNote(smc, L);
+  const items = [];
+  (smc.order_blocks || []).forEach(o => {
+    items.push(`<div class="smc-item ${o.type}"><div><div class="t">${t('ob')} · ${o.type === 'bullish' ? t('bullish') : t('bearish')}</div>
+      <div class="m">${o.mitigated ? t('mitigated') : t('untested')}</div></div>
+      <div class="r">${f2(o.bottom)} – ${f2(o.top)}</div></div>`);
+  });
+  (smc.fvg || []).forEach(o => {
+    items.push(`<div class="smc-item fvg ${o.type}"><div><div class="t">${t('fvg')} · ${o.type === 'bullish' ? t('bullish') : t('bearish')}</div>
+      <div class="m">${o.filled ? t('filled') : t('openGap')}</div></div>
+      <div class="r">${f2(o.bottom)} – ${f2(o.top)}</div></div>`);
+  });
+  if (smc.zone) {
+    items.push(`<div class="smc-item"><div><div class="t">${t('zone')}</div>
+      <div class="m">${t(smc.zone.name)} · ${smc.zone.pos_pct}%</div></div>
+      <div class="r">${f2(smc.zone.lo)} – ${f2(smc.zone.hi)}</div></div>`);
+  }
+  if (smc.last_event) {
+    items.push(`<div class="smc-item"><div><div class="t">${t('structure')}</div>
+      <div class="m">${esc(smc.last_event)}</div></div>
+      <div class="r">${smc.bos ? f2(smc.bos.level) : smc.choch ? f2(smc.choch.level) : '-'}</div></div>`);
+  }
+  el.innerHTML = items.length ? `<div class="smc-card">${items.join('')}</div>` : `<div class="state-empty">${t('empty')}</div>`;
 }
 
 /* ---- Chart ---- */
@@ -146,32 +234,34 @@ const TF_OPTS = [
   { id: '4h', label: 'H4', n: 180 },
   { id: '1d', label: 'D1', n: 120 },
 ];
-let chartTf = localStorage.getItem('pg_tf') || '1h';
+let chartTf = store.getTf();
 let chart = null, candleSeries = null, priceLines = [];
-let chartReady = false;
+let smcOn = store.getSmcOn();
 
 function initChart() {
   const el = $('chart');
-  if (!el || chart) return;
+  if (!el || chart) {
+    if (chart && el) chart.applyOptions({ width: el.clientWidth, height: el.clientHeight || 300 });
+    return;
+  }
   chart = createChart(el, {
     layout: { background: { color: '#0a0b12' }, textColor: '#9a8f73' },
     grid: { vertLines: { color: '#161822' }, horzLines: { color: '#161822' } },
     crosshair: { mode: CrosshairMode.Normal },
     rightPriceScale: { borderColor: '#2a2618' },
     timeScale: { borderColor: '#2a2618', timeVisible: true, secondsVisible: false },
-    localization: { locale: L === 'th' ? 'th-TH' : 'en-US' },
+    localization: { locale: localeTag(L) },
   });
   candleSeries = chart.addCandlestickSeries({
     upColor: '#3ddc84', downColor: '#ff5c5c',
     borderUpColor: '#3ddc84', borderDownColor: '#ff5c5c',
     wickUpColor: '#3ddc84', wickDownColor: '#ff5c5c',
   });
-  chartReady = true;
   const ro = new ResizeObserver(() => {
-    chart.applyOptions({ width: el.clientWidth, height: el.clientHeight || 280 });
+    chart.applyOptions({ width: el.clientWidth, height: el.clientHeight || 300 });
   });
   ro.observe(el);
-  chart.applyOptions({ width: el.clientWidth, height: 280 });
+  chart.applyOptions({ width: el.clientWidth, height: 300 });
 }
 
 function clearPriceLines() {
@@ -179,25 +269,44 @@ function clearPriceLines() {
   priceLines = [];
 }
 
+function addLine(price, color, title, style = 2, width = 1) {
+  if (!candleSeries || price == null || !Number.isFinite(+price)) return;
+  priceLines.push(candleSeries.createPriceLine({
+    price: +price, color, lineWidth: width, lineStyle: style,
+    axisLabelVisible: true, title,
+  }));
+}
+
 function applyOverlays() {
   if (!candleSeries || !A) return;
   clearPriceLines();
-  A.sup.slice(0, 3).forEach(l => {
-    priceLines.push(candleSeries.createPriceLine({
-      price: l[0], color: '#3ddc84', lineWidth: 1, lineStyle: 2,
-      axisLabelVisible: true, title: L === 'th' ? 'รับ' : 'S',
-    }));
-  });
-  A.res.slice(0, 3).forEach(l => {
-    priceLines.push(candleSeries.createPriceLine({
-      price: l[0], color: '#ff5c5c', lineWidth: 1, lineStyle: 2,
-      axisLabelVisible: true, title: L === 'th' ? 'ต้าน' : 'R',
-    }));
-  });
-  priceLines.push(candleSeries.createPriceLine({
-    price: A.price, color: '#f5d27a', lineWidth: 1, lineStyle: 0,
-    axisLabelVisible: true, title: L === 'th' ? 'ราคา' : 'Px',
-  }));
+  A.sup?.slice(0, 3).forEach(l => addLine(l[0], '#3ddc84', L === 'th' ? 'รับ' : 'S'));
+  A.res?.slice(0, 3).forEach(l => addLine(l[0], '#ff5c5c', L === 'th' ? 'ต้าน' : 'R'));
+  addLine(A.price, '#f5d27a', L === 'th' ? 'ราคา' : 'Px', 0, 1);
+
+  const S = A.setup;
+  if (S) {
+    addLine(S.entry?.[0], '#f5d27a88', t('overlayEntry'), 2);
+    addLine(S.entry?.[1], '#f5d27a88', t('overlayEntry'), 2);
+    addLine(S.sl, '#ff5c5c', t('overlaySL'), 0, 2);
+    addLine(S.tp, '#3ddc84', t('overlayTP'), 0, 2);
+    addLine(S.invalid, '#c9a227', t('overlayInv'), 1, 1);
+  }
+
+  if (smcOn && A.smc) {
+    (A.smc.order_blocks || []).slice(0, 3).forEach(o => {
+      const col = o.type === 'bullish' ? '#22e39a' : '#ff3d9a';
+      const tag = (o.type === 'bullish' ? 'OB+' : 'OB-') + (o.mitigated ? '*' : '');
+      addLine(o.top, col, tag, 2);
+      addLine(o.bottom, col, tag, 2);
+    });
+    (A.smc.fvg || []).slice(0, 3).forEach(o => {
+      const col = o.type === 'bullish' ? '#36e2ff' : '#ffaa3c';
+      const tag = o.type === 'bullish' ? 'FVG+' : 'FVG-';
+      addLine(o.top, col, tag, 3);
+      addLine(o.bottom, col, tag, 3);
+    });
+  }
 }
 
 async function loadChart() {
@@ -223,21 +332,37 @@ function renderTf() {
   $('tf').querySelectorAll('button').forEach(b => {
     b.onclick = () => {
       chartTf = b.dataset.tf;
-      localStorage.setItem('pg_tf', chartTf);
+      store.setTf(chartTf);
       renderTf();
       loadChart();
     };
   });
+  const tog = $('smcToggle');
+  if (tog) {
+    tog.checked = smcOn;
+    tog.onchange = () => {
+      smcOn = tog.checked;
+      store.setSmcOn(smcOn);
+      applyOverlays();
+      renderSmcList();
+    };
+  }
 }
 
 /* ---- Settings ---- */
 const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true };
-let S = Object.assign({}, DEF, JSON.parse(localStorage.getItem('pg_set') || '{}'));
-const native = Capacitor.isNativePlatform();
+let S = store.getSettings(DEF);
 
 async function saveSet() {
-  localStorage.setItem('pg_set', JSON.stringify(S));
-  if (native) try { await Pg.setSettings({ ...S, lang: L }); } catch (e) {}
+  store.setSettings(S);
+  if (native) {
+    try {
+      await Pg.setSettings({
+        ...S, lang: L,
+        priceAlerts: JSON.stringify(store.getPriceAlerts().filter(a => a.active)),
+      });
+    } catch (e) {}
+  }
 }
 
 async function renderSet() {
@@ -261,7 +386,7 @@ async function renderSet() {
     ck('mute', t('mute')) +
     ck('alertSR', t('aSR')) +
     ck('alertBias', t('aBias')) +
-    (native ? `<button id="test" class="btn">${t('test')}</button>` : '<div class="mut s">Android only</div>') +
+    (native ? `<button id="test" class="btn">${t('test')}</button>` : `<div class="mut s">${t('androidOnly')}</div>`) +
     last;
   $('set').querySelectorAll('input[type=checkbox]').forEach(i => {
     i.onchange = () => { S[i.dataset.k] = i.checked; saveSet(); };
@@ -283,6 +408,65 @@ async function renderSet() {
   if ($('test')) $('test').onclick = () => Pg.runNow({ force: true });
 }
 
+function renderLang() {
+  $('langPick').innerHTML = LANGS.map(x =>
+    `<button type="button" class="chip ${x.id === L ? 'on' : ''}" data-l="${x.id}">${x.label}</button>`
+  ).join('');
+  $('langPick').querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      L = b.dataset.l;
+      store.setLang(L);
+      document.documentElement.lang = L;
+      renderAll();
+      saveSet();
+    };
+  });
+}
+
+function renderPriceAlerts() {
+  const list = store.getPriceAlerts();
+  const cur = A?.price ? f2(A.price) : '';
+  $('priceAlerts').innerHTML = `
+    <div class="mut s">${t('alertPrice')}${cur ? ` · XAU ≈ $${cur}` : ''}</div>
+    <div class="alert-form">
+      <input type="number" id="paPrice" step="0.01" min="1" placeholder="${cur || '2650.00'}">
+      <button type="button" class="btn" id="paAdd" style="margin:0;width:auto;padding:8px 14px">${t('addAlert')}</button>
+    </div>
+    <select id="paDir" style="width:100%;margin-top:8px">
+      <option value="cross">${t('alertCross')}</option>
+      <option value="above">${t('alertAbove')}</option>
+      <option value="below">${t('alertBelow')}</option>
+    </select>
+    <div id="paList">${list.length ? list.map(a => `
+      <div class="alert-item">
+        <div><div class="px">$${f2(a.price)}</div>
+          <div class="mut s" style="margin:0">${a.dir} · ${a.active ? t('alertActive') : t('alertHit')}</div></div>
+        <button type="button" class="btn sec danger" data-rm="${a.id}">${t('remove')}</button>
+      </div>`).join('') : `<div class="state-empty">${t('noAlerts')}</div>`}</div>`;
+  $('paAdd').onclick = () => {
+    const price = +$('paPrice').value;
+    if (!price || price < 1) return;
+    store.addPriceAlert(price, $('paDir').value);
+    renderPriceAlerts();
+    saveSet();
+    checkCustomAlerts(A?.price);
+  };
+  $('paList').querySelectorAll('[data-rm]').forEach(b => {
+    b.onclick = () => {
+      store.removePriceAlert(b.dataset.rm);
+      renderPriceAlerts();
+      saveSet();
+    };
+  });
+}
+
+function renderAlertHist() {
+  const h = store.getAlertHist();
+  $('alertHist').innerHTML = h.length
+    ? h.slice(0, 12).map(x => `<div>${esc(new Date(x.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' }))} · ${esc(x.text)}</div>`).join('')
+    : t('noHist');
+}
+
 function renderDon() {
   $('don').innerHTML = `<div class="mut">${t('donNet')}</div>
  <div class="addr" id="addr">${USDT}</div>
@@ -291,7 +475,7 @@ function renderDon() {
    <button class="btn sec" id="openDon">${t('open')}</button>
  </div>
  <img class="qr" src="/usdt-erc20-qr.png" alt="USDT ERC20 QR" onerror="this.style.display='none'">
- <div class="warn">⚠️ ${t('donWarn')}</div>
+ <div class="warn">${t('donWarn')}</div>
  <div class="mut s">${t('donNote')}</div>
  <div class="mut s"><a href="${DONATE_PAGE}" target="_blank" rel="noopener" style="color:#f5d27a">${DONATE_PAGE}</a></div>`;
   $('copyAddr').onclick = async () => {
@@ -308,59 +492,138 @@ function renderDon() {
       setTimeout(() => { $('copyAddr').textContent = t('copy'); }, 1500);
     }
   };
-  $('openDon').onclick = () => {
-    if (native && window.Capacitor?.Plugins?.Browser) {
-      window.Capacitor.Plugins.Browser.open({ url: DONATE_PAGE });
-    } else {
-      window.open(DONATE_PAGE, '_blank');
-    }
+  $('openDon').onclick = async () => {
+    try {
+      if (native) await Browser.open({ url: DONATE_PAGE });
+      else window.open(DONATE_PAGE, '_blank');
+    } catch (e) { window.open(DONATE_PAGE, '_blank'); }
   };
 }
 
-let renderAll = function () {
+function renderNews() {
+  const el = $('newsList');
+  if (!NEWS || !NEWS.length) {
+    el.innerHTML = `<div class="state-empty">${t('emptyNews')}</div>`;
+    return;
+  }
+  el.innerHTML = NEWS.map(n => {
+    const imp = n.impact || 'neutral';
+    const label = imp === 'bullish' ? t('impactUp') : imp === 'bearish' ? t('impactDn') : t('impactFlat');
+    return `<article class="news-card">
+      <span class="im ${imp}">${esc(label)}</span>
+      <h3>${esc(titleFor(n, L))}</h3>
+      <p>${esc(summaryFor(n, L))}</p>
+      ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" data-ext="${esc(n.url)}">${t('readMore')}${n.source ? ' · ' + esc(n.source) : ''}</a>` : ''}
+    </article>`;
+  }).join('');
+  el.querySelectorAll('a[data-ext]').forEach(a => {
+    a.onclick = async e => {
+      e.preventDefault();
+      const url = a.dataset.ext;
+      try {
+        if (native) await Browser.open({ url });
+        else window.open(url, '_blank', 'noopener');
+      } catch (x) { window.open(url, '_blank'); }
+    };
+  });
+}
+
+function renderAll() {
   document.documentElement.lang = L;
-  document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
-  $('lang').textContent = L === 'th' ? 'EN' : 'TH';
-  $('disc').textContent = T.th.disc + ' / ' + T.en.disc;
+  document.querySelectorAll('[data-i]').forEach(e => { e.textContent = t(e.dataset.i); });
+  $('disc').textContent = t('disc');
+  $('aboutVer').textContent = `${t('version')} ${APP_VERSION} · PureFxAi`;
+  renderLang();
   renderThai();
   renderA();
   renderTf();
   renderSet();
+  renderPriceAlerts();
+  renderAlertHist();
   renderDon();
+  renderNews();
+  renderSignTeaser();
   stamp();
-  if (chart) chart.applyOptions({ localization: { locale: L === 'th' ? 'th-TH' : 'en-US' } });
+  if (chart) chart.applyOptions({ localization: { locale: localeTag(L) } });
   applyOverlays();
-};
+  if (!$('view-signup').classList.contains('hidden')) renderSignup();
+}
 
+/* ---- Custom price alerts (foreground) ---- */
+function checkCustomAlerts(price) {
+  if (!price) return;
+  const list = store.getPriceAlerts().filter(a => a.active);
+  const last = +(localStorage.getItem('pg_last_px') || 0);
+  list.forEach(a => {
+    let hit = false;
+    if (a.dir === 'above') hit = price >= a.price && (last < a.price || !last);
+    else if (a.dir === 'below') hit = price <= a.price && (last > a.price || !last);
+    else hit = last && ((last < a.price && price >= a.price) || (last > a.price && price <= a.price));
+    if (hit) {
+      const text = L === 'th'
+        ? `ราคาทองถึง ${Math.round(a.price)} แล้ว ตอนนี้ ${Math.round(price)}`
+        : L === 'zh' ? `金价触及 ${Math.round(a.price)}，现价 ${Math.round(price)}`
+          : L === 'ja' ? `金価格が ${Math.round(a.price)} に到達、現在 ${Math.round(price)}`
+            : `Gold hit ${Math.round(a.price)}, now ${Math.round(price)}`;
+      store.markPriceAlertHit(a.id);
+      store.pushAlertHist({ text, kind: 'price' });
+      if (native) {
+        try { Pg.runNow({ force: true, customText: text }); } catch (e) {}
+      }
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification('PUREGOLD', { body: text }); } catch (e) {}
+      }
+    }
+  });
+  localStorage.setItem('pg_last_px', String(price));
+  renderPriceAlerts();
+  renderAlertHist();
+}
+
+/* ---- Data load ---- */
 async function loadThai() {
   try {
     const r = await fetch('https://apicheckprice.huasengheng.com/api/values/getprice/', { cache: 'no-store' });
     TG = await r.json();
+    store.saveThai(TG);
     renderThai();
-  } catch (e) { $('tgSrc').textContent = t('err'); }
+  } catch (e) {
+    if (!TG) $('tgSrc').textContent = t('err');
+    else setOffline(true);
+  }
 }
 
 async function loadA() {
   try {
     A = await analyze();
+    store.saveAnalysis(A);
+    setOffline(false);
     renderA();
-    await loadChart();
+    checkCustomAlerts(A.price);
+    if (tab === 'chart' || chart) await loadChart();
   } catch (e) {
-    $('xau').innerHTML = `<div class="mut">${t('err')}</div>`;
+    if (!A) {
+      $('xau').innerHTML = `<div class="state-err">${t('err')}</div>`;
+      $('setupHero').innerHTML = `<div class="state-err">${t('err')}</div>`;
+    } else setOffline(true);
+  }
+}
+
+async function loadNews() {
+  try {
+    NEWS = await fetchNews();
+    store.saveNews(NEWS);
+    renderNews();
+  } catch (e) {
+    if (!NEWS) renderNews();
   }
 }
 
 async function refresh() {
-  await Promise.all([loadThai(), loadA()]);
+  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate()]);
   stamp();
 }
 
-$('lang').onclick = () => {
-  L = L === 'th' ? 'en' : 'th';
-  localStorage.setItem('pg_lang', L);
-  renderAll();
-  saveSet();
-};
 $('ref').onclick = refresh;
 
 let y0 = null;
@@ -370,33 +633,22 @@ addEventListener('touchend', e => {
   y0 = null;
 }, { passive: true });
 
-['xau', 'sr', 'bias', 'plan', 'fc'].forEach(i => $(i).innerHTML = `<span class="mut">${t('load')}</span>`);
-renderTf();
-renderAll();
-saveSet();
-refresh();
-
-/* ---- Exness signup wizard ---- */
+/* ---- Exness signup ---- */
 let signI = Math.min(+(localStorage.getItem('ex_step') || 0), 7);
 let signDone = JSON.parse(localStorage.getItem('ex_chk') || '{}');
 let warmed = false;
 
 async function openExness() {
   try {
-    if (Capacitor.isNativePlatform()) {
-      await Browser.open({ url: EXNESS_REF, presentationStyle: 'fullscreen' });
-    } else {
-      window.open(EXNESS_REF, '_blank', 'noopener');
-    }
-  } catch (e) {
-    window.open(EXNESS_REF, '_blank');
-  }
+    if (native) await Browser.open({ url: EXNESS_REF, presentationStyle: 'fullscreen' });
+    else window.open(EXNESS_REF, '_blank', 'noopener');
+  } catch (e) { window.open(EXNESS_REF, '_blank'); }
 }
 
 async function openWebGuide() {
   const u = EXNESS_WEB_GUIDE + (L === 'en' ? '?lang=en' : '?lang=th');
   try {
-    if (Capacitor.isNativePlatform()) await Browser.open({ url: u });
+    if (native) await Browser.open({ url: u });
     else window.open(u, '_blank', 'noopener');
   } catch (e) { window.open(u, '_blank'); }
 }
@@ -404,45 +656,42 @@ async function openWebGuide() {
 async function warmPartnerOnce() {
   if (warmed) return;
   warmed = true;
-  if (!Capacitor.isNativePlatform()) return;
+  if (!native) return;
   try { await Pg.warmPartner({ url: EXNESS_REF }); } catch (e) {}
 }
 
-function stepDone(k, S) {
-  return S[k].c.every((_, j) => signDone[k + '_' + j]);
+function stepDone(k, Steps) {
+  return Steps[k].c.every((_, j) => signDone[k + '_' + j]);
 }
 
 function showSignup(on) {
   $('view-main').classList.toggle('hidden', on);
   $('view-signup').classList.toggle('hidden', !on);
-  if (on) {
-    warmPartnerOnce();
-    renderSignup();
-    scrollTo(0, 0);
-  }
+  if (on) { warmPartnerOnce(); renderSignup(); scrollTo(0, 0); }
 }
 
 function renderSignup() {
-  const S = signupSteps(L);
-  if (signI > S.length - 1) signI = S.length - 1;
-  const s = S[signI];
+  const lang = (L === 'en') ? 'en' : 'th';
+  const Steps = signupSteps(lang);
+  if (signI > Steps.length - 1) signI = Steps.length - 1;
+  const s = Steps[signI];
   localStorage.setItem('ex_step', signI);
-  $('bar').style.width = ((signI + 1) / S.length * 100) + '%';
-  $('pt').textContent = t('stepOf') + ' ' + (signI + 1) + ' ' + t('of') + ' ' + S.length;
-  $('pc').textContent = S.filter((_, k) => stepDone(k, S)).length + ' ' + t('stepsDone');
-  $('dots').innerHTML = S.map((_, k) =>
-    `<button type="button" class="${k === signI ? 'on' : stepDone(k, S) ? 'done' : ''}" data-k="${k}">${k + 1}</button>`
+  $('bar').style.width = ((signI + 1) / Steps.length * 100) + '%';
+  $('pt').textContent = t('stepOf') + ' ' + (signI + 1) + ' ' + t('of') + ' ' + Steps.length;
+  $('pc').textContent = Steps.filter((_, k) => stepDone(k, Steps)).length + ' ' + t('stepsDone');
+  $('dots').innerHTML = Steps.map((_, k) =>
+    `<button type="button" class="${k === signI ? 'on' : stepDone(k, Steps) ? 'done' : ''}" data-k="${k}">${k + 1}</button>`
   ).join('');
   $('stage').innerHTML = `<div class="card-s"><div class="n">${t('stepOf')} ${signI + 1}</div><h1>${s.t}</h1>${s.b}
    <div style="margin-top:12px;font-size:13px;color:#8a8473">${t('tickDone')}</div>
    ${s.c.map((c, j) => `<label class="chk"><input type="checkbox" data-c="${signI}_${j}" ${signDone[signI + '_' + j] ? 'checked' : ''}><span>${c}</span></label>`).join('')}
    <div class="nav"><button type="button" id="prev" ${signI === 0 ? 'disabled' : ''}>${t('prev')}</button>
-   <button type="button" class="pri" id="next">${signI === S.length - 1 ? t('finish') : t('next')}</button></div></div>`;
-  $('signDisc').innerHTML = SIGN_DISC[L];
+   <button type="button" class="pri" id="next">${signI === Steps.length - 1 ? t('finish') : t('next')}</button></div></div>`;
+  $('signDisc').innerHTML = SIGN_DISC[lang] || SIGN_DISC.en;
   $('webGuide').textContent = t('webGuide') + ' · purefxaidev.github.io/gold-dashboard/signup.html';
   $('prev').onclick = () => { if (signI > 0) { signI--; renderSignup(); scrollTo(0, 0); } };
   $('next').onclick = () => {
-    if (signI < S.length - 1) { signI++; renderSignup(); scrollTo(0, 0); }
+    if (signI < Steps.length - 1) { signI++; renderSignup(); scrollTo(0, 0); }
     else showSignup(false);
   };
   $('stage').querySelectorAll('[data-ex-open]').forEach(b => b.onclick = openExness);
@@ -461,24 +710,20 @@ function renderSignup() {
 function renderSignTeaser() {
   $('signTeaser').innerHTML = `<div class="mut s">${t('signTeaser')}</div>
  <button type="button" class="btn" id="openSign">${t('signOpen')}</button>
- <button type="button" class="btn sec" id="openExDirect">${L === 'th' ? 'เปิดลิงก์สมัคร Exness' : 'Open Exness sign-up link'}</button>`;
+ <button type="button" class="btn sec" id="openExDirect">${t('openEx')}</button>`;
   $('openSign').onclick = () => showSignup(true);
   $('openExDirect').onclick = openExness;
 }
 
-// Hook into renderAll
-const __ra = renderAll;
-renderAll = function () {
-  __ra();
-  renderSignTeaser();
-  if (!$('view-signup').classList.contains('hidden')) renderSignup();
-  $('lang2').textContent = L === 'th' ? 'EN' : 'TH';
-};
-
-$('goSign').onclick = () => showSignup(true);
 $('backMain').onclick = () => showSignup(false);
-$('lang2').onclick = () => { $('lang').click(); };
 $('webGuide').onclick = e => { e.preventDefault(); openWebGuide(); };
-renderSignTeaser();
+
+/* boot */
+showTab(tab);
+renderAll();
+saveSet();
+refresh();
 setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
+setInterval(loadNews, 5 * 60 * 1000);
+setInterval(checkUpdate, 30 * 60 * 1000);
