@@ -74,7 +74,21 @@ const en = {
   overlayNeedPerm: 'Permission required — open system settings',
   widgetHint: 'Add the PUREGOLD widget from your home screen (long-press → Widgets).',
   sideShort: 'Signal',
+  pureFxAi: 'PureFxAi',
+  pureFxAiHint: 'On-device analysis. First use installs the PureFxAi pack automatically (~1.2 GB). Wi‑Fi recommended.',
+  pureFxAiBtn: 'Analyze with PureFxAi',
+  pureFxAiInstalling: 'Installing…',
+  pureFxAiLoading: 'Loading PureFxAi…',
+  pureFxAiRunning: 'PureFxAi analyzing…',
+  pureFxAiReady: 'PureFxAi ready',
+  pureFxAiNeedNet: 'Need internet for first-time install',
+  pureFxAiFail: 'Could not finish install. Showing rule-based PureFxAi card.',
+  pureFxAiRules: 'PureFxAi (rules)',
+  pureFxAiModel: 'PureFxAi',
+  pureFxAiProgress: 'Installing… {p}%',
+  pureFxAiSection: 'PureFxAi analysis',
 };
+
 
 const th = {
   ...en,
@@ -152,7 +166,21 @@ const th = {
   overlayNeedPerm: 'ต้องอนุญาตก่อน — เปิดการตั้งค่าระบบ',
   widgetHint: 'เพิ่มวิดเจ็ต PUREGOLD จากหน้าจอหลัก (กดค้าง → วิดเจ็ต)',
   sideShort: 'สัญญาณ',
+  pureFxAi: 'PureFxAi',
+  pureFxAiHint: 'วิเคราะห์ในเครื่อง ครั้งแรกจะติดตั้ง PureFxAi อัตโนมัติ (~1.2 GB) แนะนำใช้ Wi‑Fi',
+  pureFxAiBtn: 'วิเคราะห์ด้วย PureFxAi',
+  pureFxAiInstalling: 'กำลังติดตั้ง',
+  pureFxAiLoading: 'กำลังโหลด PureFxAi…',
+  pureFxAiRunning: 'PureFxAi กำลังวิเคราะห์…',
+  pureFxAiReady: 'PureFxAi พร้อมแล้ว',
+  pureFxAiNeedNet: 'ต้องมีเน็ตสำหรับการติดตั้งครั้งแรก',
+  pureFxAiFail: 'ติดตั้งไม่สำเร็จ แสดงการ์ด PureFxAi จากกฎในเครื่อง',
+  pureFxAiRules: 'PureFxAi (กฎในเครื่อง)',
+  pureFxAiModel: 'PureFxAi',
+  pureFxAiProgress: 'กำลังติดตั้ง… {p}%',
+  pureFxAiSection: 'วิเคราะห์ PureFxAi',
 };
+
 
 const zh = {
   ...en,
@@ -230,7 +258,21 @@ const zh = {
   overlayNeedPerm: '需要权限 — 打开系统设置',
   widgetHint: '在主屏幕添加 PUREGOLD 小组件（长按 → 小组件）',
   sideShort: '信号',
+  pureFxAi: 'PureFxAi',
+  pureFxAiHint: '本机分析。首次使用会自动安装 PureFxAi 包（约 1.2 GB）。建议使用 Wi‑Fi。',
+  pureFxAiBtn: '用 PureFxAi 分析',
+  pureFxAiInstalling: '正在安装',
+  pureFxAiLoading: '正在加载 PureFxAi…',
+  pureFxAiRunning: 'PureFxAi 分析中…',
+  pureFxAiReady: 'PureFxAi 已就绪',
+  pureFxAiNeedNet: '首次安装需要网络',
+  pureFxAiFail: '安装未完成。显示基于规则的 PureFxAi 卡片。',
+  pureFxAiRules: 'PureFxAi（规则）',
+  pureFxAiModel: 'PureFxAi',
+  pureFxAiProgress: '正在安装… {p}%',
+  pureFxAiSection: 'PureFxAi 分析',
 };
+
 
 const ja = {
   ...en,
@@ -308,7 +350,21 @@ const ja = {
   overlayNeedPerm: '権限が必要です — システム設定を開く',
   widgetHint: 'ホーム画面で PUREGOLD ウィジェットを追加（長押し → ウィジェット）',
   sideShort: 'シグナル',
+  pureFxAi: 'PureFxAi',
+  pureFxAiHint: '端末内分析。初回は PureFxAi パックを自動インストール（約1.2GB）。Wi‑Fi推奨。',
+  pureFxAiBtn: 'PureFxAiで分析',
+  pureFxAiInstalling: 'インストール中',
+  pureFxAiLoading: 'PureFxAiを読み込み中…',
+  pureFxAiRunning: 'PureFxAi分析中…',
+  pureFxAiReady: 'PureFxAi準備完了',
+  pureFxAiNeedNet: '初回インストールには通信が必要です',
+  pureFxAiFail: 'インストール未完了。ルールベースの PureFxAi カードを表示します。',
+  pureFxAiRules: 'PureFxAi（ルール）',
+  pureFxAiModel: 'PureFxAi',
+  pureFxAiProgress: 'インストール中… {p}%',
+  pureFxAiSection: 'PureFxAi分析',
 };
+
 
 export const LANGS = [
   { id: 'th', label: 'ไทย' },

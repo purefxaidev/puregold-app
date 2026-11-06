@@ -1,6 +1,25 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.5.0',
+    date: '2026-11-06',
+    th: [
+      'วิเคราะห์แผนด้วย PureFxAi ในเครื่อง (ติดตั้งอัตโนมัติครั้งแรก — แสดง “กำลังติดตั้ง” พร้อมเปอร์เซ็นต์)',
+      'เมนูแผนยังใช้กฎเทคนิคเป็นฐาน แล้วเสริมด้วย PureFxAi',
+      'ไม่แสดงชื่อโมเดลภายนอกใน UI — ใช้แบรนด์ PureFxAi เท่านั้น',
+    ],
+    en: [
+      'On-device PureFxAi plan analysis (auto-install on first use — “Installing…” with progress %)',
+      'Plan tab keeps the rule engine as baseline, enhanced by PureFxAi',
+      'No third-party model names in the UI — branded PureFxAi only',
+    ],
+    zh: [
+      '本机 PureFxAi 计划分析（首次自动安装 — 显示“正在安装”与进度百分比）',
+      '计划页保留规则引擎为基础，并由 PureFxAi 增强',
+      '界面不显示外部模型名称 — 仅使用 PureFxAi 品牌',
+    ],
+  },
+  {
     version: '0.4.0',
     date: '2026-11-06',
     th: [

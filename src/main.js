@@ -8,6 +8,7 @@ import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
+import { analyzeWithPureFxAi, nativeStatus, isMarkedReady } from './ondevice.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -15,7 +16,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -106,7 +107,7 @@ function showTab(name) {
     requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
   }
   if (name === 'tech') renderTech();
-  if (name === 'plan') { renderPlan(); renderSignalHist(); }
+  if (name === 'plan') { renderPlan(); renderSignalHist(); refreshPfxStatus(); const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } }
   if (name === 'more') { renderChangelogBox(); renderOverlaySet(); }
 }
 $('bnav').querySelectorAll('button').forEach(b => {
@@ -523,6 +524,84 @@ function renderNews() {
 
 
 
+
+/* ---- PureFxAi on-device ---- */
+let pfxBusy = false;
+function setPfxProgress(ev) {
+  const bar = $('pfxBar');
+  const fill = $('pfxBarFill');
+  const st = $('pfxStatus');
+  if (!st) return;
+  const phase = ev?.phase || '';
+  const pct = ev?.pct ?? 0;
+  if (phase === 'installing' || phase === 'checking') {
+    bar?.classList.remove('hidden');
+    if (fill) fill.style.width = pct + '%';
+    st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
+  } else if (phase === 'loading') {
+    bar?.classList.remove('hidden');
+    if (fill) fill.style.width = '100%';
+    st.textContent = t('pureFxAiLoading');
+  } else if (phase === 'analyzing') {
+    st.textContent = t('pureFxAiRunning');
+  } else if (phase === 'ready') {
+    if (fill) fill.style.width = '100%';
+    st.textContent = t('pureFxAiReady');
+    setTimeout(() => bar?.classList.add('hidden'), 800);
+  }
+}
+
+async function refreshPfxStatus() {
+  const st = $('pfxStatus');
+  if (!st) return;
+  try {
+    const s = await nativeStatus();
+    if (s.ready || isMarkedReady()) st.textContent = t('pureFxAiReady');
+    else if (s.downloading) {
+      const pct = s.total ? Math.floor((s.done / s.total) * 100) : 0;
+      st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
+    } else st.textContent = '';
+  } catch { st.textContent = ''; }
+}
+
+async function runPureFxAi() {
+  if (pfxBusy) return;
+  const out = $('pfxOut');
+  const btn = $('btnPureFxAi');
+  if (!A?.setup) {
+    if (out) { out.classList.remove('hidden'); out.textContent = t('empty'); }
+    return;
+  }
+  pfxBusy = true;
+  if (btn) { btn.disabled = true; btn.textContent = t('pureFxAiInstalling'); }
+  try {
+    const res = await analyzeWithPureFxAi(A, L, (ev) => {
+      setPfxProgress(ev);
+      if (btn && (ev.phase === 'installing' || ev.phase === 'checking')) {
+        btn.textContent = t('pureFxAiProgress').replace('{p}', String(ev.pct ?? 0));
+      } else if (btn && ev.phase === 'analyzing') {
+        btn.textContent = t('pureFxAiRunning');
+      } else if (btn && ev.phase === 'loading') {
+        btn.textContent = t('pureFxAiLoading');
+      }
+    });
+    if (out) {
+      out.classList.remove('hidden');
+      const tag = res.source === 'model' ? t('pureFxAiModel') : t('pureFxAiRules');
+      out.textContent = `${tag}\n\n${res.text}`;
+      if (res.source === 'rules' && res.error) {
+        const st = $('pfxStatus');
+        if (st) st.textContent = t('pureFxAiFail');
+      }
+    }
+  } catch (e) {
+    if (out) { out.classList.remove('hidden'); out.textContent = t('pureFxAiFail'); }
+  } finally {
+    pfxBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = t('pureFxAiBtn'); }
+  }
+}
+
 /* ---- Plan tab + signal history ---- */
 function renderPlan() {
   const el = $('planToday');
@@ -841,6 +920,8 @@ function renderAll() {
   renderA();
   renderPlan();
   renderSignalHist();
+  refreshPfxStatus();
+  { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } }
   renderTf();
   renderSet();
   renderOverlaySet();

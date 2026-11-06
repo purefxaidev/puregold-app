@@ -177,3 +177,9 @@ footer{font-size:11px;color:#7d776a;line-height:1.6;padding:4px 0}
 .cl-body ul{margin:4px 0 0;padding-left:18px}
 .cl-body li{margin:4px 0;color:var(--text)}
 .cl-remote{margin-top:12px;padding-top:10px;border-top:1px solid var(--line2);white-space:pre-wrap;font-size:12px;color:var(--muted)}
+
+/* PureFxAi install / output */
+.pfx-status{min-height:1.2em;margin-bottom:6px}
+.pfx-bar{height:8px;background:#151722;border:1px solid #3a3220;border-radius:999px;overflow:hidden;margin:8px 0 12px}
+.pfx-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width .25s ease}
+.pfx-out{white-space:pre-wrap;background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:12px;font:inherit;font-size:13px;line-height:1.5;color:var(--text);margin:0 0 10px;max-height:280px;overflow:auto}

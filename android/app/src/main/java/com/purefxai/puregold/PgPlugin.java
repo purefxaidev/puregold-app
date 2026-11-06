@@ -13,10 +13,31 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import com.getcapacitor.*;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @CapacitorPlugin(name="PgNative")
 public class PgPlugin extends Plugin {
   SharedPreferences sp(){return getContext().getSharedPreferences("pg",0);}
+  private final ExecutorService io = Executors.newSingleThreadExecutor();
+  private final AtomicBoolean downloading = new AtomicBoolean(false);
+  private final AtomicBoolean cancelDl = new AtomicBoolean(false);
+  private volatile long dlDone, dlTotal;
+
+  File modelDir(){
+    File d=new File(getContext().getFilesDir(),"models");
+    //noinspection ResultOfMethodCallIgnored
+    d.mkdirs();
+    return d;
+  }
 
   @PluginMethod public void setSettings(PluginCall c){
     SharedPreferences.Editor e=sp().edit();
@@ -129,5 +150,125 @@ public class PgPlugin extends Plugin {
         new Handler(Looper.getMainLooper()).postDelayed(finish,12000);
       }catch(Exception e){ c.resolve(); }
     });
+  }
+
+  /* ---- On-device PureFxAi pack download ---- */
+
+  @PluginMethod public void deviceModelStatus(PluginCall c){
+    String name=sp().getString("deviceModelFile","purefxai-device.gguf");
+    File out=new File(modelDir(), name);
+    File part=new File(modelDir(), name+".part");
+    long expect=sp().getLong("deviceModelSize",1270808032L);
+    JSObject o=new JSObject();
+    boolean ready=out.isFile() && out.length()>=Math.max(1, expect-1024);
+    o.put("ready", ready);
+    o.put("path", ready ? out.getAbsolutePath() : "");
+    o.put("downloading", downloading.get());
+    o.put("done", ready ? expect : (downloading.get() ? dlDone : part.length()));
+    o.put("total", expect);
+    o.put("fileName", name);
+    c.resolve(o);
+  }
+
+  @PluginMethod public void cancelDeviceModel(PluginCall c){
+    cancelDl.set(true);
+    c.resolve();
+  }
+
+  @PluginMethod public void ensureDeviceModel(PluginCall c){
+    final String url=c.getString("url","");
+    final String sha=c.getString("sha256","");
+    final String fileName=c.getString("fileName","purefxai-device.gguf");
+    final long size=c.getLong("size",1270808032L);
+    if(url==null||url.isEmpty()){ c.reject("url required"); return; }
+    sp().edit().putString("deviceModelFile",fileName).putLong("deviceModelSize",size).apply();
+    File out=new File(modelDir(), fileName);
+    if(out.isFile() && out.length()>=Math.max(1, size-1024)){
+      JSObject o=new JSObject(); o.put("ready",true); o.put("path",out.getAbsolutePath());
+      notifyListeners("deviceModelReady", o);
+      c.resolve(o); return;
+    }
+    if(!downloading.compareAndSet(false,true)){
+      JSObject o=new JSObject(); o.put("started",false); o.put("downloading",true);
+      c.resolve(o); return;
+    }
+    cancelDl.set(false);
+    dlTotal=size; dlDone=0;
+    c.resolve(new JSObject().put("started",true));
+    io.execute(() -> {
+      File part=new File(modelDir(), fileName+".part");
+      try{
+        if(modelDir().getUsableSpace() < size - part.length() + 200L*1048576L)
+          throw new Exception("not_enough_space");
+        long have=part.length(); dlDone=have;
+        HttpURLConnection conn=null;
+        URL u=new URL(url);
+        for(int hop=0; hop<8; hop++){
+          conn=(HttpURLConnection)u.openConnection();
+          conn.setInstanceFollowRedirects(false);
+          conn.setConnectTimeout(25000);
+          conn.setReadTimeout(60000);
+          conn.setRequestProperty("User-Agent","PUREGOLD-Android");
+          if(have>0) conn.setRequestProperty("Range","bytes="+have+"-");
+          int code=conn.getResponseCode();
+          if(code==301||code==302||code==303||code==307||code==308){
+            String loc=conn.getHeaderField("Location");
+            conn.disconnect();
+            if(loc==null||loc.isEmpty()) throw new Exception("redirect");
+            u=new URL(loc);
+            continue;
+          }
+          if(code==200 && have>0){ have=0; dlDone=0; //noinspection ResultOfMethodCallIgnored
+            part.delete(); }
+          else if(code!=200 && code!=206) throw new Exception("HTTP "+code);
+          break;
+        }
+        if(conn==null) throw new Exception("no_connection");
+        long lastEmit=0;
+        try(InputStream in=conn.getInputStream(); FileOutputStream fo=new FileOutputStream(part, have>0)){
+          byte[] buf=new byte[1<<16]; int r;
+          while((r=in.read(buf))>0){
+            if(cancelDl.get()) throw new Exception("cancelled");
+            fo.write(buf,0,r); dlDone+=r;
+            long now=System.currentTimeMillis();
+            if(now-lastEmit>500){
+              lastEmit=now;
+              JSObject p=new JSObject();
+              p.put("done",dlDone); p.put("total",dlTotal);
+              notifyListeners("deviceModelProgress", p);
+            }
+          }
+        } finally { try{ conn.disconnect(); }catch(Exception ignored){} }
+        if(sha!=null && !sha.isEmpty()){
+          notifyListeners("deviceModelProgress", new JSObject().put("done",dlDone).put("total",dlTotal).put("phase","verifying"));
+          String got=sha256(part);
+          if(!got.equalsIgnoreCase(sha)){ //noinspection ResultOfMethodCallIgnored
+            part.delete(); throw new Exception("checksum"); }
+        }
+        if(out.exists()) //noinspection ResultOfMethodCallIgnored
+          out.delete();
+        if(!part.renameTo(out)) throw new Exception("rename");
+        JSObject ready=new JSObject();
+        ready.put("ready",true); ready.put("path",out.getAbsolutePath());
+        notifyListeners("deviceModelReady", ready);
+      }catch(Exception e){
+        JSObject err=new JSObject();
+        err.put("error", String.valueOf(e.getMessage()));
+        notifyListeners("deviceModelError", err);
+      }finally{
+        downloading.set(false);
+      }
+    });
+  }
+
+  static String sha256(File f) throws Exception {
+    MessageDigest md=MessageDigest.getInstance("SHA-256");
+    try(InputStream in=new FileInputStream(f)){
+      byte[] b=new byte[1<<16]; int r;
+      while((r=in.read(b))>0) md.update(b,0,r);
+    }
+    StringBuilder sb=new StringBuilder();
+    for(byte x: md.digest()) sb.append(String.format("%02x",x));
+    return sb.toString();
   }
 }
