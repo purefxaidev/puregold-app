@@ -5,10 +5,10 @@ import { Browser } from '@capacitor/browser';
 import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE, signupLang } from './signup.js';
 import { t as tr, LANGS, localeTag } from './i18n.js';
 import { store } from './store.js';
-import { fetchNews, titleFor, summaryFor, newsCacheKey } from './news.js';
+import { fetchNews, titleFor, summaryFor, newsCacheKey, applyNewsLocale, newsNeedsLocale, sanitizeNewsItem, cleanText } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
-import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
+import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 
 const Pg = registerPlugin('PgNative');
@@ -17,12 +17,16 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.9.1';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
 let TG = store.loadThai()?.items || null;
-let NEWS = store.loadNews()?.items || null;
+function hydrateNewsItems(items) {
+  return applyNewsLocale(items || [], L, store.getNewsI18n() || {});
+}
+let NEWS = hydrateNewsItems(store.loadNews()?.items || []);
+if (!NEWS.length) NEWS = null;
 let NEWS_META = store.loadNews() || { at: 0, sources: [] };
 let NEWS_AI = store.loadNewsAi() || null;
 let offline = false;
@@ -512,8 +516,10 @@ function renderLang() {
       L = b.dataset.l;
       store.setLang(L);
       document.documentElement.lang = L;
+      if (NEWS) NEWS = hydrateNewsItems(NEWS);
       renderAll();
       saveSet();
+      localizeNewsHeadlines(L).then(() => renderNews());
     };
   });
 }
@@ -638,19 +644,22 @@ function bindNewsLinks(root) {
   root.querySelectorAll('a[data-ext]').forEach(a => { a.onclick = openExt(a.dataset.ext); });
 }
 
+function newsOpenHtml(n) {
+  if (!n.url) return n.source ? `<span class="mut s">${esc(n.source)}</span>` : '';
+  return `<a class="news-open" href="${esc(n.url)}" target="_blank" rel="noopener noreferrer" data-ext="${esc(n.url)}">${esc(t('openNews'))}${n.source ? ' · ' + esc(n.source) : ''}</a>`;
+}
+
 function newsCardHtml(n) {
   const ai = newsAiFor(n.id);
   const imp = ai?.bias || n.impact || 'neutral';
-  const link = n.url
-    ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" data-ext="${esc(n.url)}">${t('readMore')}${n.source ? ' · ' + esc(n.source) : ''}</a>`
-    : (n.source ? `<span class="mut s">${esc(n.source)}</span>` : '');
+  const sum = summaryFor(n, L);
   const aiLine = ai?.text ? `<div class="news-ai-line"><div class="who"><img src="/nong-mee.jpg" alt="">PureFxAi</div>${esc(ai.text)}</div>` : '';
   return `<article class="news-card ${imp}">
       <span class="im ${imp}">${esc(impactLabel(imp))}</span>
       <h3>${esc(titleFor(n, L))}</h3>
-      <p>${esc(summaryFor(n, L))}</p>
+      ${sum ? `<p>${esc(sum)}</p>` : ''}
       ${aiLine}
-      ${link}
+      ${newsOpenHtml(n)}
     </article>`;
 }
 
@@ -662,7 +671,8 @@ function renderNews() {
     const when = NEWS_META?.at ? t('newsUpdated').replace('{t}', fmtNewsTime(NEWS_META.at) + ' (Bangkok)') : '';
     const srcs = (NEWS_META?.sources || []).length ? t('newsSources').replace('{s}', NEWS_META.sources.join(' · ')) : '';
     const err = NEWS_META?.failed?.length ? t('newsErr') : '';
-    meta.textContent = [when, srcs, err].filter(Boolean).join(' · ');
+    const loc = NEWS_META?.needKeyForLocale ? t('newsNeedTranslateKey') : '';
+    meta.textContent = [when, srcs, err, loc].filter(Boolean).join(' · ');
   }
   renderNewsAiBox();
   const latest = $('btnNewsLatest');
@@ -701,7 +711,7 @@ function renderHomeNewsTeaser() {
     return `<div class="news-teaser-card">
       <span class="im ${imp}" style="display:inline-block;font-size:11px;font-weight:800;margin-bottom:4px">${esc(impactLabel(imp))}</span>
       <h3>${esc(titleFor(n, L))}</h3>
-      ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener" data-ext="${esc(n.url)}">${t('readMore')}${n.source ? ' · ' + esc(n.source) : ''}</a>` : ''}
+      ${newsOpenHtml(n)}
     </div>`;
   }).join('');
   bindNewsLinks(el);
@@ -1311,12 +1321,51 @@ async function loadA() {
   }
 }
 
+async function localizeNewsHeadlines(lang) {
+  if (!NEWS || !NEWS.length || !lang || lang === 'en') {
+    if (NEWS_META) NEWS_META.needKeyForLocale = false;
+    return;
+  }
+  NEWS = applyNewsLocale(NEWS, lang, store.getNewsI18n() || {});
+  const pending = NEWS.filter(n => newsNeedsLocale(n, lang));
+  if (!pending.length) {
+    NEWS_META.needKeyForLocale = false;
+    return;
+  }
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    NEWS_META.needKeyForLocale = true;
+    return;
+  }
+  NEWS_META.needKeyForLocale = false;
+  const BATCH = 8;
+  for (let i = 0; i < pending.length; i += BATCH) {
+    const slice = pending.slice(i, i + BATCH);
+    const res = await translateNewsWithPureFxAi(slice, lang);
+    if (res.error === 'need_key') {
+      NEWS_META.needKeyForLocale = true;
+      break;
+    }
+    const cache = store.getNewsI18n() || {};
+    Object.entries(res.items || {}).forEach(([id, v]) => {
+      cache[`${lang}:${id}`] = { title: cleanText(v.title), summary: cleanText(v.summary || '') };
+    });
+    store.saveNewsI18n(cache);
+    NEWS = applyNewsLocale(NEWS, lang, cache);
+    store.saveNews({ at: NEWS_META.at, items: NEWS, sources: NEWS_META.sources, failed: NEWS_META.failed, needKeyForLocale: NEWS_META.needKeyForLocale });
+    renderNews();
+  }
+}
+
 async function loadNews(opts = {}) {
   try {
     const pack = await fetchNews();
-    NEWS = pack.items || [];
+    NEWS = hydrateNewsItems(pack.items || []);
     NEWS_META = { at: pack.at || Date.now(), sources: pack.sources || [], failed: pack.failed || [] };
     store.saveNews({ at: NEWS_META.at, items: NEWS, sources: NEWS_META.sources, failed: NEWS_META.failed });
+    renderNews();
+    await localizeNewsHeadlines(L);
+    store.saveNews({ at: NEWS_META.at, items: NEWS, sources: NEWS_META.sources, failed: NEWS_META.failed, needKeyForLocale: NEWS_META.needKeyForLocale });
     renderNews();
     await maybeAnalyzeNews(!!opts.forceAnalyze);
   } catch (e) {

@@ -332,6 +332,43 @@ export async function analyzeNewsWithPureFxAi(items, lang) {
   }
 }
 
+
+export async function translateNewsWithPureFxAi(items, lang) {
+  const key = await getApiKey();
+  if (!key) return { items: {}, error: 'need_key' };
+  const langName = { th: 'Thai', zh: 'Simplified Chinese', ja: 'Japanese' }[lang];
+  if (!langName) return { items: {}, error: 'skip' };
+  const pack = (items || []).map(n => ({
+    id: n.id,
+    title: n.title_en || n.title_th || n.title_zh || n.title_ja || '',
+    summary: String(n.summary_en || n.summary_th || n.summary_zh || n.summary_ja || '').slice(0, 280),
+  })).filter(n => n.id && n.title);
+  if (!pack.length) return { items: {} };
+  const system =
+    `You are PureFxAi inside PUREGOLD. Reply ONLY valid JSON — no markdown fences. ` +
+    `Translate each gold-news headline and a short 1-sentence summary into ${langName}. ` +
+    `Keep meaning accurate. No HTML, no links, no entity codes, no vendor or model names. ` +
+    `JSON shape: {"items":[{"id":"...","title":"...","summary":"..."}]}`;
+  const user = `Translate these headlines into ${langName}:\n` + JSON.stringify(pack);
+  try {
+    const raw = await generateText(key, system, user, { maxOutputTokens: 1800 });
+    const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    const parsed = JSON.parse(start >= 0 ? cleaned.slice(start, end + 1) : cleaned);
+    const map = {};
+    (parsed.items || []).forEach(it => {
+      if (!it || !it.id) return;
+      const title = String(it.title || '').replace(/<[^>]+>/g, ' ').trim();
+      const summary = String(it.summary || '').replace(/<[^>]+>/g, ' ').trim();
+      if (title) map[it.id] = { title, summary };
+    });
+    return { items: map, source: 'model' };
+  } catch (e) {
+    return { items: {}, error: String(e?.message || e) };
+  }
+}
+
 export async function chatWithPureFxAi(userText, A, lang) {
   const key = await getApiKey();
   if (!key) {

@@ -96,6 +96,8 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--gold);flex-shrink
 .news-card h3{margin:0 0 6px;font-size:16px;color:var(--white);line-height:1.35;font-weight:700}
 .news-card p{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
 .news-card a{color:var(--gold);font-size:12px;display:inline-block;margin-top:8px;text-decoration:none}
+.news-card a.news-open,.news-teaser-card a.news-open{display:inline-flex;align-items:center;margin-top:10px;padding:7px 14px;border-radius:999px;border:1px solid #3a3220;background:#1a160e;color:var(--gold);font-size:13px;font-weight:700;letter-spacing:.02em}
+
 
 .addr{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;background:#0d0f17;border:1px solid var(--line2);border-radius:10px;padding:10px;margin:8px 0;color:var(--gold)}
 .don-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}

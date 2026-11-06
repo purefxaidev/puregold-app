@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.9.1 — 2026-11-06
+### TH
+- การ์ดข่าวแสดงข้อความสะอาด ไม่โชว์โค้ด HTML หรือ `&lt;a href=...`
+- ปุ่ม **เปิดข่าว** เปิดลิงก์ต้นทาง (ใช้เบราว์เซอร์ในแอป)
+- เมื่อภาษาแอปเป็นไทย/จีน/ญี่ปุ่น แสดงพาดหัวและสรุปสั้นตามภาษา (จากฟีด หรือแปลด้วย PureFxAi ถ้ามีคีย์)
+- ตัดโค้ดดาวน์โหลดโมเดลในเครื่องที่ไม่ได้ใช้ — ปุ่มล้างไฟล์เก่ายังใช้ได้
+
+### EN
+- News cards no longer print raw or escaped HTML
+- Clean **Open link** button for the source article (Capacitor Browser on device)
+- Localized headlines + short summaries when the app language is TH/ZH/JA (feed text or PureFxAi + API key)
+- Removed unused on-device model download path; leftover-pack cleanup remains
+
+### ZH
+- 新闻不再显示原始/转义 HTML · “打开原文”按钮 · 中/泰/日文标题摘要 · 移除本机模型下载
+
+### JA
+- ニュースから生HTMLを除去 · 「記事を開く」 · 日/泰/中の見出し · 端末モデルDL処理を削除
+
+
 ## 0.9.0 — 2026-11-06
 ### TH
 - กราฟและเทคนิคอยู่หน้าแรก (กดเต็มหน้าได้) · น้องหมีมาสคอตในแอป

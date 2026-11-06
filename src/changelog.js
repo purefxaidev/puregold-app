@@ -1,6 +1,34 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.1',
+    date: '2026-11-06',
+    th: [
+      'ข่าวแสดงข้อความสะอาด ไม่โชว์โค้ด HTML หรือลิงก์ดิบ',
+      'ปุ่ม “เปิดข่าว” เปิดลิงก์ต้นทางชัดเจน',
+      'เมื่อตั้งภาษาไทย/จีน/ญี่ปุ่น จะแปลพาดหัวและสรุปสั้น (ใช้ข้อความจากฟีด หรือ PureFxAi เมื่อมีคีย์)',
+      'ลบโค้ดดาวน์โหลดโมเดลในเครื่องที่ไม่ได้ใช้แล้ว (ยังมีปุ่มล้างไฟล์เก่าคืนพื้นที่)',
+    ],
+    en: [
+      'News cards show clean text — no raw or escaped HTML',
+      'A clear “Open link” button opens the source article',
+      'Thai / Chinese / Japanese headlines and short summaries (feed text, or PureFxAi when an API key is set)',
+      'Removed unused on-device model download code (cleanup button still wipes leftover packs)',
+    ],
+    zh: [
+      '新闻卡片只显示干净文本，不再出现原始或转义 HTML',
+      '“打开原文”按钮可打开来源链接',
+      '应用为中/泰/日文时显示对应标题与摘要（来自源或 PureFxAi）',
+      '移除已不用的本机模型下载代码（清理按钮仍可删除旧包）',
+    ],
+    ja: [
+      'ニュース本文から生HTML/エスケープ済みマークアップを除去',
+      '「記事を開く」ボタンで出典を表示',
+      'アプリ言語が日/泰/中のとき見出しと短い要約を表示（フィード文または PureFxAi）',
+      '未使用の端末モデルダウンロード処理を削除（クリーンアップで旧パックを削除可能）',
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-11-06',
     th: [

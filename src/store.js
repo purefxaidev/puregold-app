@@ -13,6 +13,7 @@ const KEYS = {
   newsCache: 'pg_news_cache',
   newsAi: 'pg_news_ai',
   newsAlerted: 'pg_news_alerted',
+  newsI18n: 'pg_news_i18n',
   techId: 'pg_tech_id',
   signalHist: 'pg_signal_hist',
   seenVer: 'pg_seen_version',
@@ -113,6 +114,16 @@ export const store = {
 
   saveNewsAi: (obj) => write(KEYS.newsAi, obj),
   loadNewsAi: () => read(KEYS.newsAi, null),
+
+  getNewsI18n: () => read(KEYS.newsI18n, {}),
+  saveNewsI18n: (obj) => {
+    const src = obj || {};
+    const keys = Object.keys(src);
+    const trimmed = keys.length > 240
+      ? Object.fromEntries(keys.slice(-240).map(k => [k, src[k]]))
+      : src;
+    write(KEYS.newsI18n, trimmed);
+  },
 
   wasNewsAlerted: (id) => read(KEYS.newsAlerted, []).includes(id),
   markNewsAlerted: (ids) => {

@@ -1,6 +1,6 @@
 /**
  * PUREGOLD in-app chat bot (PureFxAi).
- * Rule intents for plan / Exness signup / risk; optional on-device PureFxAi for free-form.
+ * Rule intents for plan / Exness signup / risk; optional PureFxAi (cloud API key) for free-form.
  * Never expose underlying model names.
  */
 import { EXNESS_REF } from './signup.js';

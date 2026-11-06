@@ -40,9 +40,100 @@ export const NEWS_SOURCES = [
   },
 ];
 
-function stripHtml(s) {
-  return String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+function decodeEntitiesOnce(s) {
+  return String(s || '').replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]+);/g, (m, ent) => {
+    if (ent[0] === '#') {
+      const code = ent[1] === 'x' || ent[1] === 'X' ? parseInt(ent.slice(2), 16) : parseInt(ent.slice(1), 10);
+      try { return Number.isFinite(code) ? String.fromCodePoint(code) : m; } catch { return m; }
+    }
+    const key = ent.toLowerCase();
+    return Object.prototype.hasOwnProperty.call(ENTITIES, key) ? ENTITIES[key] : m;
+  });
 }
+
+function decodeEntitiesDeep(s) {
+  let prev = String(s || '');
+  for (let i = 0; i < 6; i++) {
+    const next = decodeEntitiesOnce(prev);
+    if (next === prev) break;
+    prev = next;
+  }
+  return prev;
+}
+
+function stripTags(s) {
+  return String(s || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ');
+}
+
+/** Decode entities, strip every HTML tag, never leave raw or escaped markup. */
+export function cleanText(s) {
+  let t = decodeEntitiesDeep(s);
+  t = stripTags(t);
+  t = decodeEntitiesDeep(t);
+  t = stripTags(t);
+  t = t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ');
+  t = t.replace(/\s+/g, ' ').trim();
+  return t;
+}
+
+export function safeUrl(u) {
+  const s = cleanText(decodeEntitiesDeep(u)).replace(/[<>"']/g, '').trim();
+  if (!/^https?:\/\//i.test(s)) return '';
+  if (/[\s]/.test(s)) return s.split(/\s/)[0];
+  return s;
+}
+
+export function extractHref(raw) {
+  const decoded = decodeEntitiesDeep(raw);
+  const href = decoded.match(/href\s*=\s*["']([^"']+)["']/i);
+  if (href) {
+    const u = safeUrl(href[1]);
+    if (u) return u;
+  }
+  const bare = decoded.match(/https?:\/\/[^\s"'<>]+/i);
+  return bare ? safeUrl(bare[0]) : '';
+}
+
+function localeKeys(lang) {
+  if (lang === 'th') return { title: 'title_th', summary: 'summary_th' };
+  if (lang === 'zh') return { title: 'title_zh', summary: 'summary_zh' };
+  if (lang === 'ja') return { title: 'title_ja', summary: 'summary_ja' };
+  return { title: 'title_en', summary: 'summary_en' };
+}
+
+export function sanitizeNewsItem(n) {
+  if (!n || typeof n !== 'object') return n;
+  const item = { ...n };
+  for (const k of ['title_th', 'title_en', 'title_zh', 'title_ja', 'summary_th', 'summary_en', 'summary_zh', 'summary_ja', 'source']) {
+    if (item[k]) item[k] = cleanText(item[k]);
+  }
+  item.url = safeUrl(item.url || extractHref(n.url || n.summary_en || n.summary_th || ''));
+  return item;
+}
+
+export function applyNewsLocale(items, lang, cache = {}) {
+  return (items || []).map((raw) => {
+    const item = sanitizeNewsItem(raw);
+    if (!lang || lang === 'en') return item;
+    const keys = localeKeys(lang);
+    const hit = cache[`${lang}:${item.id}`] || null;
+    if (!item[keys.title] && hit?.title) item[keys.title] = cleanText(hit.title);
+    if (!item[keys.summary] && hit?.summary) item[keys.summary] = cleanText(hit.summary);
+    return item;
+  });
+}
+
+export function newsNeedsLocale(n, lang) {
+  if (!n || !lang || lang === 'en') return false;
+  const keys = localeKeys(lang);
+  return !cleanText(n[keys.title]);
+}
+
 
 function hashId(s) {
   let h = 2166136261;
@@ -84,36 +175,59 @@ function normalizeTitle(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9\u0e00-\u0e7f\u4e00-\u9fff]+/g, ' ').trim();
 }
 
+function firstArticle(v) {
+  if (Array.isArray(v)) return v[0] || '';
+  return v || '';
+}
+
 function mapDashboardItem(it) {
-  return {
-    id: it.id || it.key || ('dash_' + hashId(it.url || it.title_en || it.title_th)),
+  const url = safeUrl(it.url || it.publisher_url || it.gn_url || extractHref(it.summary_en || it.summary_th || ''));
+  return sanitizeNewsItem({
+    id: it.id || it.key || ('dash_' + hashId(url || it.title_en || it.title_th)),
     impact: it.impact || 'neutral',
     level: it.level || 'medium',
     title_th: it.title_th || '',
     title_en: it.title_en || '',
     title_zh: it.title_zh || it.title_cn || '',
     title_ja: it.title_ja || '',
-    summary_th: it.summary_th || (Array.isArray(it.article_th) ? it.article_th[0] : ''),
-    summary_en: it.summary_en || (Array.isArray(it.article_en) ? it.article_en[0] : ''),
-    summary_zh: it.summary_zh || it.summary_cn || '',
-    summary_ja: it.summary_ja || '',
-    url: it.url || it.publisher_url || it.gn_url || '',
+    summary_th: it.summary_th || firstArticle(it.article_th),
+    summary_en: it.summary_en || firstArticle(it.article_en),
+    summary_zh: it.summary_zh || it.summary_cn || firstArticle(it.article_zh),
+    summary_ja: it.summary_ja || firstArticle(it.article_ja),
+    url,
     source: it.source || 'PUREGOLD feed',
     published: it.published || it.published_ts || it.added || '',
     published_ts: parseTime(it.published_ts || it.published || it.added),
     image: it.image || '',
     origin: 'dashboard',
-  };
+  });
+}
+
+function tidySummary(title, summary, source) {
+  let s = cleanText(summary);
+  const t = cleanText(title);
+  if (t && s.toLowerCase().startsWith(t.toLowerCase())) {
+    s = s.slice(t.length).replace(/^[\s\-–—|:·]+/, '').trim();
+  }
+  if (source && s.toLowerCase() === cleanText(source).toLowerCase()) return '';
+  if (t && s.toLowerCase() === t.toLowerCase()) return '';
+  return s.slice(0, 400);
 }
 
 function mapRssItem(it, src) {
-  const title = stripHtml(it.title || '');
-  const summary = stripHtml(it.description || it.content || it.summary || '').slice(0, 400);
-  const url = it.link || it.url || it.guid || '';
-  const srcName = it.source || src.name;
+  const rawDesc = it.description || it.content || it.summary || '';
+  const title = cleanText(it.title || '');
+  const url = safeUrl(it.link || it.url || it.guid) || extractHref(rawDesc) || extractHref(it.link || '');
+  let srcName = cleanText(it.source || src.name);
+  const fontSrc = decodeEntitiesDeep(rawDesc).match(/<font[^>]*>([\s\S]*?)<\/font>/i);
+  if (fontSrc) {
+    const pub = cleanText(fontSrc[1]);
+    if (pub) srcName = pub;
+  }
+  const summary = tidySummary(title, rawDesc, srcName);
   const published = it.pubDate || it.published || it.isoDate || '';
   const impact = guessImpact(title, summary);
-  const item = {
+  return sanitizeNewsItem({
     id: (src.id + '_' + hashId(url || title)),
     impact,
     level: guessLevel(title, summary),
@@ -131,8 +245,7 @@ function mapRssItem(it, src) {
     published_ts: parseTime(published),
     image: (it.thumbnail || it.enclosure?.link || ''),
     origin: src.id,
-  };
-  return item;
+  });
 }
 
 function parseRssXml(xml, src) {
@@ -258,17 +371,19 @@ export async function fetchNews() {
 }
 
 export function titleFor(n, lang) {
-  if (lang === 'th' && n.title_th) return n.title_th;
-  if (lang === 'zh' && n.title_zh) return n.title_zh;
-  if (lang === 'ja' && n.title_ja) return n.title_ja;
-  return n.title_en || n.title_th || n.title_zh || '';
+  if (!n) return '';
+  if (lang === 'th' && n.title_th) return cleanText(n.title_th);
+  if (lang === 'zh' && n.title_zh) return cleanText(n.title_zh);
+  if (lang === 'ja' && n.title_ja) return cleanText(n.title_ja);
+  return cleanText(n.title_en || n.title_th || n.title_zh || n.title_ja || '');
 }
 
 export function summaryFor(n, lang) {
-  if (lang === 'th' && n.summary_th) return n.summary_th;
-  if (lang === 'zh' && n.summary_zh) return n.summary_zh;
-  if (lang === 'ja' && n.summary_ja) return n.summary_ja;
-  return n.summary_en || n.summary_th || n.summary_zh || '';
+  if (!n) return '';
+  if (lang === 'th' && n.summary_th) return cleanText(n.summary_th);
+  if (lang === 'zh' && n.summary_zh) return cleanText(n.summary_zh);
+  if (lang === 'ja' && n.summary_ja) return cleanText(n.summary_ja);
+  return cleanText(n.summary_en || n.summary_th || n.summary_zh || n.summary_ja || '');
 }
 
 export function newsCacheKey(items, lang) {

@@ -131,6 +131,8 @@ const en = {
   alertStrongNews: 'Alert on strong gold news',
   alertStrongNewsHint: 'SMS-style popup when a headline looks strongly bullish or bearish for gold.',
   newsAlertTpl: 'Strong gold news · {dir} · {title}',
+  openNews: 'Open link',
+  newsNeedTranslateKey: 'Headlines stay in English until you add an API key in Settings so PureFxAi can translate them.',
 };
 
 
@@ -267,6 +269,8 @@ const th = {
   alertStrongNews: 'แจ้งเตือนข่าวทองที่มีผลแรง',
   alertStrongNewsHint: 'ป๊อปอัปแบบ SMS เมื่อพาดหัวดูหนุนหรือกดราคาทองชัดเจน',
   newsAlertTpl: 'ข่าวแรง · {dir} · {title}',
+  openNews: 'เปิดข่าว',
+  newsNeedTranslateKey: 'พาดหัวยังเป็นภาษาอังกฤษ — ใส่ API key ที่เมนู → ตั้งค่า เพื่อให้ PureFxAi แปลเป็นไทย',
 };
 
 
@@ -397,6 +401,8 @@ const zh = {
   alertStrongNews: '强影响黄金新闻提醒',
   alertStrongNewsHint: '当标题对金价明显利多或利空时弹出短信式通知。',
   newsAlertTpl: '重要黄金新闻 · {dir} · {title}',
+  openNews: '打开原文',
+  newsNeedTranslateKey: '标题仍为英文 — 请在“更多 → 设置”添加 API 密钥，以便 PureFxAi 翻译为中文',
 };
 
 
@@ -527,6 +533,8 @@ const ja = {
   alertStrongNews: '金に強く影響するニュースを通知',
   alertStrongNewsHint: '金に対して強い強気/弱気と見られる見出しでSMS風ポップアップ。',
   newsAlertTpl: '重要ニュース · {dir} · {title}',
+  openNews: '記事を開く',
+  newsNeedTranslateKey: '見出しは英語のままです。設定でAPIキーを追加すると PureFxAi が日本語に翻訳します',
 };
 
 
