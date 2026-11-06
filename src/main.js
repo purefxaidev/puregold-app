@@ -8,7 +8,7 @@ import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 import { CHANGELOG, notesFor } from './changelog.js';
-import { analyzeWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel } from './ondevice.js';
+import { analyzeWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 
 const Pg = registerPlugin('PgNative');
@@ -118,7 +118,7 @@ function showTab(name) {
     if (name === 'plan') {
       renderPlan(); renderSignalHist(); refreshPfxStatus();
       const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; }
-      const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; }
+      const d=$('btnPfxCleanup'); if(d){ d.textContent=t('pureFxAiCleanup'); d.onclick=cleanupPureFxAiLeftover; }
     }
     if (name === 'chat') { renderChat(); }
     if (name === 'more') { renderChangelogBox(); renderOverlaySet(); wireMoreHub(); }
@@ -398,7 +398,24 @@ async function renderSet() {
   } catch (e) {}
   const presets = [5, 10, 15, 30, 60];
   const isPreset = presets.includes(+S.interval);
+  const key = await getApiKey();
+  const masked = key ? (key.slice(0, 4) + '…' + key.slice(-4)) : '';
+  const voiceOpts = PUREFX_VOICES.map(v => {
+    const lab = (v.label && (v.label[L] || v.label.en)) || v.id;
+    return `<option value="${v.id}" ${getVoiceId() === v.id ? 'selected' : ''}>PureFxAi · ${esc(lab)}</option>`;
+  }).join('');
   $('set').innerHTML =
+    `<div class="mut s" style="margin-bottom:6px">${t('apiKeyHint')}</div>
+    <label class="row" style="flex-wrap:wrap;gap:8px"><span>${t('apiKey')}</span></label>
+    <input type="password" id="apiKeyInput" autocomplete="off" placeholder="${masked || t('apiKeyPh')}" style="width:100%;margin-top:4px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <button type="button" class="btn" id="apiKeySave" style="margin:0">${t('apiKeySave')}</button>
+      <button type="button" class="btn sec danger" id="apiKeyClear" style="margin:0">${t('apiKeyClear')}</button>
+    </div>
+    <div id="apiKeyStatus" class="mut s" style="margin:6px 0 12px">${key ? t('pureFxAiReady') : t('pureFxAiNeedKey')}</div>
+    <label class="row"><span>${t('voicePick')}</span>
+      <select id="voicePickSet">${voiceOpts}</select></label>
+    <div class="mut s" style="margin-bottom:10px">${t('voicePickHint')}</div>` +
     ck('auto', t('auto')) +
     `<label class="row"><span>${t('iv')}</span>
       <select id="iv">${presets.map(v => `<option value="${v}" ${v == S.interval ? 'selected' : ''}>${v}</option>`).join('')}
@@ -429,6 +446,28 @@ async function renderSet() {
   $('iv').onchange = syncIv;
   if ($('ivCustom')) $('ivCustom').onchange = syncIv;
   if ($('test')) $('test').onclick = () => Pg.runNow({ force: true });
+  const saveBtn = $('apiKeySave');
+  if (saveBtn) saveBtn.onclick = async () => {
+    const v = $('apiKeyInput')?.value || '';
+    await setApiKey(v.trim());
+    $('apiKeyInput').value = '';
+    const st = $('apiKeyStatus');
+    if (st) st.textContent = (await getApiKey()) ? t('apiKeySaved') : t('pureFxAiNeedKey');
+    refreshPfxStatus();
+  };
+  const clr = $('apiKeyClear');
+  if (clr) clr.onclick = async () => {
+    await setApiKey('');
+    if ($('apiKeyInput')) $('apiKeyInput').value = '';
+    const st = $('apiKeyStatus');
+    if (st) st.textContent = t('pureFxAiNeedKey');
+    refreshPfxStatus();
+  };
+  const vp = $('voicePickSet');
+  if (vp) vp.onchange = () => {
+    setVoiceId(vp.value);
+    syncChatVoicePick();
+  };
 }
 
 function renderLang() {
@@ -546,91 +585,40 @@ function renderNews() {
 
 
 
-/* ---- PureFxAi on-device ---- */
+/* ---- PureFxAi (cloud via user API key) ---- */
 let pfxBusy = false;
-function setPfxProgress(ev) {
-  const bar = $('pfxBar');
-  const fill = $('pfxBarFill');
-  const st = $('pfxStatus');
-  if (!st) return;
-  const phase = ev?.phase || '';
-  const pct = ev?.pct ?? 0;
-  if (phase === 'installing' || phase === 'checking') {
-    bar?.classList.remove('hidden');
-    if (fill) fill.style.width = pct + '%';
-    st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
-  } else if (phase === 'loading') {
-    bar?.classList.remove('hidden');
-    if (fill) fill.style.width = '100%';
-    st.textContent = t('pureFxAiLoading');
-  } else if (phase === 'analyzing') {
-    st.textContent = t('pureFxAiRunning');
-  } else if (phase === 'ready') {
-    if (fill) fill.style.width = '100%';
-    st.textContent = t('pureFxAiReady');
-    setTimeout(() => bar?.classList.add('hidden'), 800);
-  }
-}
 
 async function refreshPfxStatus() {
   const st = $('pfxStatus');
-  const del = $('btnPfxDelete');
+  const del = $('btnPfxCleanup');
   if (!st) return;
-  // While analyzing/installing, do not overwrite progress text
   if (pfxBusy) return;
   try {
-    const s = await nativeStatus();
-    const ready = !!(s.ready || isMarkedReady());
-    if (ready) {
-      st.textContent = t('pureFxAiReady');
-      $('pfxBar')?.classList.add('hidden');
-    } else if (s.downloading) {
-      const pct = s.total ? Math.min(99, Math.floor((s.done / s.total) * 100)) : 0;
-      st.textContent = t('pureFxAiProgress').replace('{p}', String(pct));
-      $('pfxBar')?.classList.remove('hidden');
-      const fill = $('pfxBarFill');
-      if (fill) fill.style.width = pct + '%';
-    } else {
-      // Keep last non-empty status if any; otherwise blank (not "installing")
-      if (!st.textContent || /install|ติดตั้ง|安装|Installing|กำลัง/i.test(st.textContent)) {
-        st.textContent = t('pureFxAiNotInstalled');
-      }
-    }
+    const key = await getApiKey();
+    if (key) st.textContent = t('pureFxAiReady');
+    else st.textContent = t('pureFxAiNeedKey');
     if (del) {
-      del.classList.toggle('hidden', !ready);
-      del.textContent = t('pureFxAiDelete');
-      del.onclick = removePureFxAiPack;
+      // Show cleanup only if native (may have leftover pack from older builds)
+      del.classList.toggle('hidden', !native);
+      del.textContent = t('pureFxAiCleanup');
+      del.onclick = cleanupPureFxAiLeftover;
     }
   } catch {
-    if (isMarkedReady()) {
-      st.textContent = t('pureFxAiReady');
-      if (del) del.classList.remove('hidden');
-    }
+    st.textContent = t('pureFxAiNeedKey');
   }
 }
 
-async function removePureFxAiPack() {
-  if (!confirm(t('pureFxAiDeleteConfirm'))) return;
+async function cleanupPureFxAiLeftover() {
+  if (!confirm(t('pureFxAiCleanupConfirm'))) return;
   const st = $('pfxStatus');
-  const del = $('btnPfxDelete');
-  const out = $('pfxOut');
-  if (del) del.disabled = true;
   try {
-    const r = await deleteDeviceModel();
-    if (st) st.textContent = t('pureFxAiDeleted');
-    if (out) { out.textContent = ''; out.classList.add('hidden'); }
-    if (del) del.classList.add('hidden');
-    clearReadySafe();
+    await deleteDeviceModel();
+    if (st) st.textContent = t('pureFxAiCleaned');
   } catch (e) {
-    if (st) st.textContent = t('pureFxAiFail');
+    if (st) st.textContent = t('err');
   } finally {
-    if (del) del.disabled = false;
     refreshPfxStatus();
   }
-}
-
-function clearReadySafe() {
-  try { localStorage.removeItem('pg_pfx_ready'); localStorage.removeItem('pg_pfx_path'); } catch {}
 }
 
 async function runPureFxAi() {
@@ -641,25 +629,24 @@ async function runPureFxAi() {
     if (out) { out.classList.remove('hidden'); out.textContent = t('empty'); }
     return;
   }
+  const key = await getApiKey();
+  if (!key) {
+    if (out) { out.classList.remove('hidden'); out.textContent = t('pureFxAiNeedKey'); }
+    showTab('more');
+    return;
+  }
   pfxBusy = true;
-  if (btn) { btn.disabled = true; btn.textContent = t('pureFxAiInstalling'); }
+  if (btn) { btn.disabled = true; btn.textContent = t('pureFxAiRunning'); }
+  const st = $('pfxStatus');
+  if (st) st.textContent = t('pureFxAiRunning');
   try {
-    const res = await analyzeWithPureFxAi(A, L, (ev) => {
-      setPfxProgress(ev);
-      if (btn && (ev.phase === 'installing' || ev.phase === 'checking')) {
-        btn.textContent = t('pureFxAiProgress').replace('{p}', String(ev.pct ?? 0));
-      } else if (btn && ev.phase === 'analyzing') {
-        btn.textContent = t('pureFxAiRunning');
-      } else if (btn && ev.phase === 'loading') {
-        btn.textContent = t('pureFxAiLoading');
-      }
-    });
+    const res = await analyzeWithPureFxAi(A, L, null);
     if (out) {
       out.classList.remove('hidden');
       const tag = res.source === 'model' ? t('pureFxAiModel') : t('pureFxAiRules');
       out.textContent = `${tag}\n\n${res.text}`;
-      if (res.source === 'rules' && res.error) {
-        const st = $('pfxStatus');
+      if (res.error === 'need_key') out.textContent = t('pureFxAiNeedKey');
+      else if (res.source === 'rules' && res.error) {
         if (st) st.textContent = t('pureFxAiFail');
       }
     }
@@ -722,17 +709,22 @@ function outcomeLabel(o) {
 
 function renderSignalHist() {
   const el = $('signalHist');
+  const acc = $('signalAcc');
+  const stats = store.signalAccuracy();
+  if (acc) {
+    if (stats.pct == null) acc.textContent = t('signalAccEmpty');
+    else acc.textContent = t('signalAcc').replace('{p}', String(stats.pct)).replace('{w}', String(stats.wins)).replace('{n}', String(stats.closed));
+  }
   if (!el) return;
-  const h = store.getSignalHist();
-  if (!h.length) {
+  const list = store.getSignalHist();
+  if (!list.length) {
     el.innerHTML = `<div class="state-empty">${t('signalEmpty')}</div>`;
   } else {
-    el.innerHTML = h.slice(0, 30).map(s => {
-      const mid = ((s.entry[0] + s.entry[1]) / 2);
-      const when = new Date(s.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' });
+    el.innerHTML = list.slice(0, 40).map(s => {
+      const mid = s.entry ? (s.entry[0] + s.entry[1]) / 2 : s.priceAt;
+      const when = new Date(s.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       return `<div class="signal-item">
-        <div><div class="side ${s.side}">${s.side}</div>
-          <div class="mut s" style="margin:2px 0 0">${esc(when)} (Bangkok)</div>
+        <div><div class="side ${esc(s.side)}">${esc(s.side)} <span class="mut s">${esc(when)} (Bangkok)</span></div>
           <div class="mut s" style="margin:2px 0 0">$${f2(mid)} · SL ${f2(s.sl)} · TP ${f2(s.tp)}${s.conf != null ? ` · ${s.conf}%` : ''}</div>
         </div>
         <span class="out ${s.outcome || 'open'}">${esc(outcomeLabel(s.outcome))}</span>
@@ -1003,7 +995,7 @@ function renderAll() {
   renderPlan();
   renderSignalHist();
   refreshPfxStatus();
-  { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxDelete'); if(d){ d.textContent=t('pureFxAiDelete'); d.onclick=removePureFxAiPack; } }
+  { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxCleanup'); if(d){ d.textContent=t('pureFxAiCleanup'); d.onclick=cleanupPureFxAiLeftover; } }
   renderTf();
   renderSet();
   renderOverlaySet();
@@ -1123,6 +1115,7 @@ function ttsLocale(lang) {
 
 function stopSpeak() {
   try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+  try { stopCloudSpeech(); } catch (e) {}
 }
 
 async function speakText(text) {
@@ -1130,6 +1123,12 @@ async function speakText(text) {
   if (S.mute) return;
   const plain = String(text).replace(/\n+/g, '. ').slice(0, 600);
   stopSpeak();
+  try { stopCloudSpeech(); } catch (e) {}
+  // Prefer PureFxAi cloud voice when key + non-device voice
+  try {
+    const used = await speakWithPureFxAi(plain, L);
+    if (used) return;
+  } catch (e) { /* fall through */ }
   if (native) {
     try {
       await Pg.speak({ text: plain, lang: L });
@@ -1143,6 +1142,21 @@ async function speakText(text) {
     u.rate = L === 'th' ? 1.05 : 1;
     speechSynthesis.speak(u);
   } catch (e) {}
+}
+
+function syncChatVoicePick() {
+  const sel = $('chatVoicePick');
+  if (!sel) return;
+  const cur = getVoiceId();
+  sel.innerHTML = PUREFX_VOICES.map(v => {
+    const lab = (v.label && (v.label[L] || v.label.en)) || v.id;
+    return `<option value="${v.id}" ${cur === v.id ? 'selected' : ''}>PureFxAi · ${esc(lab)}</option>`;
+  }).join('');
+  sel.onchange = () => {
+    setVoiceId(sel.value);
+    const setSel = $('voicePickSet');
+    if (setSel) setSel.value = sel.value;
+  };
 }
 
 function appendBubble(role, text, opts = {}) {
@@ -1195,9 +1209,10 @@ function renderChat(resetWelcome = true) {
     voice.onchange = () => {
       chatVoiceOn = !!voice.checked;
       localStorage.setItem('pg_chat_voice', chatVoiceOn ? '1' : '0');
-      if (!chatVoiceOn) stopSpeak();
+      if (!chatVoiceOn) { stopSpeak(); try { stopCloudSpeech(); } catch (e) {} }
     };
   }
+  syncChatVoicePick();
   const chips = $('chatChips');
   if (chips) {
     chips.innerHTML = quickPrompts(L).map(q =>

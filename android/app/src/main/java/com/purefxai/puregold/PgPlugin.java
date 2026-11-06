@@ -371,6 +371,26 @@ public class PgPlugin extends Plugin {
     });
   }
 
+  /* ---- Secure-ish on-device secrets (MODE_PRIVATE SharedPreferences) ---- */
+  @PluginMethod public void setSecret(PluginCall c){
+    String name=c.getString("name","");
+    String value=c.getString("value","");
+    if(name==null||name.isEmpty()){ c.reject("name"); return; }
+    sp().edit().putString("sec_"+name, value==null?"":value).apply();
+    c.resolve();
+  }
+  @PluginMethod public void getSecret(PluginCall c){
+    String name=c.getString("name","");
+    JSObject o=new JSObject();
+    o.put("value", sp().getString("sec_"+name,""));
+    c.resolve(o);
+  }
+  @PluginMethod public void clearSecret(PluginCall c){
+    String name=c.getString("name","");
+    if(name!=null && !name.isEmpty()) sp().edit().remove("sec_"+name).apply();
+    c.resolve();
+  }
+
   /** SMS-style heads-up notification (HIGH importance channel). */
   @PluginMethod public void notifyPopup(PluginCall c){
     final String title=c.getString("title","PUREGOLD");

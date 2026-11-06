@@ -378,19 +378,19 @@ export async function replyTo(userText, ctx) {
     }
   }
 
-  // Offline / no model: map free text toward plan + help
+  // No cloud key / offline: map free text toward plan + help
   const fallback =
     lang === 'th'
       ? `รับทราบ: “${String(userText).slice(0, 80)}”\n\n` +
         replyPlan(A, lang) +
-        '\n\nพิมพ์ “สมัคร Exness” หรือ “แนะนำการเทรด” เพื่อดูหัวข้อเฉพาะ หรือติดตั้ง PureFxAi ที่แท็บแผนเพื่อวิเคราะห์เสริม'
+        '\n\nพิมพ์ “สมัคร Exness” หรือ “แนะนำการเทรด” ได้เลย หรือใส่ API key ที่เมนู→ตั้งค่า เพื่อ PureFxAi เต็มรูปแบบ'
       : lang === 'zh'
         ? `已收到：“${String(userText).slice(0, 80)}”\n\n` +
           replyPlan(A, lang) +
-          '\n\n可输入“注册 Exness”或“交易建议”；或在计划页安装 PureFxAi 以增强分析'
+          '\n\n可输入“注册 Exness”或“交易建议”；或在「更多→设置」添加 API 密钥以启用完整 PureFxAi'
         : `Got it: “${String(userText).slice(0, 80)}”\n\n` +
           replyPlan(A, lang) +
-          '\n\nTry “Exness signup” or “trading tips”, or install PureFxAi on the Plan tab for richer answers';
+          '\n\nTry “Exness signup” or “trading tips”, or add an API key in More → Settings for full PureFxAi';
 
   return {
     text: fallback,

@@ -2,26 +2,19 @@
 
 ## 0.8.0 — 2026-11-06
 ### TH
-- แก้ PureFxAi โหลดมาๆ หายๆ — คงสถานะหลังติดตั้ง + SHA-256 + ดาวน์โหลดต่อ
-- แชทเสถียรขึ้น ไม่กระพริบสถานะติดตั้ง
-- แจ้งเตือนป๊อปอัปแบบ SMS (heads-up) สำหรับราคา/สัญญาณ
-- ย่อเมนูล่าง (เทคนิค/ข่าวอยู่ในเมนู)
-- เต็มจอสม่ำเสมอ + ปรับความเสถียร
+- PureFxAi ใช้ API key ฟรีในตั้งค่า — ไม่โหลดแพ็กโมเดลในเครื่อง (แก้แฮง)
+- แชท + แผนออนไลน์ · เลือกเสียง PureFxAi หลายแบบ
+- ประวัติสัญญาณ + % ความแม่นยำ · แจ้งเตือนแบบ SMS
+- ย่อเมนู · เต็มจอสม่ำเสมอ · ไอคอน bull/bear ใหม่
 
 ### EN
-- Stable PureFxAi install/load (SHA-256 + resume); no flicker
-- Reliable chat without re-triggering install UI
-- SMS-style heads-up notifications
-- Simplified bottom nav; Techniques/News under More
-- Consistent edge-to-edge layout + stability polish
+- PureFxAi via free API key (Settings) — no on-device pack
+- Online chat/plan · multi voice options · accuracy % · SMS popups
+- Simpler nav · fullscreen · new icon
 
 ### ZH
-- 稳定 PureFxAi 安装/加载（SHA-256 + 续传），消除闪烁
-- 聊天更可靠，不再反复触发安装界面
-- 短信式抬头通知
-- 精简底部菜单；技法/新闻在「更多」
-- 统一满屏与稳定性优化
-
+- PureFxAi 免费 API 密钥 — 无本机模型包
+- 在线聊天/计划 · 多语音 · 准确率% · 短信式通知 · 新图标
 
 ## 0.7.0 — 2026-11-06
 ### TH

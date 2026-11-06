@@ -1,492 +1,108 @@
 /**
- * On-device PureFxAi plan analysis for PUREGOLD.
- * Downloads a local GGUF pack on first use and runs inference in-app (wllama WASM).
- * UI must brand this as "PureFxAi" only — never expose pack/vendor/size labels.
+ * PureFxAi cloud analysis + speech for PUREGOLD.
+ * Uses the user's API key (stored on-device). UI must brand as "PureFxAi" only —
+ * never expose vendor/model names in user-facing strings.
  */
-import { Wllama } from '@wllama/wllama';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
 const Pg = registerPlugin('PgNative');
 
-/** Permanent public URL (GitHub Releases asset) — device-pack-2 (~0.8B). */
-export const DEVICE_MODEL_URL =
-  'https://github.com/purefxaidev/puregold-purefxai/releases/download/device-pack-2/purefxai-device.gguf';
-export const DEVICE_MODEL_SIZE = 532517120;
-export const DEVICE_MODEL_SHA256 =
-  'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517';
+/** Internal endpoints only — never show these IDs in the UI. */
+const TEXT_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-1.5-flash',
+];
+const TTS_MODELS = [
+  'gemini-3.8-flash-tts',
+  'gemini-2.5-flash-preview-tts',
+];
 
-const READY_KEY = 'pg_pfx_ready';
-const PATH_KEY = 'pg_pfx_path';
-const VER_KEY = 'pg_pfx_sha';
+const KEY_LS = 'pg_pfx_api_key';
+const VOICE_LS = 'pg_pfx_voice';
 
-let wllama = null;
-let loadingModel = false;
-let installAbort = null;
-/** In-memory session: once true, UI must not flicker to "installing". */
-let sessionReady = false;
-let sessionPath = '';
-/** Single-flight install promise. */
-let installPromise = null;
-/** Single-flight load promise. */
-let loadPromise = null;
+/** Branded PureFxAi voices → internal prebuilt voice ids */
+export const PUREFX_VOICES = [
+  { id: 'soft', label: { th: 'นุ่ม', en: 'Soft', zh: '柔和', ja: 'ソフト' }, voice: 'Kore' },
+  { id: 'clear', label: { th: 'ชัด', en: 'Clear', zh: '清晰', ja: 'クリア' }, voice: 'Puck' },
+  { id: 'deep', label: { th: 'ทุ้ม', en: 'Deep', zh: '低沉', ja: '低め' }, voice: 'Charon' },
+  { id: 'bold', label: { th: 'หนัก', en: 'Bold', zh: '有力', ja: '力強い' }, voice: 'Fenrir' },
+  { id: 'bright', label: { th: 'สดใส', en: 'Bright', zh: '明亮', ja: '明るい' }, voice: 'Aoede' },
+  { id: 'device', label: { th: 'เสียงเครื่อง', en: 'Device', zh: '本机', ja: '端末' }, voice: null },
+];
 
-function wasmPaths() {
-  const base = (typeof window !== 'undefined' && window.location?.origin)
-    ? window.location.origin
-    : '';
-  return { default: `${base}/wllama/wllama.wasm` };
-}
-
-export function isMarkedReady() {
-  if (sessionReady) return true;
-  try {
-    return localStorage.getItem(READY_KEY) === '1' &&
-      localStorage.getItem(VER_KEY) === DEVICE_MODEL_SHA256;
-  } catch { return false; }
-}
-
-export function markReady(path) {
-  sessionReady = true;
-  if (path) sessionPath = path;
-  try {
-    localStorage.setItem(READY_KEY, '1');
-    localStorage.setItem(VER_KEY, DEVICE_MODEL_SHA256);
-    if (path) localStorage.setItem(PATH_KEY, path);
-  } catch {}
-}
-
-export function clearReady() {
-  sessionReady = false;
-  sessionPath = '';
-  try {
-    localStorage.removeItem(READY_KEY);
-    localStorage.removeItem(PATH_KEY);
-    localStorage.removeItem(VER_KEY);
-  } catch {}
-}
-
-function storedPath() {
-  if (sessionPath) return sessionPath;
-  try { return localStorage.getItem(PATH_KEY) || ''; } catch { return ''; }
-}
-
-/**
- * Read install status WITHOUT clearing the ready flag on transient misses.
- * Only clearReady when native confirms the file is gone (and we are not downloading).
- */
-export async function nativeStatus() {
-  if (!Capacitor.isNativePlatform()) {
-    return {
-      ready: isMarkedReady(),
-      downloading: false,
-      done: isMarkedReady() ? DEVICE_MODEL_SIZE : 0,
-      total: DEVICE_MODEL_SIZE,
-      path: storedPath() || null,
-      engine: 'web',
-    };
-  }
-  try {
-    const s = await Pg.deviceModelStatus({
-      size: DEVICE_MODEL_SIZE,
-      fileName: 'purefxai-device.gguf',
-      sha256: DEVICE_MODEL_SHA256,
-    });
-    if (s?.ready) {
-      markReady(s.path || storedPath());
-      return { ...s, ready: true, engine: 'native' };
-    }
-    // Keep local ready sticky while a download is in progress or file is verifying —
-    // never clearReady() here (that caused install UI flicker).
-    if (s?.downloading) {
-      return { ...s, ready: false, engine: 'native' };
-    }
-    // File missing: clear only if we previously thought it was ready.
-    if (isMarkedReady() && s && s.ready === false && !s.downloading && !(s.done > 0)) {
-      // Still keep sticky mark if path exists in prefs — native may be mid-check.
-      if (!s.path) {
-        // Soft: do not clear; wait for explicit deleteDeviceModel.
-      }
-    }
-    // Prefer sticky session/localStorage so UI stays "ready" after a good install.
-    if (isMarkedReady()) {
-      return {
-        ...s,
-        ready: true,
-        path: s.path || storedPath(),
-        done: DEVICE_MODEL_SIZE,
-        total: DEVICE_MODEL_SIZE,
-        engine: 'native',
-        sticky: true,
-      };
-    }
-    return { ...s, engine: 'native' };
-  } catch {
-    return {
-      ready: isMarkedReady(),
-      downloading: false,
-      done: isMarkedReady() ? DEVICE_MODEL_SIZE : 0,
-      total: DEVICE_MODEL_SIZE,
-      path: storedPath() || null,
-      engine: 'native',
-    };
-  }
-}
-
-/**
- * Ensure the on-device pack is installed (single-flight).
- * @param {(p:{phase:string,pct:number,done:number,total:number})=>void} onProgress
- */
-export async function ensureInstalled(onProgress) {
-  const emit = (phase, done, total) => {
-    const t = total || DEVICE_MODEL_SIZE;
-    const pct = t > 0 ? Math.min(99, Math.floor((done / t) * 100)) : 0;
-    onProgress?.({ phase, pct: phase === 'ready' ? 100 : pct, done, total: t });
-  };
-
-  if (isMarkedReady() && !Capacitor.isNativePlatform()) {
-    emit('ready', DEVICE_MODEL_SIZE, DEVICE_MODEL_SIZE);
-    return { path: null, source: 'web' };
-  }
-
-  if (installPromise) {
-    const r = await installPromise;
-    emit('ready', DEVICE_MODEL_SIZE, DEVICE_MODEL_SIZE);
-    return r;
-  }
-
-  installPromise = (async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
-        emit('checking', 0, DEVICE_MODEL_SIZE);
-        const st = await nativeStatus();
-        if (st.ready && (st.path || storedPath())) {
-          const path = st.path || storedPath();
-          markReady(path);
-          emit('ready', DEVICE_MODEL_SIZE, DEVICE_MODEL_SIZE);
-          return { path, source: 'native' };
-        }
-        emit('installing', st.done || 0, st.total || DEVICE_MODEL_SIZE);
-
-        return await new Promise((resolve, reject) => {
-          let subProgress, subDone, subErr;
-          let settled = false;
-          const cleanup = () => {
-            try { subProgress?.remove(); } catch {}
-            try { subDone?.remove(); } catch {}
-            try { subErr?.remove(); } catch {}
-          };
-          const finishOk = (path) => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            markReady(path || '');
-            emit('ready', DEVICE_MODEL_SIZE, DEVICE_MODEL_SIZE);
-            resolve({ path: path || storedPath(), source: 'native' });
-          };
-          const finishErr = (e) => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            reject(e instanceof Error ? e : new Error(String(e?.message || e || 'install_failed')));
-          };
-          (async () => {
-            try {
-              subProgress = await Pg.addListener('deviceModelProgress', (ev) => {
-                const phase = ev?.phase === 'verifying' ? 'installing' : 'installing';
-                emit(phase, Number(ev.done || 0), Number(ev.total || DEVICE_MODEL_SIZE));
-              });
-              subDone = await Pg.addListener('deviceModelReady', (ev) => {
-                finishOk(ev.path || '');
-              });
-              subErr = await Pg.addListener('deviceModelError', (ev) => {
-                finishErr(new Error(ev?.error || 'install_failed'));
-              });
-              await Pg.ensureDeviceModel({
-                url: DEVICE_MODEL_URL,
-                sha256: DEVICE_MODEL_SHA256,
-                size: DEVICE_MODEL_SIZE,
-                fileName: 'purefxai-device.gguf',
-              });
-              // Poll until ready (handles already-ready + in-flight download)
-              for (let i = 0; i < 600 && !settled; i++) {
-                await new Promise(r => setTimeout(r, 500));
-                const again = await Pg.deviceModelStatus({
-                  size: DEVICE_MODEL_SIZE,
-                  fileName: 'purefxai-device.gguf',
-                  sha256: DEVICE_MODEL_SHA256,
-                });
-                if (again?.ready && again.path) {
-                  finishOk(again.path);
-                  return;
-                }
-                if (again?.downloading) {
-                  emit('installing', Number(again.done || 0), Number(again.total || DEVICE_MODEL_SIZE));
-                }
-              }
-              if (!settled) finishErr(new Error('install_timeout'));
-            } catch (e) {
-              finishErr(e);
-            }
-          })();
-        });
-      }
-
-      // Web / fallback
-      emit('installing', 0, DEVICE_MODEL_SIZE);
-      const wl = await getWllama();
-      installAbort = new AbortController();
-      await wl.loadModelFromUrl(DEVICE_MODEL_URL, {
-        n_ctx: 512,
-        n_batch: 64,
-        n_threads: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)),
-        useCache: true,
-        signal: installAbort.signal,
-        progressCallback: ({ loaded, total }) => {
-          emit('installing', loaded || 0, total || DEVICE_MODEL_SIZE);
-        },
-      });
-      markReady('');
-      emit('ready', DEVICE_MODEL_SIZE, DEVICE_MODEL_SIZE);
-      return { path: null, source: 'web', loaded: true };
-    } finally {
-      // Keep promise result for concurrent waiters; clear after microtask so retries can run later.
-      const done = installPromise;
-      setTimeout(() => { if (installPromise === done) installPromise = null; }, 0);
-    }
-  })();
-
-  return installPromise;
-}
-
-async function getWllama() {
-  if (wllama) return wllama;
-  wllama = new Wllama(wasmPaths(), { allowOffline: true, parallelDownloads: 2 });
-  return wllama;
-}
-
-async function ensureModelLoaded(pathHint) {
-  if (wllama?.isModelLoaded?.()) return wllama;
-  if (loadPromise) return loadPromise;
-
-  loadPromise = (async () => {
-    loadingModel = true;
-    try {
-      const wl = await getWllama();
-      if (wl.isModelLoaded()) return wl;
-
-      let url = DEVICE_MODEL_URL;
-      const hint = pathHint || storedPath();
-      if (hint && Capacitor.isNativePlatform()) {
-        try {
-          const converted = Capacitor.convertFileSrc(hint);
-          if (converted) url = converted;
-        } catch {}
-      } else if (Capacitor.isNativePlatform()) {
-        try {
-          const st = await Pg.deviceModelStatus({
-            size: DEVICE_MODEL_SIZE,
-            fileName: 'purefxai-device.gguf',
-            sha256: DEVICE_MODEL_SHA256,
-          });
-          if (st.path) {
-            markReady(st.path);
-            try {
-              const converted = Capacitor.convertFileSrc(st.path);
-              if (converted) url = converted;
-            } catch {}
-          }
-        } catch {}
-      }
-
-      await wl.loadModelFromUrl(url, {
-        n_ctx: 512,
-        n_batch: 64,
-        n_threads: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)),
-        useCache: true,
-      });
-      return wl;
-    } finally {
-      loadingModel = false;
-      const done = loadPromise;
-      setTimeout(() => { if (loadPromise === done) loadPromise = null; }, 0);
-    }
-  })();
-
-  return loadPromise;
-}
-
-function buildPrompt(A, lang) {
-  const S = A?.setup || {};
-  const b = A?.bias || {};
-  const side = S.side || 'WAIT';
-  const reasons = (b.reasons || []).map(r => (r && (r[lang] || r.en || r.th)) || '').filter(Boolean).slice(0, 4);
-  const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
-  return {
-    system:
-      `You are PureFxAi, an on-device gold (XAUUSD) trading education assistant inside the PUREGOLD app. ` +
-      `Reply ONLY in ${langName}. Be concise (max 8 short lines). ` +
-      `Never claim to be financial advice. Never invent prices that contradict the numbers given. ` +
-      `Structure: 1) bias summary 2) plan (entry/SL/TP) 3) one risk note.`,
-    user:
-      `Live context (rule engine):\n` +
-      `- Price: ${A?.price}\n` +
-      `- Bias: ${b.dir || 'side'} conf ${b.conf ?? '?'}%\n` +
-      `- Setup: ${side} entry ${S.entry?.[0]}-${S.entry?.[1]} SL ${S.sl} TP ${S.tp} RR 1:${S.rr} conf ${S.conf}%\n` +
-      `- Hypothetical: ${S.hyp ? 'yes' : 'no'}\n` +
-      `- Reasons: ${reasons.join(' | ') || 'n/a'}\n` +
-      `Write the PureFxAi plan card for the trader.`,
-  };
-}
-
-function buildChatPrompt(userText, A, lang) {
-  const S = A?.setup || {};
-  const b = A?.bias || {};
-  const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
-  return {
-    system:
-      `You are PureFxAi inside PUREGOLD. Reply ONLY in ${langName}. Max 6 short lines. ` +
-      `Education only, not financial advice. Brand yourself as PureFxAi only.`,
-    user:
-      `Trader asked: ${String(userText || '').slice(0, 240)}\n` +
-      `Context: XAU≈${A?.price} bias=${b.dir || 'side'} setup=${S.side || 'WAIT'} ` +
-      `entry ${S.entry?.[0]}-${S.entry?.[1]} SL ${S.sl} TP ${S.tp}\n` +
-      `Answer helpfully about gold trading / this plan / Exness signup education.`,
-  };
-}
+let memKey = null;
+let lastAudio = null;
 
 function scrub(text) {
   return String(text || '')
+    .replace(/\bGemini[\w.\-]*/gi, 'PureFxAi')
+    .replace(/\bGoogle\b/gi, 'PureFxAi')
     .replace(/\bQwen[\w.\-]*/gi, 'PureFxAi')
     .replace(/\bGGUF\b/gi, '')
-    .replace(/\b2B\b/g, '').replace(/\b0\.8B\b/gi, '')
+    .replace(/\b2B\b/g, '')
+    .replace(/\b0\.8B\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
-/** Rule-based PureFxAi narrative if WASM inference fails after install. */
-export function ruleNarrative(A, lang) {
-  const S = A?.setup || {};
-  const b = A?.bias || {};
-  const side = S.side || 'WAIT';
-  const f = (x) => (x == null ? '-' : Number(x).toFixed(2));
-  if (lang === 'th') {
-    return [
-      `PureFxAi · มุมมอง: ${b.dir === 'up' ? 'ขาขึ้น' : b.dir === 'down' ? 'ขาลง' : 'ไซด์เวย์'} (${b.conf ?? '?'}%)`,
-      `แผน: ${side === 'BUY' ? 'รับซื้อ' : side === 'SELL' ? 'ขายออก' : 'รอ'} · เข้า ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
-      `SL ${f(S.sl)} · TP ${f(S.tp)} · R:R 1:${S.rr ?? '-'}`,
-      S.hyp ? 'สัญญาณยังไม่ชัด — ใช้เป็นสมมติฐาน รอยืนยัน' : 'อิงกฎเทคนิคในเครื่อง + PureFxAi',
-      'เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน',
-    ].join('\n');
+export async function getApiKey() {
+  if (memKey) return memKey;
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const r = await Pg.getSecret({ name: 'pfx_api_key' });
+      if (r?.value) { memKey = r.value; return memKey; }
+    } catch {}
   }
-  if (lang === 'zh') {
-    return [
-      `PureFxAi · 偏向：${b.dir === 'up' ? '上涨' : b.dir === 'down' ? '下跌' : '震荡'}（${b.conf ?? '?'}%）`,
-      `计划：${side === 'BUY' ? '买入' : side === 'SELL' ? '卖出' : '观望'} · 入场 ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
-      `止损 ${f(S.sl)} · 止盈 ${f(S.tp)} · 盈亏比 1:${S.rr ?? '-'}`,
-      S.hyp ? '信号尚不明确 — 视为假设，等待确认' : '基于本机规则引擎 + PureFxAi',
-      '仅供教育，非投资建议',
-    ].join('\n');
-  }
-  return [
-    `PureFxAi · Bias: ${b.dir || 'side'} (${b.conf ?? '?'}%)`,
-    `Plan: ${side} · Entry ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
-    `SL ${f(S.sl)} · TP ${f(S.tp)} · R:R 1:${S.rr ?? '-'}`,
-    S.hyp ? 'No clear signal — hypothetical; wait for confirmation' : 'Based on on-device rules + PureFxAi',
-    'Education only. Not financial advice.',
-  ].join('\n');
-}
-
-async function runCompletion(messages) {
-  const path = storedPath();
-  const wl = await ensureModelLoaded(path);
-  const resp = await wl.createChatCompletion({
-    messages,
-    stream: false,
-    max_tokens: 280,
-    temperature: 0.4,
-    top_p: 0.9,
-    top_k: 40,
-  });
-  const text = scrub(resp?.choices?.[0]?.message?.content || resp?.content || '');
-  if (!text) throw new Error('empty');
-  return text;
-}
-
-/**
- * Run PureFxAi analysis. Installs pack on first use.
- * @returns {{text:string, source:'model'|'rules', install?:object}}
- */
-export async function analyzeWithPureFxAi(A, lang, onProgress) {
-  let path = null;
   try {
-    const inst = await ensureInstalled(onProgress);
-    path = inst.path;
-    onProgress?.({ phase: 'loading', pct: 100, done: DEVICE_MODEL_SIZE, total: DEVICE_MODEL_SIZE });
-    const { system, user } = buildPrompt(A, lang);
-    onProgress?.({ phase: 'analyzing', pct: 100, done: DEVICE_MODEL_SIZE, total: DEVICE_MODEL_SIZE });
-    const text = await runCompletion([
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ]);
-    return { text, source: 'model' };
-  } catch (e) {
-    return {
-      text: ruleNarrative(A, lang),
-      source: 'rules',
-      error: String(e?.message || e),
-    };
-  }
+    const v = localStorage.getItem(KEY_LS) || '';
+    memKey = v;
+    return v;
+  } catch { return ''; }
 }
 
-/**
- * Chat completion using already-installed pack. Does NOT start a new download
- * unless pack is missing — avoids install-state flicker in the chat UI.
- */
-export async function chatWithPureFxAi(userText, A, lang) {
-  try {
-    if (!isMarkedReady()) {
-      // Soft check once — if native says ready, stick it; else rules fallback (no download from chat).
-      try {
-        const st = await nativeStatus();
-        if (!st.ready) {
-          return { text: ruleNarrative(A, lang), source: 'rules', skippedInstall: true };
-        }
-      } catch {
-        return { text: ruleNarrative(A, lang), source: 'rules', skippedInstall: true };
-      }
-    }
-    const { system, user } = buildChatPrompt(userText, A, lang);
-    const text = await runCompletion([
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ]);
-    return { text, source: 'model' };
-  } catch (e) {
-    return {
-      text: ruleNarrative(A, lang),
-      source: 'rules',
-      error: String(e?.message || e),
-    };
+export async function setApiKey(key) {
+  const v = String(key || '').trim();
+  memKey = v;
+  if (Capacitor.isNativePlatform()) {
+    try {
+      if (v) await Pg.setSecret({ name: 'pfx_api_key', value: v });
+      else await Pg.clearSecret({ name: 'pfx_api_key' });
+    } catch {}
   }
-}
-
-/** Unload in-memory model so a reinstall can load a fresh pack. */
-export async function unloadModel() {
   try {
-    if (wllama?.isModelLoaded?.()) await wllama.exit?.();
+    if (v) localStorage.setItem(KEY_LS, v);
+    else localStorage.removeItem(KEY_LS);
   } catch {}
-  wllama = null;
-  loadingModel = false;
-  loadPromise = null;
 }
 
-/**
- * Delete the on-device PureFxAi pack from the phone to free storage.
- */
+export function getVoiceId() {
+  try { return localStorage.getItem(VOICE_LS) || 'soft'; } catch { return 'soft'; }
+}
+
+export function setVoiceId(id) {
+  const ok = PUREFX_VOICES.some(v => v.id === id);
+  try { localStorage.setItem(VOICE_LS, ok ? id : 'soft'); } catch {}
+}
+
+export function voiceMeta(id) {
+  return PUREFX_VOICES.find(v => v.id === (id || getVoiceId())) || PUREFX_VOICES[0];
+}
+
+/** True when user has pasted an API key (PureFxAi online ready). */
+export async function isMarkedReady() {
+  const k = await getApiKey();
+  return !!k;
+}
+
+export function clearReady() {
+  /* no-op for cloud mode — use setApiKey('') / clear leftover pack */
+}
+
+/** Cleanup leftover on-device packs from older app versions. */
 export async function deleteDeviceModel() {
-  await unloadModel();
-  clearReady();
-  installPromise = null;
+  memKey = memKey; // keep key
   if (Capacitor.isNativePlatform()) {
     try {
       const r = await Pg.deleteDeviceModel();
@@ -506,9 +122,257 @@ export async function deleteDeviceModel() {
   return { ok: true, engine: 'web' };
 }
 
-export function cancelInstall() {
-  try { installAbort?.abort(); } catch {}
-  if (Capacitor.isNativePlatform()) {
-    try { Pg.cancelDeviceModel?.(); } catch {}
+export async function nativeStatus() {
+  const ready = await isMarkedReady();
+  return {
+    ready,
+    downloading: false,
+    done: ready ? 1 : 0,
+    total: 1,
+    path: null,
+    engine: 'cloud',
+  };
+}
+
+async function geminiGenerate(apiKey, model, body) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const msg = data?.error?.message || `http_${r.status}`;
+    const err = new Error(msg);
+    err.status = r.status;
+    err.data = data;
+    throw err;
   }
+  return data;
+}
+
+async function generateText(apiKey, system, user) {
+  let lastErr;
+  for (const model of TEXT_MODELS) {
+    try {
+      const data = await geminiGenerate(apiKey, model, {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig: {
+          temperature: 0.4,
+          topP: 0.9,
+          maxOutputTokens: 512,
+        },
+      });
+      const text = scrub(
+        data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || ''
+      );
+      if (!text) throw new Error('empty');
+      return text;
+    } catch (e) {
+      lastErr = e;
+      // try next model on 404/not found
+      if (e.status === 404 || /not found|NOT_FOUND/i.test(String(e.message))) continue;
+      if (e.status === 429) throw e;
+      continue;
+    }
+  }
+  throw lastErr || new Error('unavailable');
+}
+
+function buildPlanPrompt(A, lang) {
+  const S = A?.setup || {};
+  const b = A?.bias || {};
+  const side = S.side || 'WAIT';
+  const reasons = (b.reasons || []).map(r => (r && (r[lang] || r.en || r.th)) || '').filter(Boolean).slice(0, 4);
+  const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
+  return {
+    system:
+      `You are PureFxAi, a gold (XAUUSD) trading education assistant inside the PUREGOLD app. ` +
+      `Reply ONLY in ${langName}. Be concise (max 8 short lines). ` +
+      `Never claim to be financial advice. Never invent prices that contradict the numbers given. ` +
+      `Never mention any underlying AI vendor or model name — you are PureFxAi only. ` +
+      `Structure: 1) bias summary 2) plan (entry/SL/TP) 3) one risk note.`,
+    user:
+      `Live context (rule engine):\n` +
+      `- Price: ${A?.price}\n` +
+      `- Bias: ${b.dir || 'side'} conf ${b.conf ?? '?'}%\n` +
+      `- Setup: ${side} entry ${S.entry?.[0]}-${S.entry?.[1]} SL ${S.sl} TP ${S.tp} RR 1:${S.rr} conf ${S.conf}%\n` +
+      `- Hypothetical: ${S.hyp ? 'yes' : 'no'}\n` +
+      `- Reasons: ${reasons.join(' | ') || 'n/a'}\n` +
+      `Write the PureFxAi plan card for the trader.`,
+  };
+}
+
+function buildChatPrompt(userText, A, lang) {
+  const S = A?.setup || {};
+  const b = A?.bias || {};
+  const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
+  return {
+    system:
+      `You are PureFxAi inside PUREGOLD. Reply ONLY in ${langName}. Max 6 short lines. ` +
+      `Education only, not financial advice. Brand yourself as PureFxAi only — never name other AI vendors/models.`,
+    user:
+      `Trader asked: ${String(userText || '').slice(0, 240)}\n` +
+      `Context: XAU≈${A?.price} bias=${b.dir || 'side'} setup=${S.side || 'WAIT'} ` +
+      `entry ${S.entry?.[0]}-${S.entry?.[1]} SL ${S.sl} TP ${S.tp}\n` +
+      `Answer helpfully about gold trading / this plan / Exness signup education.`,
+  };
+}
+
+/** Rule-based PureFxAi narrative if cloud call fails. */
+export function ruleNarrative(A, lang) {
+  const S = A?.setup || {};
+  const b = A?.bias || {};
+  const side = S.side || 'WAIT';
+  const f = (x) => (x == null ? '-' : Number(x).toFixed(2));
+  if (lang === 'th') {
+    return [
+      `PureFxAi · มุมมอง: ${b.dir === 'up' ? 'ขาขึ้น' : b.dir === 'down' ? 'ขาลง' : 'ไซด์เวย์'} (${b.conf ?? '?'}%)`,
+      `แผน: ${side === 'BUY' ? 'รับซื้อ' : side === 'SELL' ? 'ขายออก' : 'รอ'} · เข้า ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
+      `SL ${f(S.sl)} · TP ${f(S.tp)} · R:R 1:${S.rr ?? '-'}`,
+      S.hyp ? 'สัญญาณยังไม่ชัด — ใช้เป็นสมมติฐาน รอยืนยัน' : 'อิงกฎเทคนิค + PureFxAi',
+      'เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน',
+    ].join('\n');
+  }
+  if (lang === 'zh') {
+    return [
+      `PureFxAi · 偏向：${b.dir === 'up' ? '上涨' : b.dir === 'down' ? '下跌' : '震荡'}（${b.conf ?? '?'}%）`,
+      `计划：${side === 'BUY' ? '买入' : side === 'SELL' ? '卖出' : '观望'} · 入场 ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
+      `止损 ${f(S.sl)} · 止盈 ${f(S.tp)} · 盈亏比 1:${S.rr ?? '-'}`,
+      S.hyp ? '信号尚不明确 — 视为假设，等待确认' : '基于规则引擎 + PureFxAi',
+      '仅供教育，非投资建议',
+    ].join('\n');
+  }
+  return [
+    `PureFxAi · Bias: ${b.dir || 'side'} (${b.conf ?? '?'}%)`,
+    `Plan: ${side} · Entry ${f(S.entry?.[0])}–${f(S.entry?.[1])}`,
+    `SL ${f(S.sl)} · TP ${f(S.tp)} · R:R 1:${S.rr ?? '-'}`,
+    S.hyp ? 'No clear signal — hypothetical; wait for confirmation' : 'Based on rules + PureFxAi',
+    'Education only. Not financial advice.',
+  ].join('\n');
+}
+
+/**
+ * Run PureFxAi analysis via cloud (requires API key in Settings).
+ */
+export async function analyzeWithPureFxAi(A, lang, onProgress) {
+  onProgress?.({ phase: 'analyzing', pct: 100, done: 1, total: 1 });
+  const key = await getApiKey();
+  if (!key) {
+    return {
+      text: ruleNarrative(A, lang),
+      source: 'rules',
+      error: 'need_key',
+    };
+  }
+  try {
+    const { system, user } = buildPlanPrompt(A, lang);
+    const text = await generateText(key, system, user);
+    return { text, source: 'model' };
+  } catch (e) {
+    return {
+      text: ruleNarrative(A, lang),
+      source: 'rules',
+      error: String(e?.message || e),
+    };
+  }
+}
+
+export async function chatWithPureFxAi(userText, A, lang) {
+  const key = await getApiKey();
+  if (!key) {
+    return { text: ruleNarrative(A, lang), source: 'rules', error: 'need_key' };
+  }
+  try {
+    const { system, user } = buildChatPrompt(userText, A, lang);
+    const text = await generateText(key, system, user);
+    return { text, source: 'model' };
+  } catch (e) {
+    return {
+      text: ruleNarrative(A, lang),
+      source: 'rules',
+      error: String(e?.message || e),
+    };
+  }
+}
+
+/** Stop any playing PureFxAi audio. */
+export function stopCloudSpeech() {
+  try { lastAudio?.pause?.(); } catch {}
+  lastAudio = null;
+}
+
+/**
+ * Speak with PureFxAi cloud voice when key + non-device voice selected.
+ * Returns true if cloud audio played; false → caller should use device TTS.
+ */
+export async function speakWithPureFxAi(text, lang) {
+  const plain = String(text || '').replace(/\n+/g, '. ').slice(0, 500);
+  if (!plain) return false;
+  const meta = voiceMeta(getVoiceId());
+  if (!meta.voice) return false; // device voice
+  const key = await getApiKey();
+  if (!key) return false;
+
+  const langCode = { th: 'th-TH', en: 'en-US', zh: 'zh-CN', ja: 'ja-JP' }[lang] || 'en-US';
+  let lastErr;
+  for (const model of TTS_MODELS) {
+    try {
+      const data = await geminiGenerate(key, model, {
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: plain,
+            speechMetadata: { style: 'clear, friendly trading assistant' },
+          }],
+        }],
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            languageCode: langCode,
+            voiceConfig: {
+              voice: meta.voice,
+              prebuiltVoiceConfig: { voiceName: meta.voice },
+            },
+          },
+        },
+      });
+      const part = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
+      const inline = part?.inlineData || part?.inline_data;
+      const b64 = inline?.data;
+      const mime = inline?.mimeType || inline?.mime_type || 'audio/wav';
+      if (!b64) throw new Error('no_audio');
+      stopCloudSpeech();
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime.includes('audio') ? mime : 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      lastAudio = audio;
+      await new Promise((resolve, reject) => {
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error('play')); };
+        audio.play().catch(reject);
+      });
+      return true;
+    } catch (e) {
+      lastErr = e;
+      if (e.status === 404 || /not found|NOT_FOUND/i.test(String(e.message))) continue;
+      continue;
+    }
+  }
+  return false;
+}
+
+export async function unloadModel() { stopCloudSpeech(); }
+export function cancelInstall() {}
+export async function ensureInstalled(onProgress) {
+  onProgress?.({ phase: 'ready', pct: 100, done: 1, total: 1 });
+  return { path: null, source: 'cloud' };
 }

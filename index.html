@@ -59,13 +59,13 @@
         <h2 data-i="pureFxAiSection"></h2>
         <div class="mut s" data-i="pureFxAiHint" style="margin-top:-4px;margin-bottom:10px"></div>
         <div id="pfxStatus" class="pfx-status mut s"></div>
-        <div class="pfx-bar hidden" id="pfxBar"><div class="pfx-bar-fill" id="pfxBarFill"></div></div>
         <pre id="pfxOut" class="pfx-out hidden"></pre>
         <button type="button" class="btn" id="btnPureFxAi" data-i="pureFxAiBtn"></button>
-        <button type="button" class="btn sec danger hidden" id="btnPfxDelete" data-i="pureFxAiDelete"></button>
+        <button type="button" class="btn sec danger hidden" id="btnPfxCleanup" data-i="pureFxAiCleanup"></button>
       </section>
       <section>
         <h2 data-i="signalHist"></h2>
+        <div id="signalAcc" class="mut s" style="margin-top:-4px;margin-bottom:8px"></div>
         <div id="signalHist"></div>
         <button type="button" class="btn sec" id="clearSignals" style="margin-top:10px"></button>
       </section>
@@ -101,6 +101,9 @@
           <h2 style="margin:0" data-i="navChat"></h2>
           <label class="tog"><input type="checkbox" id="chatVoice" checked><span data-i="chatVoice"></span></label>
         </div>
+        <label class="row" style="margin:0 0 8px"><span data-i="voicePick"></span>
+          <select id="chatVoicePick" style="width:auto;min-width:120px"></select>
+        </label>
         <div class="chat-risk" id="chatRisk"></div>
         <div id="chatLog" class="chat-log" aria-live="polite"></div>
         <div id="chatChips" class="chip-row chat-chips"></div>

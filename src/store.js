@@ -173,4 +173,21 @@ export const store = {
     if (changed) write(KEYS.signalHist, h);
   },
   clearSignalHist: () => write(KEYS.signalHist, []),
+
+  /** Win rate from closed signals: TP/up = win, SL/dn = loss. */
+  signalAccuracy: () => {
+    const h = read(KEYS.signalHist, []);
+    let wins = 0, losses = 0;
+    h.forEach(s => {
+      if (s.outcome === 'tp' || s.outcome === 'up') wins++;
+      else if (s.outcome === 'sl' || s.outcome === 'dn') losses++;
+    });
+    const closed = wins + losses;
+    return {
+      wins, losses, closed, open: h.filter(s => !s.outcome || s.outcome === 'flat').length,
+      total: h.length,
+      pct: closed > 0 ? Math.round((wins / closed) * 1000) / 10 : null,
+    };
+  },
 };
+
