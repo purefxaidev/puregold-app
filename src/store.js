@@ -11,6 +11,7 @@ const KEYS = {
   alertHist: 'pg_alert_hist',
   priceAlerts: 'pg_price_alerts',
   newsCache: 'pg_news_cache',
+  techId: 'pg_tech_id',
 };
 
 function read(k, fallback) {
@@ -54,6 +55,7 @@ export const store = {
         bos: A.smc.bos, choch: A.smc.choch, zone: A.smc.zone,
         last_event: A.smc.last_event, liquidity: A.smc.liquidity,
       } : null,
+      techniques: A.techniques || null,
     };
     write(KEYS.analysis, slim);
     write(KEYS.levels, {
@@ -100,4 +102,7 @@ export const store = {
 
   saveNews: (items) => write(KEYS.newsCache, { at: Date.now(), items }),
   loadNews: () => read(KEYS.newsCache, null),
+
+  getTechId: () => localStorage.getItem(KEYS.techId) || 'smc',
+  setTechId: (id) => localStorage.setItem(KEYS.techId, id),
 };

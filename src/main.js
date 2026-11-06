@@ -6,14 +6,14 @@ import { steps as signupSteps, DISC as SIGN_DISC, EXNESS_REF, EXNESS_WEB_GUIDE }
 import { t as tr, LANGS, localeTag } from './i18n.js';
 import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
+import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
 const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
-const DONATE_PAGE = 'https://purefxaidev.github.io/driftwatch-video/';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -97,6 +97,7 @@ function showTab(name) {
   if (name === 'chart') {
     requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
   }
+  if (name === 'tech') renderTech();
 }
 $('bnav').querySelectorAll('button').forEach(b => {
   b.onclick = () => showTab(b.dataset.tab);
@@ -470,14 +471,12 @@ function renderAlertHist() {
 function renderDon() {
   $('don').innerHTML = `<div class="mut">${t('donNet')}</div>
  <div class="addr" id="addr">${USDT}</div>
- <div class="don-actions">
+ <div class="don-actions" style="grid-template-columns:1fr">
    <button class="btn" id="copyAddr">${t('copy')}</button>
-   <button class="btn sec" id="openDon">${t('open')}</button>
  </div>
- <img class="qr" src="/usdt-erc20-qr.png" alt="USDT ERC20 QR" onerror="this.style.display='none'">
+ <img class="qr" id="donQr" src="/usdt-erc20-qr.png" alt="USDT ERC20 QR" onerror="this.style.display='none'">
  <div class="warn">${t('donWarn')}</div>
- <div class="mut s">${t('donNote')}</div>
- <div class="mut s"><a href="${DONATE_PAGE}" target="_blank" rel="noopener" style="color:#f5d27a">${DONATE_PAGE}</a></div>`;
+ <div class="mut s">${t('donNote')}</div>`;
   $('copyAddr').onclick = async () => {
     try {
       await navigator.clipboard.writeText(USDT);
@@ -491,12 +490,6 @@ function renderDon() {
       $('copyAddr').textContent = t('copied');
       setTimeout(() => { $('copyAddr').textContent = t('copy'); }, 1500);
     }
-  };
-  $('openDon').onclick = async () => {
-    try {
-      if (native) await Browser.open({ url: DONATE_PAGE });
-      else window.open(DONATE_PAGE, '_blank');
-    } catch (e) { window.open(DONATE_PAGE, '_blank'); }
   };
 }
 
@@ -528,6 +521,114 @@ function renderNews() {
   });
 }
 
+
+/* ---- Techniques menu (worldwide XAU) ---- */
+let techId = store.getTechId();
+
+function ensureTechniques() {
+  if (!A) return null;
+  if (A.techniques) return A.techniques;
+  A.techniques = buildTechniques(A, null);
+  return A.techniques;
+}
+
+function renderTech() {
+  const pick = $('techPick');
+  const detail = $('techDetail');
+  if (!pick || !detail) return;
+  pick.innerHTML = TECH_IDS.map(id =>
+    `<button type="button" class="chip ${id === techId ? 'on' : ''}" data-tech="${id}">${esc(techTitle(id, L))}</button>`
+  ).join('');
+  pick.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      techId = b.dataset.tech;
+      store.setTechId(techId);
+      renderTech();
+    };
+  });
+  const T = ensureTechniques();
+  if (!T || !T[techId]) {
+    detail.innerHTML = `<div class="state-empty">${t('techEmpty')}</div>`;
+    return;
+  }
+  const d = T[techId];
+  const dirTag = `<span class="tag ${d.dir === 'up' ? 'up' : d.dir === 'down' ? 'dn' : ''}">${t(d.dir || 'side')}</span>`;
+  const conf = d.conf != null ? `<span class="mut">${t('conf')} ${d.conf}%</span>` : '';
+  let hintKey = { smc: 'techSmcHint', sr: 'techSrHint', pivot: 'techPivotHint', trend: 'techTrendHint', fib: 'techFibHint', session: 'techSessionHint' }[techId];
+  let body = '';
+
+  if (techId === 'smc') {
+    const items = [];
+    (d.ob || []).forEach(o => {
+      items.push(`<div class="smc-item ${o.type}"><div><div class="t">${t('ob')} · ${o.type === 'bullish' ? t('bullish') : t('bearish')}</div>
+        <div class="m">${o.mitigated ? t('mitigated') : t('untested')}</div></div>
+        <div class="r">${f2(o.bottom)} – ${f2(o.top)}</div></div>`);
+    });
+    (d.fvg || []).forEach(o => {
+      items.push(`<div class="smc-item fvg ${o.type}"><div><div class="t">${t('fvg')} · ${o.type === 'bullish' ? t('bullish') : t('bearish')}</div>
+        <div class="m">${o.filled ? t('filled') : t('openGap')}</div></div>
+        <div class="r">${f2(o.bottom)} – ${f2(o.top)}</div></div>`);
+    });
+    if (d.zone) {
+      items.push(`<div class="smc-item"><div><div class="t">${t('zone')}</div>
+        <div class="m">${t(d.zone.name)} · ${d.zone.pos_pct}%</div></div>
+        <div class="r">${f2(d.zone.lo)} – ${f2(d.zone.hi)}</div></div>`);
+    }
+    if (d.last_event) {
+      items.push(`<div class="smc-item"><div><div class="t">${t('structure')}</div>
+        <div class="m">${esc(d.last_event)}</div></div>
+        <div class="r">${d.bos ? f2(d.bos.level) : d.choch ? f2(d.choch.level) : '-'}</div></div>`);
+    }
+    body = items.length ? `<div class="smc-card">${items.join('')}</div>` : `<div class="state-empty">${t('empty')}</div>`;
+  } else if (techId === 'sr') {
+    const row = (l, c) => `<div class="row"><span class="${c}">${f2(l[0])}</span>
+      <span class="mut">×${l[1]} · ${l[0] > T.price ? '+' : ''}${f2(l[0] - T.price)}</span></div>`;
+    body = `<div class="grid"><div class="c"><b>${t('res')}</b>${(d.res || []).slice().reverse().map(l => row(l, 'dn')).join('') || '-'}
+      </div><div class="c"><b>${t('sup')}</b>${(d.sup || []).map(l => row(l, 'up')).join('') || '-'}</div></div>
+      ${d.nearestSup ? `<div class="row"><span>${t('nearest')} ${t('sup')}</span><span class="v up">${f2(d.nearestSup[0])}</span></div>` : ''}
+      ${d.nearestRes ? `<div class="row"><span>${t('nearest')} ${t('res')}</span><span class="v dn">${f2(d.nearestRes[0])}</span></div>` : ''}`;
+  } else if (techId === 'pivot' && d.levels) {
+    const lv = d.levels;
+    const mk = (k, c) => `<div class="row"><span>${k}</span><span class="v ${c || ''}">${f2(lv[k])}</span></div>`;
+    body = mk('R3', 'dn') + mk('R2', 'dn') + mk('R1', 'dn') + mk('P') + mk('S1', 'up') + mk('S2', 'up') + mk('S3', 'up') +
+      (d.vsP != null ? `<div class="row"><span>${t('vsPivot')}</span><span class="v">${d.vsP > 0 ? '+' : ''}${f2(d.vsP)}</span></div>` : '');
+  } else if (techId === 'trend') {
+    const S = d.setup;
+    body = `<ul>${(d.reasons || []).map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>`;
+    if (S) {
+      body += `<div class="levels" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div class="lv" style="background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px"><div class="k" style="font-size:11px;color:var(--gold-dim)">${t('entry')}</div><div class="n" style="font-weight:700">${f2(S.entry[0])} – ${f2(S.entry[1])}</div></div>
+        <div class="lv" style="background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px"><div class="k" style="font-size:11px;color:var(--gold-dim)">${t('sl')}</div><div class="n dn" style="font-weight:700">${f2(S.sl)}</div></div>
+        <div class="lv" style="background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px"><div class="k" style="font-size:11px;color:var(--gold-dim)">${t('tp')}</div><div class="n up" style="font-weight:700">${f2(S.tp)}</div></div>
+        <div class="lv" style="background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px"><div class="k" style="font-size:11px;color:var(--gold-dim)">${t('invalid')}</div><div class="n dn" style="font-weight:700">${f2(S.invalid)}</div></div>
+      </div>`;
+    }
+  } else if (techId === 'fib') {
+    if (!(d.levels || []).length) body = `<div class="state-empty">${t('empty')}</div>`;
+    else {
+      body = `<div class="row"><span>${t('swing')} H</span><span class="v dn">${f2(d.swingHigh)}</span></div>
+        <div class="row"><span>${t('swing')} L</span><span class="v up">${f2(d.swingLow)}</span></div>
+        <div class="mut s" style="margin:8px 0 4px">${t('levels')}</div>` +
+        d.levels.map(lv => {
+          const near = d.nearest && d.nearest.r === lv.r;
+          return `<div class="row"><span>${(lv.r * 100).toFixed(1)}%${near ? ' · ' + t('nearest') : ''}</span>
+            <span class="v ${near ? 'up' : ''}">${f2(lv.price)}</span></div>`;
+        }).join('');
+    }
+  } else if (techId === 'session') {
+    body = `<div class="row"><span>${sessionLabel(d.session, L)}</span><span class="v">UTC ${d.utcHour}:00</span></div>
+      <div class="tip">${esc(sessionHint(d.session, L))}</div>
+      <div class="mut s">${t('techSessionHint')}</div>`;
+  }
+
+  detail.innerHTML = `<div class="sec-head" style="margin-bottom:10px"><h2 style="margin:0">${esc(techTitle(techId, L))}</h2>
+    <div>${dirTag} ${conf}</div></div>
+    <div class="mut s" style="margin-bottom:10px">${t(hintKey)}</div>
+    <div class="big" style="font-size:20px;margin-bottom:8px">$${f2(T.price)}</div>
+    ${body}
+    <div class="edu" style="margin-top:12px;font-size:11px;color:var(--muted)">${t('setupEdu')}</div>`;
+}
+
 function renderAll() {
   document.documentElement.lang = L;
   document.querySelectorAll('[data-i]').forEach(e => { e.textContent = t(e.dataset.i); });
@@ -542,6 +643,7 @@ function renderAll() {
   renderAlertHist();
   renderDon();
   renderNews();
+  renderTech();
   renderSignTeaser();
   stamp();
   if (chart) chart.applyOptions({ localization: { locale: localeTag(L) } });

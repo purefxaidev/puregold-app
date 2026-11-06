@@ -103,7 +103,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--gold);flex-shrink
 .alert-item button{width:auto;margin:0;padding:6px 10px;font-size:12px}
 
 /* Bottom nav */
-.bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);
   background:rgba(10,11,18,.94);border-top:1px solid var(--line);backdrop-filter:blur(12px);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
 .bnav button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:10px;font-weight:600;padding:6px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -140,3 +140,8 @@ footer{font-size:11px;color:#7d776a;line-height:1.6;padding:4px 0}
 .banner.update{display:flex;align-items:center;background:linear-gradient(90deg,#1a160c,#10121b);border-color:var(--gold)}
 .upd-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%}
 .upd-btn{margin:0!important;width:auto!important;padding:8px 16px!important;flex-shrink:0}
+
+.tech-chips{margin-bottom:4px}
+.tech-chips .chip{font-size:12px;padding:7px 12px}
+.bnav button{font-size:9px}
+@media (min-width:400px){.bnav button{font-size:10px}}

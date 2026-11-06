@@ -1,6 +1,7 @@
 // Rule-based analysis (adapted from PUREGOLD engine + gold-dashboard SMC).
 // Data: Binance PAXGUSDT proxy (OHLC) + gold-api.com XAU spot. Education only.
 import { analyseSmc, smcNote } from './smc.js';
+import { buildTechniques } from './techniques.js';
 
 const HOSTS = ['https://data-api.binance.vision', 'https://api.binance.com', 'https://api1.binance.com'];
 
@@ -206,6 +207,10 @@ export async function analyze() {
   const fc = forecast(bias, price, res, sup, a15, r1);
   const setup = buildSetup(bias, price, res, sup, a15, plan, fc);
   const smc = analyseSmc(h1, basis);
+  const techniques = buildTechniques({
+    price: r2(price), basis: r2(basis), atr15: a15,
+    res, sup, bias, smc, plan, setup,
+  }, h1);
   return {
     price: r2(price),
     basis: r2(basis),
@@ -218,6 +223,7 @@ export async function analyze() {
     setup,
     smc,
     smcNote,
+    techniques,
   };
 }
 
