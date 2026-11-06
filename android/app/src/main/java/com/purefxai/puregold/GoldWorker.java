@@ -41,7 +41,10 @@ public class GoldWorker extends Worker {
                     :("Gold "+bw+" at "+Math.round(spot)+(res>0?", resistance "+Math.round(res):"")+(sup>0?", support "+Math.round(sup):""));
       if(brk) text=(th?"ราคาเบรกแนวสำคัญ ":"Key level broken. ")+text; else if(flip) text=(th?"มุมมองเปลี่ยน ":"Bias changed. ")+text;
       JSONObject js=new JSONObject().put("price",spot).put("res",res).put("sup",sup).put("bias",bias).put("rsi",rsi).put("thaiSell",thai);
-      p.edit().putString("bias",bias).putFloat("px",(float)spot).putFloat("res",(float)res).putFloat("sup",(float)sup).putString("lastText",text).putLong("lastAt",System.currentTimeMillis()).putString("lastJson",js.toString()).apply();
+      p.edit().putString("bias",bias).putFloat("px",(float)spot).putFloat("res",(float)res).putFloat("sup",(float)sup).putString("lastText",text).putLong("lastAt",System.currentTimeMillis()).putString("lastJson",js.toString())
+        .putFloat("snap_price",(float)spot).putString("snap_bias",bias).putString("snap_thaiSell",thai)
+        .putLong("snap_at",System.currentTimeMillis()).apply();
+      try{ GoldWidget.updateAll(c); OverlayService.refresh(c);}catch(Exception ignore){}
       // Custom price alerts from SharedPreferences JSON
       try{
         String paj=p.getString("priceAlerts","[]");

@@ -1,23 +1,19 @@
 # PUREGOLD (PureFxAi)
 
-**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมกราฟแท่งเทียน แนวรับ/แนวต้าน Order Block / FVG (Smart Money) ระบบคาดการณ์ จุดเข้า–ออก (Entry / SL / TP / Invalidation) วิเคราะห์ข่าวทอง แจ้งเตือนเป็นนาที + ราคาที่ตั้งเอง หลายภาษา (ไทย / English / 中文 / 日本語) โดเนท USDT และคู่มือสมัคร Exness
+**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมเมนูแผนแยก วิดเจ็ต หน้าต่างลอยทับแอปอื่น กราฟ แนวรับ/แนวต้าน Order Block / FVG แจ้งเตือน และหลายภาษา
 
-**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: candlestick charts with S/R, Order Blocks & FVG (Smart Money), algorithmic forecast, clear entry/exit (Entry / SL / TP / Invalidation), gold news analysis, minute + custom price alerts, multi-language (TH / EN / ZH / JA), USDT donate, Exness sign-up wizard.
+**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: dedicated Plan tab, home widget, floating overlay, charts, S/R, Order Blocks & FVG, alerts, multi-language.
 
-## Features (0.3.2)
-- Production bottom-nav UI (Home / Chart / Techniques / News / More), dark gold theme
-- Techniques menu (worldwide XAU): Smart Money, S/R, Pivot, Trend/MTF, Fibonacci, Session
-- Exness signup wizard fully localized TH / ZH / EN
-- Languages: full UI in Thai / English / Chinese (日本語 optional)
-- Entry/Exit setup card: side, entry zone, SL, TP, invalidation, RR (educational)
-- Chart overlays: S/R, entry/SL/TP/invalidation, Order Blocks & FVG (toggle)
-- SMC list from gold-dashboard rules (deterministic)
-- Forecast + bias from rule engine (no model names in UI)
-- News cards from PUREGOLD dashboard feed (impact up/down/neutral)
-- Alerts: interval minutes, voice on/off, custom price alerts, history
-- On-device persistence: last analysis, levels, settings, alerts, news cache
-- In-app update check against GitHub Releases (Update button → latest release)
-- USDT ERC20 donate + Exness partner signup wizard (IB cookie via Capacitor Browser)
+## Features (0.4.0)
+- Dedicated **Plan** tab — today’s plan card (entry / SL / TP / key levels) + signal history
+- In-app **per-version changelog** (offline notes + GitHub release body; shown after update)
+- **Home-screen widget** — Thai HSH / XAU + short BUY/SELL/WAIT signal
+- **Floating overlay** over other apps (e.g. MT5) — needs “Display over other apps” permission; draggable, dismissible, toggle in Settings
+- On-device Buy/Sell **signal history** with best-effort outcome vs later price
+- Techniques menu, SMC OB/FVG, news analysis, custom price alerts
+- Languages: Thai / English / 中文 / 日本語
+- Exness partner signup wizard · IB `https://one.toexness.com/a/s2didh6p`
+- GitHub Releases update check
 
 ## Build
 ```
@@ -32,21 +28,9 @@ Requires JDK 17, Android SDK (build-tools 35), and a release keystore kept OUTSI
 - News: https://purefxaidev.github.io/gold-dashboard/news.json
 - Updates: GitHub Releases API for purefxaidev/puregold-app
 
-## Exness sign-up guide
-Partner referral link (code `s2didh6p`): `https://one.toexness.com/a/s2didh6p`
-
-## 💚 Support PureFxAi (USDT)
-
-**Network: Ethereum (ERC20) only**
-
-```
-0x920deab53daf94ca2030ad5ceec2265bf5686941
-```
-
-⚠️ Send **only USDT via ERC20**. Other networks or tokens may be lost permanently.
-
-Donations are voluntary support — **not an investment**, with no returns or rewards.
-
+## Widget / overlay notes
+- Widget refresh: Android may limit automatic widget updates (~30 min); the app and background worker push fresher data when they run.
+- Overlay requires the user to grant SYSTEM_ALERT_WINDOW (“Display over other apps”).
 
 ## Disclaimer
 Education only. Not financial advice. / ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน

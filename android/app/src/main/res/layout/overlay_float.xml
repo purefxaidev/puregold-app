@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ov_root"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:background="@drawable/widget_bg"
+    android:elevation="8dp">
+    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/ov_title" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="PUREGOLD" android:textColor="#F5D27A"
+            android:textStyle="bold" android:textSize="11sp"/>
+        <TextView android:id="@+id/ov_close" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="✕" android:textColor="#9A8F73" android:textSize="14sp" android:paddingLeft="10dp" android:paddingRight="2dp"/>
+    </LinearLayout>
+    <TextView android:id="@+id/ov_xau" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="XAU —" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="16sp"/>
+    <TextView android:id="@+id/ov_thai" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="HSH —" android:textColor="#9A8F73" android:textSize="11sp"/>
+    <TextView android:id="@+id/ov_signal" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="WAIT" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="13sp" android:layout_marginTop="2dp"/>
+    <TextView android:id="@+id/ov_plan" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="" android:textColor="#8A8473" android:textSize="10sp" android:layout_marginTop="2dp"/>
+</LinearLayout>

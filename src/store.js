@@ -12,6 +12,9 @@ const KEYS = {
   priceAlerts: 'pg_price_alerts',
   newsCache: 'pg_news_cache',
   techId: 'pg_tech_id',
+  signalHist: 'pg_signal_hist',
+  seenVer: 'pg_seen_version',
+  lastSignalKey: 'pg_last_signal_key',
 };
 
 function read(k, fallback) {
@@ -105,4 +108,69 @@ export const store = {
 
   getTechId: () => localStorage.getItem(KEYS.techId) || 'smc',
   setTechId: (id) => localStorage.setItem(KEYS.techId, id),
+
+  getSeenVersion: () => localStorage.getItem(KEYS.seenVer) || '',
+  setSeenVersion: (v) => localStorage.setItem(KEYS.seenVer, v),
+
+  /** Record BUY/SELL setups; skip WAIT and duplicates within same side+rounded entry. */
+  recordSignal: (A) => {
+    if (!A?.setup) return null;
+    const S = A.setup;
+    if (S.side !== 'BUY' && S.side !== 'SELL') return null;
+    const entryMid = S.entry ? (S.entry[0] + S.entry[1]) / 2 : S.e1;
+    const key = `${S.side}_${Math.round(entryMid)}_${Math.round(S.sl)}_${Math.round(S.tp)}`;
+    if (localStorage.getItem(KEYS.lastSignalKey) === key) return null;
+    localStorage.setItem(KEYS.lastSignalKey, key);
+    const item = {
+      id: 'sg_' + Date.now().toString(36),
+      at: Date.now(),
+      side: S.side,
+      entry: S.entry ? [...S.entry] : [S.e1, S.e2],
+      sl: S.sl,
+      tp: S.tp,
+      invalid: S.invalid,
+      conf: S.conf,
+      priceAt: A.price,
+      outcome: null,
+      outcomeAt: null,
+      outcomePx: null,
+    };
+    const h = read(KEYS.signalHist, []);
+    h.unshift(item);
+    write(KEYS.signalHist, h.slice(0, 80));
+    return item;
+  },
+  getSignalHist: () => read(KEYS.signalHist, []),
+  /** Best-effort: mark open signals vs current price (hit TP / SL / or MFE after 30m). */
+  updateSignalOutcomes: (price) => {
+    if (!price) return;
+    const h = read(KEYS.signalHist, []);
+    let changed = false;
+    const now = Date.now();
+    h.forEach(s => {
+      if (s.outcome) return;
+      const age = now - s.at;
+      if (age < 5 * 60 * 1000) return; // wait 5 min
+      const buy = s.side === 'BUY';
+      if (buy) {
+        if (price <= s.sl) { s.outcome = 'sl'; s.outcomePx = price; s.outcomeAt = now; changed = true; }
+        else if (price >= s.tp) { s.outcome = 'tp'; s.outcomePx = price; s.outcomeAt = now; changed = true; }
+        else if (age > 6 * 60 * 60 * 1000) {
+          const mid = (s.entry[0] + s.entry[1]) / 2;
+          s.outcome = price > mid ? 'up' : price < mid ? 'dn' : 'flat';
+          s.outcomePx = price; s.outcomeAt = now; changed = true;
+        }
+      } else {
+        if (price >= s.sl) { s.outcome = 'sl'; s.outcomePx = price; s.outcomeAt = now; changed = true; }
+        else if (price <= s.tp) { s.outcome = 'tp'; s.outcomePx = price; s.outcomeAt = now; changed = true; }
+        else if (age > 6 * 60 * 60 * 1000) {
+          const mid = (s.entry[0] + s.entry[1]) / 2;
+          s.outcome = price < mid ? 'up' : price > mid ? 'dn' : 'flat';
+          s.outcomePx = price; s.outcomeAt = now; changed = true;
+        }
+      }
+    });
+    if (changed) write(KEYS.signalHist, h);
+  },
+  clearSignalHist: () => write(KEYS.signalHist, []),
 };

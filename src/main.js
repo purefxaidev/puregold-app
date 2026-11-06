@@ -7,13 +7,15 @@ import { t as tr, LANGS, localeTag } from './i18n.js';
 import { store } from './store.js';
 import { fetchNews, titleFor, summaryFor } from './news.js';
 import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from './techniques.js';
+import { CHANGELOG, notesFor } from './changelog.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
 const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
-const APP_VERSION = '0.3.2';
+const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
+const APP_VERSION = '0.4.0';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -53,6 +55,7 @@ function isNewer(remote, local) {
   return false;
 }
 
+let lastRemoteRelease = null;
 async function checkUpdate() {
   try {
     const r = await fetch(RELEASES_API, {
@@ -61,6 +64,7 @@ async function checkUpdate() {
     });
     if (!r.ok) return;
     const d = await r.json();
+    lastRemoteRelease = d;
     const tag = d.tag_name || d.name || '';
     if (!isNewer(tag, APP_VERSION)) {
       const old = document.getElementById('updateBanner');
@@ -75,8 +79,12 @@ async function checkUpdate() {
       $('offlineBanner').after(ban);
     }
     ban.innerHTML = `<div class="upd-row"><span>${esc(t('updAvail') + ' ' + tag)}</span>
-      <button type="button" class="btn upd-btn" id="btnUpdate">${esc(t('updBtn'))}</button></div>`;
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button type="button" class="btn upd-btn sec" id="btnUpdNotes">${esc(t('viewNotes'))}</button>
+        <button type="button" class="btn upd-btn" id="btnUpdate">${esc(t('updBtn'))}</button>
+      </div></div>`;
     ban.classList.remove('hidden');
+    $('btnUpdNotes').onclick = () => openChangelog(tag.replace(/^v/i, ''), d.body || '');
     $('btnUpdate').onclick = async () => {
       const url = d.html_url || RELEASES_LATEST;
       try {
@@ -98,6 +106,8 @@ function showTab(name) {
     requestAnimationFrame(() => { initChart(); if (A) loadChart(); });
   }
   if (name === 'tech') renderTech();
+  if (name === 'plan') { renderPlan(); renderSignalHist(); }
+  if (name === 'more') { renderChangelogBox(); renderOverlaySet(); }
 }
 $('bnav').querySelectorAll('button').forEach(b => {
   b.onclick = () => showTab(b.dataset.tab);
@@ -148,7 +158,7 @@ function renderSetup() {
 
 function renderA() {
   if (!A) {
-    ['xau', 'sr', 'bias', 'plan', 'fc', 'smcList'].forEach(id => {
+    ['xau', 'sr', 'bias', 'fc', 'smcList'].forEach(id => {
       if ($(id)) $(id).innerHTML = `<div class="state-empty">${t('empty')}</div>`;
     });
     renderSetup();
@@ -165,16 +175,6 @@ function renderA() {
   const b = A.bias;
   $('bias').innerHTML = `<span class="tag ${b.dir === 'up' ? 'up' : b.dir === 'down' ? 'dn' : ''}">${t(b.dir)}</span>
  <span class="mut">${t('conf')} ${b.conf}%</span><ul>${b.reasons.map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>`;
-  const P = A.setup || A.plan;
-  const side = P.side;
-  $('plan').innerHTML = `<div class="row"><span>${t('dir')}</span><span class="v ${side === 'BUY' ? 'up' : side === 'SELL' ? 'dn' : ''}">${side === 'BUY' ? t('sideBuy') : side === 'SELL' ? t('sideSell') : t('sideWait')}</span></div>
- <div class="row"><span>${t('entry')}</span><span class="v">${f2(P.entry ? P.entry[0] : P.e1)} – ${f2(P.entry ? P.entry[1] : P.e2)}</span></div>
- <div class="row"><span>${t('sl')}</span><span class="v dn">${f2(P.sl)}</span></div>
- <div class="row"><span>${t('tp')}</span><span class="v up">${f2(P.tp)}</span></div>
- <div class="row"><span>${t('invalid')}</span><span class="v dn">${f2(P.invalid ?? A.forecast?.invalid)}</span></div>
- <div class="row"><span>${t('rr')}</span><span class="v">1 : ${P.rr}</span></div>
- ${P.hyp ? `<div class="mut s">${t('waitHint')}</div>` : ''}
- <div class="mut s">${t('setupEdu')}</div>`;
   renderFc();
   renderSmcList();
   renderSetup();
@@ -351,7 +351,7 @@ function renderTf() {
 }
 
 /* ---- Settings ---- */
-const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true };
+const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, overlay: false };
 let S = store.getSettings(DEF);
 
 async function saveSet() {
@@ -359,7 +359,7 @@ async function saveSet() {
   if (native) {
     try {
       await Pg.setSettings({
-        ...S, lang: L,
+        ...S, lang: L, overlay: !!S.overlay,
         priceAlerts: JSON.stringify(store.getPriceAlerts().filter(a => a.active)),
       });
     } catch (e) {}
@@ -522,6 +522,208 @@ function renderNews() {
 }
 
 
+
+/* ---- Plan tab + signal history ---- */
+function renderPlan() {
+  const el = $('planToday');
+  if (!el) return;
+  if (!A?.setup) {
+    el.innerHTML = `<div class="skel">${t('load')}</div>`;
+    if ($('planBias')) $('planBias').innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+    if ($('planLevels')) $('planLevels').innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+    return;
+  }
+  const S = A.setup;
+  const sideClass = S.side === 'BUY' ? 'BUY' : S.side === 'SELL' ? 'SELL' : 'WAIT';
+  const sideLabel = S.side === 'BUY' ? t('sideBuy') : S.side === 'SELL' ? t('sideSell') : t('sideWait');
+  el.innerHTML = `<div class="row" style="margin:0;align-items:flex-start">
+    <div><div class="mut s" style="margin:0 0 6px">${t('planToday')}</div>
+      <span class="side-pill ${sideClass}">${sideLabel}</span>
+      <span class="mut" style="margin-left:8px">${t('conf')} ${S.conf}%</span></div>
+    <div class="big" style="font-size:22px">$${f2(A.price)}</div>
+  </div>
+  <div class="levels">
+    <div class="lv"><div class="k">${t('entry')}</div><div class="n">${f2(S.entry[0])} – ${f2(S.entry[1])}</div></div>
+    <div class="lv"><div class="k">${t('sl')}</div><div class="n dn">${f2(S.sl)}</div></div>
+    <div class="lv"><div class="k">${t('tp')}</div><div class="n up">${f2(S.tp)}</div></div>
+    <div class="lv"><div class="k">${t('invalid')}</div><div class="n dn">${f2(S.invalid)}</div></div>
+  </div>
+  <div class="row"><span>${t('rr')}</span><span class="v">1 : ${S.rr}</span></div>
+  ${S.hyp ? `<div class="mut s">${t('waitHint')}</div>` : ''}
+  <div class="edu">${t('planCardHint')}</div>`;
+
+  const b = A.bias;
+  if ($('planBias') && b) {
+    $('planBias').innerHTML = `<span class="tag ${b.dir === 'up' ? 'up' : b.dir === 'down' ? 'dn' : ''}">${t(b.dir)}</span>
+      <span class="mut">${t('conf')} ${b.conf}%</span>
+      <ul>${(b.reasons || []).map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>`;
+  }
+  if ($('planLevels')) {
+    const row = (l, c) => `<div class="row"><span class="${c}">${f2(l[0])}</span>
+      <span class="mut">${l[0] > A.price ? '+' : ''}${(l[0] - A.price).toFixed(2)} · ×${l[1]}</span></div>`;
+    $('planLevels').innerHTML = `<div class="grid"><div class="c"><b>${t('res')}</b>${(A.res || []).slice().reverse().slice(0, 3).map(l => row(l, 'dn')).join('') || '-'}
+      </div><div class="c"><b>${t('sup')}</b>${(A.sup || []).slice(0, 3).map(l => row(l, 'up')).join('') || '-'}</div></div>`;
+  }
+}
+
+function outcomeLabel(o) {
+  if (!o) return t('outcomeOpen');
+  return ({ tp: t('outcomeTp'), sl: t('outcomeSl'), up: t('outcomeUp'), dn: t('outcomeDn'), flat: t('outcomeFlat') })[o] || o;
+}
+
+function renderSignalHist() {
+  const el = $('signalHist');
+  if (!el) return;
+  const h = store.getSignalHist();
+  if (!h.length) {
+    el.innerHTML = `<div class="state-empty">${t('signalEmpty')}</div>`;
+  } else {
+    el.innerHTML = h.slice(0, 30).map(s => {
+      const mid = ((s.entry[0] + s.entry[1]) / 2);
+      const when = new Date(s.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' });
+      return `<div class="signal-item">
+        <div><div class="side ${s.side}">${s.side}</div>
+          <div class="mut s" style="margin:2px 0 0">${esc(when)} (Bangkok)</div>
+          <div class="mut s" style="margin:2px 0 0">$${f2(mid)} · SL ${f2(s.sl)} · TP ${f2(s.tp)}${s.conf != null ? ` · ${s.conf}%` : ''}</div>
+        </div>
+        <span class="out ${s.outcome || 'open'}">${esc(outcomeLabel(s.outcome))}</span>
+      </div>`;
+    }).join('');
+  }
+  const btn = $('clearSignals');
+  if (btn) {
+    btn.textContent = t('clearSignals');
+    btn.onclick = () => { store.clearSignalHist(); renderSignalHist(); };
+  }
+}
+
+/* ---- Changelog / What's new ---- */
+function openChangelog(focusVer, remoteBody) {
+  const modal = $('clModal');
+  if (!modal) return;
+  $('clTitle').textContent = focusVer ? `${t('whatsNew')} · ${focusVer}` : t('changelog');
+  $('clOk').textContent = t('dismiss');
+  let html = '';
+  const list = focusVer
+    ? CHANGELOG.filter(x => x.version === String(focusVer).replace(/^v/i, '')).concat(
+        CHANGELOG.filter(x => x.version !== String(focusVer).replace(/^v/i, ''))
+      )
+    : CHANGELOG;
+  const seen = new Set();
+  list.forEach(row => {
+    if (seen.has(row.version)) return;
+    seen.add(row.version);
+    const notes = row[L] || row.en || [];
+    html += `<div class="cl-ver">v${esc(row.version)} <span class="mut" style="font-weight:500">· ${esc(row.date || '')}</span></div>`;
+    if (!notes.length) html += `<div class="mut s">${t('changelogEmpty')}</div>`;
+    else html += `<ul>${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>`;
+  });
+  if (remoteBody) {
+    html += `<div class="cl-remote">${esc(remoteBody)}</div>`;
+  }
+  $('clBody').innerHTML = html || `<div class="mut">${t('changelogEmpty')}</div>`;
+  modal.classList.remove('hidden');
+}
+
+function closeChangelog() {
+  $('clModal')?.classList.add('hidden');
+  store.setSeenVersion(APP_VERSION);
+}
+
+function renderChangelogBox() {
+  const el = $('changelogBox');
+  if (!el) return;
+  el.innerHTML = CHANGELOG.slice(0, 6).map(row => {
+    const notes = (row[L] || row.en || []).slice(0, 2);
+    return `<div class="signal-item" style="cursor:pointer" data-ver="${esc(row.version)}">
+      <div><div class="v">v${esc(row.version)}</div>
+        <div class="mut s" style="margin:2px 0 0">${esc(notes[0] || '')}</div></div>
+      <span class="mut s">${esc(row.date || '')}</span>
+    </div>`;
+  }).join('') + `<button type="button" class="btn sec" id="btnOpenCl" style="margin-top:10px">${t('changelog')}</button>`;
+  el.querySelectorAll('[data-ver]').forEach(n => {
+    n.onclick = () => openChangelog(n.dataset.ver);
+  });
+  const b = $('btnOpenCl');
+  if (b) b.onclick = () => openChangelog();
+}
+
+function maybeShowWhatsNew() {
+  if (store.getSeenVersion() === APP_VERSION) return;
+  openChangelog(APP_VERSION);
+}
+
+/* ---- Overlay + native snapshot (widget / overlay) ---- */
+async function pushNativeSnapshot() {
+  if (!native || !A) return;
+  try {
+    const S = A.setup || {};
+    let thaiSell = '', thaiBuy = '';
+    if (TG && TG.length) {
+      const h = TG.find(x => x.GoldType === 'HSH') || TG[0];
+      thaiSell = String(h.Sell || '');
+      thaiBuy = String(h.Buy || '');
+    }
+    await Pg.pushSnapshot({
+      price: A.price,
+      bias: A.bias?.dir || 'side',
+      side: S.side || 'WAIT',
+      conf: S.conf || 0,
+      entry0: S.entry ? S.entry[0] : 0,
+      entry1: S.entry ? S.entry[1] : 0,
+      sl: S.sl || 0,
+      tp: S.tp || 0,
+      thaiSell, thaiBuy,
+      lang: L,
+    });
+  } catch (e) {}
+}
+
+async function renderOverlaySet() {
+  const el = $('overlaySet');
+  if (!el) return;
+  if (!native) {
+    el.innerHTML = `<div class="mut s">${t('androidOnly')}</div><div class="mut s">${t('overlayHint')}</div>`;
+    return;
+  }
+  let on = !!S.overlay;
+  let can = false;
+  try {
+    const r = await Pg.overlayStatus();
+    can = !!r.canDraw;
+    on = !!r.enabled || on;
+  } catch (e) {}
+  el.innerHTML = `<div class="mut s">${t('overlayHint')}</div>
+    <label class="row"><span>${t('overlayOn')}</span>
+      <input type="checkbox" id="ovToggle" ${on ? 'checked' : ''}></label>
+    ${!can ? `<button type="button" class="btn sec" id="ovPerm">${t('overlayPerm')}</button>
+      <div class="mut s">${t('overlayNeedPerm')}</div>` : ''}`;
+  const tog = $('ovToggle');
+  if (tog) tog.onchange = async () => {
+    S.overlay = tog.checked;
+    await saveSet();
+    try {
+      if (tog.checked) {
+        const st = await Pg.overlayStatus();
+        if (!st.canDraw) {
+          await Pg.requestOverlayPermission();
+          tog.checked = false;
+          S.overlay = false;
+          await saveSet();
+          renderOverlaySet();
+          return;
+        }
+        await Pg.setOverlay({ enabled: true });
+        await pushNativeSnapshot();
+      } else {
+        await Pg.setOverlay({ enabled: false });
+      }
+    } catch (e) { renderOverlaySet(); }
+  };
+  const bp = $('ovPerm');
+  if (bp) bp.onclick = async () => { try { await Pg.requestOverlayPermission(); } catch (e) {} };
+}
+
 /* ---- Techniques menu (worldwide XAU) ---- */
 let techId = store.getTechId();
 
@@ -637,10 +839,14 @@ function renderAll() {
   renderLang();
   renderThai();
   renderA();
+  renderPlan();
+  renderSignalHist();
   renderTf();
   renderSet();
+  renderOverlaySet();
   renderPriceAlerts();
   renderAlertHist();
+  renderChangelogBox();
   renderDon();
   renderNews();
   renderTech();
@@ -687,6 +893,7 @@ async function loadThai() {
     TG = await r.json();
     store.saveThai(TG);
     renderThai();
+    await pushNativeSnapshot();
   } catch (e) {
     if (!TG) $('tgSrc').textContent = t('err');
     else setOffline(true);
@@ -697,9 +904,14 @@ async function loadA() {
   try {
     A = await analyze();
     store.saveAnalysis(A);
+    store.recordSignal(A);
+    store.updateSignalOutcomes(A.price);
     setOffline(false);
     renderA();
+    renderPlan();
+    renderSignalHist();
     checkCustomAlerts(A.price);
+    await pushNativeSnapshot();
     if (tab === 'chart' || chart) await loadChart();
   } catch (e) {
     if (!A) {
@@ -819,10 +1031,15 @@ $('backMain').onclick = () => showSignup(false);
 $('webGuide').onclick = e => { e.preventDefault(); openWebGuide(); };
 
 /* boot */
+if ($('clClose')) $('clClose').onclick = closeChangelog;
+if ($('clOk')) $('clOk').onclick = closeChangelog;
+if ($('btnChangelog')) $('btnChangelog').onclick = () => openChangelog();
+$('clModal')?.addEventListener('click', e => { if (e.target === $('clModal')) closeChangelog(); });
+
 showTab(tab);
 renderAll();
 saveSet();
-refresh();
+refresh().then(() => maybeShowWhatsNew());
 setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
 setInterval(loadNews, 5 * 60 * 1000);

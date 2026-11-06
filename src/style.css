@@ -145,3 +145,35 @@ footer{font-size:11px;color:#7d776a;line-height:1.6;padding:4px 0}
 .tech-chips .chip{font-size:12px;padding:7px 12px}
 .bnav button{font-size:9px}
 @media (min-width:400px){.bnav button{font-size:10px}}
+
+/* 6-tab bottom nav */
+.bnav{grid-template-columns:repeat(6,1fr)}
+.bnav button{font-size:8px;padding:6px 1px}
+@media (min-width:400px){.bnav button{font-size:9px}}
+
+/* Plan today card extras */
+.plan-hero .levels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.plan-hero .lv{background:#0d0f17cc;border:1px solid var(--line2);border-radius:12px;padding:10px}
+.plan-hero .lv .k{font-size:11px;color:var(--gold-dim);text-transform:uppercase;letter-spacing:.6px}
+.plan-hero .lv .n{font-size:16px;font-weight:700;color:var(--white);margin-top:2px}
+.plan-hero .edu{margin-top:12px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #23202a;padding-top:10px}
+
+.signal-item{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;background:#0d0f17;border:1px solid var(--line2);border-radius:12px;padding:10px;margin-top:8px}
+.signal-item .side{font-weight:800;letter-spacing:.5px}
+.signal-item .side.BUY{color:var(--up)}.signal-item .side.SELL{color:var(--dn)}
+.signal-item .out{font-size:11px;padding:3px 8px;border-radius:999px;background:#1a1a22;color:var(--gold-dim);white-space:nowrap}
+.signal-item .out.tp{background:#0f2418;color:var(--up)}
+.signal-item .out.sl{background:#2a1214;color:var(--dn)}
+.signal-item .out.up{background:#0f2418;color:var(--up)}
+.signal-item .out.dn{background:#2a1214;color:var(--dn)}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.65);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.modal.hidden{display:none!important}
+.modal-card{width:100%;max-width:520px;max-height:80dvh;overflow:auto;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--gold2);border-radius:18px;padding:16px;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.cl-body{font-size:13px;line-height:1.5;margin:10px 0 14px}
+.cl-ver{margin:14px 0 6px;font-weight:700;color:var(--gold);font-size:14px}
+.cl-ver:first-child{margin-top:0}
+.cl-body ul{margin:4px 0 0;padding-left:18px}
+.cl-body li{margin:4px 0;color:var(--text)}
+.cl-remote{margin-top:12px;padding-top:10px;border-top:1px solid var(--line2);white-space:pre-wrap;font-size:12px;color:var(--muted)}

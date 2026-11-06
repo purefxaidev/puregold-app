@@ -10,6 +10,7 @@
   <header class="top">
     <div class="brand"><b>PURE</b>GOLD<small>by PureFxAi</small></div>
     <div class="hb">
+      <button type="button" id="btnChangelog" class="icon-btn" title="Changelog">ⓘ</button>
       <button type="button" id="ref" class="icon-btn" title="Refresh">⟳</button>
     </div>
   </header>
@@ -41,6 +42,26 @@
       </section>
     </div>
 
+    <!-- PLAN (dedicated tab) -->
+    <div class="panel hidden" data-panel="plan">
+      <section class="hero plan-hero" id="planToday">
+        <div class="skel" data-i="load"></div>
+      </section>
+      <section>
+        <h2 data-i="planTrend"></h2>
+        <div id="planBias"><div class="skel" data-i="load"></div></div>
+      </section>
+      <section>
+        <h2 data-i="planKeyLevels"></h2>
+        <div id="planLevels"><div class="skel" data-i="load"></div></div>
+      </section>
+      <section>
+        <h2 data-i="signalHist"></h2>
+        <div id="signalHist"></div>
+        <button type="button" class="btn sec" id="clearSignals" style="margin-top:10px"></button>
+      </section>
+    </div>
+
     <!-- CHART -->
     <div class="panel hidden" data-panel="chart">
       <section>
@@ -61,12 +82,7 @@
         <div id="smcNote" class="mut s"></div>
         <div id="smcList"><div class="skel" data-i="load"></div></div>
       </section>
-      <section>
-        <h2 data-i="plan"></h2>
-        <div id="plan"><div class="skel" data-i="load"></div></div>
-      </section>
     </div>
-
 
     <!-- TECHNIQUES -->
     <div class="panel hidden" data-panel="tech">
@@ -99,12 +115,20 @@
         <div id="set"></div>
       </section>
       <section>
+        <h2 data-i="overlay"></h2>
+        <div id="overlaySet"></div>
+      </section>
+      <section>
         <h2 data-i="priceAlerts"></h2>
         <div id="priceAlerts"></div>
       </section>
       <section>
         <h2 data-i="alertHist"></h2>
         <div id="alertHist" class="mut s"></div>
+      </section>
+      <section>
+        <h2 data-i="changelog"></h2>
+        <div id="changelogBox"></div>
       </section>
       <section>
         <h2 data-i="don"></h2>
@@ -117,6 +141,7 @@
       <section class="about">
         <h2 data-i="about"></h2>
         <div class="mut s" id="aboutVer"></div>
+        <div class="mut s" data-i="widgetHint" style="margin-top:8px"></div>
         <footer id="disc"></footer>
       </section>
     </div>
@@ -124,6 +149,7 @@
 
   <nav class="bnav" id="bnav">
     <button type="button" data-tab="home" class="on"><span class="ni">⌂</span><span data-i="navHome"></span></button>
+    <button type="button" data-tab="plan"><span class="ni">◎</span><span data-i="navPlan"></span></button>
     <button type="button" data-tab="chart"><span class="ni">▣</span><span data-i="navChart"></span></button>
     <button type="button" data-tab="tech"><span class="ni">◆</span><span data-i="navTech"></span></button>
     <button type="button" data-tab="news"><span class="ni">☰</span><span data-i="navNews"></span></button>
@@ -142,6 +168,16 @@
   <div id="stage"></div>
   <div class="disc" id="signDisc"></div>
   <p class="mut s pad"><a id="webGuide" href="#"></a></p>
+</div>
+
+<!-- Changelog / What's new modal -->
+<div id="clModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="sec-head"><h2 id="clTitle" style="margin:0"></h2>
+      <button type="button" class="icon-btn" id="clClose">✕</button></div>
+    <div id="clBody" class="cl-body"></div>
+    <button type="button" class="btn" id="clOk"></button>
+  </div>
 </div>
 </div>
 <script type="module" src="/src/main.js"></script>

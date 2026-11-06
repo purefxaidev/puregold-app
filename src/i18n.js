@@ -61,6 +61,19 @@ const en = {
   ovS: 'S', ovR: 'R', ovPx: 'Px',
   alertHitTpl: 'Gold hit {p}, now {n}',
   androidOnly: 'Voice test: Android only',
+
+  navPlan: 'Plan', planToday: 'Today\'s plan', planTrend: 'Trend / bias',
+  planKeyLevels: 'Key levels', planCardHint: 'Read in ~10 seconds — educational, not advice.',
+  signalHist: 'Signal history', signalEmpty: 'No Buy/Sell signals recorded yet',
+  signalOutcome: 'Outcome', outcomeOpen: 'Open', outcomeTp: 'Hit TP', outcomeSl: 'Hit SL',
+  outcomeUp: 'In profit (est.)', outcomeDn: 'In loss (est.)', outcomeFlat: 'Flat (est.)',
+  clearSignals: 'Clear history', whatsNew: 'What\'s new', changelog: 'Version history',
+  changelogEmpty: 'No notes for this version', dismiss: 'Got it', viewNotes: 'Release notes',
+  overlay: 'Floating overlay', overlayHint: 'Show price + signal over other apps (e.g. MT5). Needs “Display over other apps” permission.',
+  overlayOn: 'Enable floating window', overlayPerm: 'Grant overlay permission',
+  overlayNeedPerm: 'Permission required — open system settings',
+  widgetHint: 'Add the PUREGOLD widget from your home screen (long-press → Widgets).',
+  sideShort: 'Signal',
 };
 
 const th = {
@@ -126,6 +139,19 @@ const th = {
   ovS: 'รับ', ovR: 'ต้าน', ovPx: 'ราคา',
   alertHitTpl: 'ราคาทองถึง {p} แล้ว ตอนนี้ {n}',
   androidOnly: 'ทดสอบเสียง: เฉพาะ Android',
+
+  navPlan: 'แผน', planToday: 'แผนวันนี้', planTrend: 'เทรนด์ / มุมมอง',
+  planKeyLevels: 'ระดับสำคัญ', planCardHint: 'อ่านจบใน ~10 วินาที — เพื่อการศึกษา ไม่ใช่คำแนะนำ',
+  signalHist: 'ประวัติสัญญาณ', signalEmpty: 'ยังไม่มีสัญญาณ Buy/Sell ที่บันทึก',
+  signalOutcome: 'ผล', outcomeOpen: 'เปิดอยู่', outcomeTp: 'ถึง TP', outcomeSl: 'ถึง SL',
+  outcomeUp: 'กำไรโดยประมาณ', outcomeDn: 'ขาดทุนโดยประมาณ', outcomeFlat: 'ทรงตัวโดยประมาณ',
+  clearSignals: 'ล้างประวัติ', whatsNew: 'มีอะไรใหม่', changelog: 'ประวัติเวอร์ชัน',
+  changelogEmpty: 'ไม่มีรายละเอียดเวอร์ชันนี้', dismiss: 'เข้าใจแล้ว', viewNotes: 'รายละเอียดอัปเดต',
+  overlay: 'หน้าต่างลอย', overlayHint: 'แสดงราคา + สัญญาณทับแอปอื่น (เช่น MT5) ต้องอนุญาต “แสดงทับแอปอื่น”',
+  overlayOn: 'เปิดหน้าต่างลอย', overlayPerm: 'อนุญาตแสดงทับแอปอื่น',
+  overlayNeedPerm: 'ต้องอนุญาตก่อน — เปิดการตั้งค่าระบบ',
+  widgetHint: 'เพิ่มวิดเจ็ต PUREGOLD จากหน้าจอหลัก (กดค้าง → วิดเจ็ต)',
+  sideShort: 'สัญญาณ',
 };
 
 const zh = {
@@ -191,6 +217,19 @@ const zh = {
   ovS: '支撑', ovR: '阻力', ovPx: '现价',
   alertHitTpl: '金价触及 {p}，现价 {n}',
   androidOnly: '语音测试：仅 Android',
+
+  navPlan: '计划', planToday: '今日计划', planTrend: '趋势 / 偏向',
+  planKeyLevels: '关键位', planCardHint: '约10秒读完 — 仅供教育，非投资建议',
+  signalHist: '信号历史', signalEmpty: '尚未记录 Buy/Sell 信号',
+  signalOutcome: '结果', outcomeOpen: '进行中', outcomeTp: '触及止盈', outcomeSl: '触及止损',
+  outcomeUp: '估计盈利', outcomeDn: '估计亏损', outcomeFlat: '估计持平',
+  clearSignals: '清除历史', whatsNew: '更新内容', changelog: '版本历史',
+  changelogEmpty: '此版本暂无说明', dismiss: '知道了', viewNotes: '更新说明',
+  overlay: '悬浮窗', overlayHint: '在其他应用上层显示价格+信号（如 MT5）。需要「显示在其他应用上层」权限。',
+  overlayOn: '启用悬浮窗', overlayPerm: '授予悬浮窗权限',
+  overlayNeedPerm: '需要权限 — 打开系统设置',
+  widgetHint: '在主屏幕添加 PUREGOLD 小组件（长按 → 小组件）',
+  sideShort: '信号',
 };
 
 const ja = {
@@ -256,6 +295,19 @@ const ja = {
   ovS: 'サポ', ovR: 'レジ', ovPx: '価格',
   alertHitTpl: '金価格が {p} に到達、現在 {n}',
   androidOnly: '音声テスト: Androidのみ',
+
+  navPlan: 'プラン', planToday: '今日のプラン', planTrend: 'トレンド / バイアス',
+  planKeyLevels: '重要水準', planCardHint: '約10秒で読める — 教育目的、助言ではありません',
+  signalHist: 'シグナル履歴', signalEmpty: 'Buy/Sellシグナルはまだありません',
+  signalOutcome: '結果', outcomeOpen: 'オープン', outcomeTp: 'TP到達', outcomeSl: 'SL到達',
+  outcomeUp: '推定利益', outcomeDn: '推定損失', outcomeFlat: '推定フラット',
+  clearSignals: '履歴を消去', whatsNew: '新機能', changelog: 'バージョン履歴',
+  changelogEmpty: 'このバージョンのメモなし', dismiss: '了解', viewNotes: 'リリースノート',
+  overlay: 'フローティング', overlayHint: '他アプリの上に価格+シグナルを表示（例: MT5）。「他のアプリの上に表示」権限が必要です。',
+  overlayOn: 'フローティングを有効化', overlayPerm: 'オーバーレイ権限を許可',
+  overlayNeedPerm: '権限が必要です — システム設定を開く',
+  widgetHint: 'ホーム画面で PUREGOLD ウィジェットを追加（長押し → ウィジェット）',
+  sideShort: 'シグナル',
 };
 
 export const LANGS = [
