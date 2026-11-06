@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/purefxaidev/puregold-app?color=c9a227&label=release)](https://github.com/purefxaidev/puregold-app/releases/latest)
 [![License](https://img.shields.io/badge/education-not%20financial%20advice-1a1a22)](#disclaimer--คำเตือน--风险提示)
-[![Whitepaper](https://img.shields.io/badge/landing%20%2B%20whitepaper-PureGold-c9a227)](https://purefxaidev.github.io/puregold-whitepaper/)
+[![Whitepaper](https://img.shields.io/badge/landing-gold.purefxai.store-c9a227)](https://gold.purefxai.store/)
 
 **TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมแชทบอท PureFxAi, เมนูแผน, วิดเจ็ต, หน้าต่างลอย, กราฟ, SMC, ข่าวล่าสุด และการวิเคราะห์ข่าว
 
@@ -10,7 +10,8 @@
 
 **ZH:** 泰国金与国际金（XAUUSD）分析应用：PureFxAi 聊天、计划页、小组件、悬浮窗、图表与新闻分析。
 
-Landing (APK download): https://purefxaidev.github.io/puregold-whitepaper/
+Landing (APK download): https://gold.purefxai.store/  
+Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper/
 
 ## Features (0.9.1)
 - **Home** shows a live **chart** and **techniques** (full pages still available)
@@ -76,7 +77,7 @@ Donations are voluntary support — not an investment, with no returns.
   <img src="public/exness-qr.png" alt="Exness partner QR" width="160" />
 </p>
 
-Whitepaper: [purefxaidev.github.io/puregold-whitepaper](https://purefxaidev.github.io/puregold-whitepaper/)
+Landing: [gold.purefxai.store](https://gold.purefxai.store/) · fallback [GitHub Pages](https://purefxaidev.github.io/puregold-whitepaper/)
 
 ## Disclaimer / คำเตือน / 风险提示
 **TH:** การลงทุนมีความเสี่ยง · ข้อมูลเพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน  
