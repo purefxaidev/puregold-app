@@ -4,9 +4,19 @@ header{display:flex;justify-content:space-between;align-items:center;padding:14p
 section{background:linear-gradient(180deg,#10121b,#0b0c13);border:1px solid #2a2618;border-radius:16px;padding:14px;margin:12px 0}
 h2{margin:0 0 10px;font-size:16px;color:#f5d27a}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .c{background:#0d0f17;border:1px solid #23202a;border-radius:12px;padding:10px}.c b{font-size:13px;color:#d9c48a}
-.row{display:flex;justify-content:space-between;font-size:14px;margin-top:4px}.v{font-weight:600;color:#fff}
+.row{display:flex;justify-content:space-between;font-size:14px;margin-top:4px;gap:8px}.v{font-weight:600;color:#fff}
 .big{font-size:30px;font-weight:700;color:#fff}.up{color:#3ddc84}.dn{color:#ff5c5c}.mut{color:#8a8473}.s{font-size:12px;margin-top:8px}
 #upd{font-size:12px;padding:0 2px}footer{font-size:11px;color:#7d776a;line-height:1.6;padding:8px 2px}
 .tag{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;background:#1d1a10;color:#f5d27a}
 ul{margin:8px 0 0;padding-left:18px;font-size:14px}
-select,.btn{background:#151722;color:#f5d27a;border:1px solid #3a3220;border-radius:10px;padding:6px 10px;font:inherit}.btn{margin-top:10px;width:100%}label.row{align-items:center;padding:4px 0}input[type=checkbox]{width:20px;height:20px;accent-color:#f5d27a}
+select,.btn,input[type=number]{background:#151722;color:#f5d27a;border:1px solid #3a3220;border-radius:10px;padding:6px 10px;font:inherit}
+.btn{margin-top:10px;width:100%;cursor:pointer}.btn.sec{background:#0d0f17}
+label.row{align-items:center;padding:4px 0}input[type=checkbox]{width:20px;height:20px;accent-color:#f5d27a;flex-shrink:0}
+.tf{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.tf button{background:#151722;color:#9a8f73;border:1px solid #3a3220;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.tf button.on{color:#07080d;background:#f5d27a;border-color:#f5d27a;font-weight:700}
+.chart{width:100%;height:280px;border-radius:12px;overflow:hidden;background:#0a0b12;border:1px solid #23202a}
+.addr{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;background:#0d0f17;border:1px solid #23202a;border-radius:10px;padding:10px;margin:8px 0;color:#f5d27a}
+.don-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qr{display:block;width:160px;max-width:50%;margin:10px auto;border-radius:12px;background:#fff;padding:6px}
+.warn{font-size:12px;color:#c9a84c;line-height:1.5;margin-top:8px}
