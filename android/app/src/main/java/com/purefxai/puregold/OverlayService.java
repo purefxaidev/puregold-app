@@ -151,8 +151,8 @@ public class OverlayService extends Service {
       try {
         float px = 0f;
         try {
-          JSONObject g = new JSONObject(GoldWorker.get("https://api.gold-api.com/price/XAU"));
-          px = (float) g.getDouble("price");
+          GoldSpot.Quote fx = GoldSpot.resolve();
+          if (fx != null) px = (float) fx.price;
         } catch (Exception ignore) {}
         String thaiSell = "";
         try {

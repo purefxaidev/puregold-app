@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.9.4 — 2026-11-10
+### TH
+- การ์ด **คำแนะนำตอนนี้** จากแดชบอร์ด แสดงบนหน้า Home — สถานะเทรดอัตโนมัติ, ตอนนี้ซื้อ/ขาย/รอ พร้อมเหตุผล, มุมมอง AI ขึ้น/ลง, แถบโซนซื้อ–ขาย และแผนสองกรณี
+- แตะคำ SL / TP / RR / EV เพื่อดูความหมาย · แสดงความแม่นยำ AI 7 วัน และ 30 วัน
+- ราคา XAUUSD ใช้สปอต FX จริง ไม่แสดงราคา PAXG ดิบ — ทั้งหน้าโฮม หน้าต่างลอย บับเบิล วิดเจ็ต และการแจ้งเตือน
+
+### EN
+- The dashboard **Recommendation now** card is on Home — auto-trade status, now BUY/SELL/WAIT with a reason, AI up/down view, buy–sell zone bar, and both scenario plans
+- Tap SL / TP / RR / EV for short glossary meanings · AI accuracy for 7 days and 30 days is shown on the card
+- XAUUSD uses a real FX mid, never raw PAXG — on Home, the overlay and bubble, the widget, and alerts
+
+### ZH
+- 首页新增看板的“此刻建议”卡片：自动交易状态、买入/卖出/等待及理由、AI 看涨/看跌、买卖区间条与两套情景计划
+- 点击 SL / TP / RR / EV 可查看释义 · 显示 AI 7 日与 30 日准确率
+- XAUUSD 使用真实外汇中间价，不再把原始 PAXG 当作金价 — 首页、悬浮窗/气泡、小组件与提醒均已统一
+
+### JA
+- ダッシュボードの「今の推奨」カードをホームに表示 — 自動売買の状態、今の買い/売り/待ちと理由、AIの上下見通し、売買ゾーンバー、2つのシナリオ
+- SL / TP / RR / EV をタップして用語の意味を表示 · AI精度（7日/30日）も表示
+- XAUUSDは実際のFXミッドを使用し、生のPAXGは表示しません（ホーム、オーバーレイ/バブル、ウィジェット、アラート）
+
+
 ## 0.9.3 — 2026-11-10
 ### TH
 - หน้าต่างลอยย่อเป็นบับเบิลกลมได้ (แบบแชทเฮด) — ปุ่ม **ย่อ** บนการ์ด

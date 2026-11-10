@@ -1,4 +1,6 @@
 import { analyze, klines, shiftBars, smcNote } from './engine.js';
+import { resolveSpot, fetchDashDesk, readCachedDesk } from './spot.js';
+import { renderRecoHtml, bindRecoTips, recoAccent } from './reco.js';
 import { createChart, CrosshairMode } from 'lightweight-charts';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -17,7 +19,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.3';
+const APP_VERSION = '0.9.4';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -35,6 +37,77 @@ const f2 = x => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, ma
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const reason = r => (r && (r[L] || r.en || r.th)) || '';
 const native = Capacitor.isNativePlatform();
+let DESK = readCachedDesk();
+let LIVE = null; // resolved FX spot {price, src, labelTh, labelEn}
+
+function displayPrice() {
+  const live = LIVE?.price;
+  if (Number.isFinite(live) && live > 0) return live;
+  const a = A?.price;
+  if (Number.isFinite(a) && a > 0) return a;
+  const d = Number(DESK?.price_num);
+  return Number.isFinite(d) && d > 0 ? d : null;
+}
+
+function spotSourceLine() {
+  const th = LIVE?.labelTh || A?.spotLabelTh || '';
+  const en = LIVE?.labelEn || A?.spotLabelEn || '';
+  return (L === 'th' ? th : en) || t('spotSrc');
+}
+
+function renderReco() {
+  const el = $('reco');
+  if (!el) return;
+  const px = displayPrice();
+  el.innerHTML = renderRecoHtml(DESK, px, L);
+  el.style.setProperty('--rc', recoAccent(DESK, px));
+  bindRecoTips(el, L, (k, text) => openRecoGloss(k, text));
+}
+
+function openRecoGloss(k, text) {
+  const m = $('recoGloss');
+  if (!m) { try { alert(text); } catch (e) {} return; }
+  if ($('recoGlossK')) $('recoGlossK').textContent = k;
+  if ($('recoGlossT')) $('recoGlossT').textContent = text;
+  if ($('recoGlossOk')) $('recoGlossOk').textContent = t('recoGlossOk');
+  m.classList.remove('hidden');
+}
+
+function closeRecoGloss() {
+  $('recoGloss')?.classList.add('hidden');
+}
+
+async function loadDesk() {
+  try {
+    const d = await fetchDashDesk();
+    if (d) DESK = d;
+  } catch (e) {}
+  renderReco();
+}
+
+async function pollLiveSpot() {
+  try {
+    const q = await resolveSpot();
+    if (q && q.price > 0) {
+      LIVE = q;
+      renderReco();
+      const label = '$' + f2(q.price);
+      const xauBig = $('xau')?.querySelector('.big');
+      if (xauBig) xauBig.textContent = label;
+      const xauSrc = $('xau')?.querySelector('.mut.s');
+      if (xauSrc) xauSrc.textContent = spotSourceLine();
+      const heroBig = $('setupHero')?.querySelector('.big');
+      if (heroBig) heroBig.textContent = label;
+      const planBig = $('planToday')?.querySelector('.big');
+      if (planBig) planBig.textContent = label;
+      if (A) {
+        checkCustomAlerts(q.price);
+        await pushNativeSnapshot();
+      }
+    }
+  } catch (e) {}
+}
+
 
 function stamp() {
   $('upd').textContent = t('upd') + ' ' + new Date().toLocaleTimeString(localeTag(L), { timeZone: 'Asia/Bangkok' }) + ' (Bangkok)';
@@ -171,7 +244,7 @@ function renderSetup() {
     <div><div class="mut s" style="margin:0 0 6px">${t('setupTitle')}</div>
       <span class="side-pill ${sideClass}">${sideLabel}</span>
       <span class="mut" style="margin-left:8px">${t('conf')} ${S.conf}%</span></div>
-    <div class="big" style="font-size:22px">$${f2(A.price)}</div>
+    <div class="big" style="font-size:22px">$${f2(displayPrice() || A.price)}</div>
   </div>
   <div class="levels">
     <div class="lv"><div class="k">${t('entry')}</div><div class="n">${f2(S.entry[0])} – ${f2(S.entry[1])}</div></div>
@@ -191,12 +264,14 @@ function renderA() {
       if ($(id)) $(id).innerHTML = `<div class="state-empty">${t('empty')}</div>`;
     });
     renderSetup();
+    renderReco();
     return;
   }
-  const p = A.price;
+  const p = displayPrice() || A.price;
   $('xau').innerHTML = `<div class="big">$${f2(p)}</div>
  <div class="${A.ch >= 0 ? 'up' : 'dn'}">${t('ch24')}: ${A.ch >= 0 ? '+' : ''}${f2(A.ch)} (${A.chp.toFixed(2)}%)</div>
- <div class="mut s">gold-api.com spot · Binance PAXG proxy</div>`;
+ <div class="mut s">${esc(spotSourceLine())}</div>`;
+  renderReco();
   const row = (l, c) => `<div class="row"><span class="${c}">${l[0].toFixed(2)}</span>
  <span class="mut">${l[0] > p ? '+' : ''}${(l[0] - p).toFixed(2)} · ×${l[1]}</span></div>`;
   $('sr').innerHTML = `<div class="grid"><div class="c"><b>${t('res')}</b>${A.res.slice().reverse().map(l => row(l, 'dn')).join('') || '-'}
@@ -878,7 +953,7 @@ function renderPlan() {
     <div><div class="mut s" style="margin:0 0 6px">${t('planToday')}</div>
       <span class="side-pill ${sideClass}">${sideLabel}</span>
       <span class="mut" style="margin-left:8px">${t('conf')} ${S.conf}%</span></div>
-    <div class="big" style="font-size:22px">$${f2(A.price)}</div>
+    <div class="big" style="font-size:22px">$${f2(displayPrice() || A.price)}</div>
   </div>
   <div class="levels">
     <div class="lv"><div class="k">${t('entry')}</div><div class="n">${f2(S.entry[0])} – ${f2(S.entry[1])}</div></div>
@@ -898,7 +973,7 @@ function renderPlan() {
   }
   if ($('planLevels')) {
     const row = (l, c) => `<div class="row"><span class="${c}">${f2(l[0])}</span>
-      <span class="mut">${l[0] > A.price ? '+' : ''}${(l[0] - A.price).toFixed(2)} · ×${l[1]}</span></div>`;
+      <span class="mut">${l[0] > (displayPrice() || A.price) ? '+' : ''}${(l[0] - (displayPrice() || A.price)).toFixed(2)} · ×${l[1]}</span></div>`;
     $('planLevels').innerHTML = `<div class="grid"><div class="c"><b>${t('res')}</b>${(A.res || []).slice().reverse().slice(0, 3).map(l => row(l, 'dn')).join('') || '-'}
       </div><div class="c"><b>${t('sup')}</b>${(A.sup || []).slice(0, 3).map(l => row(l, 'up')).join('') || '-'}</div></div>`;
   }
@@ -1008,7 +1083,7 @@ async function pushNativeSnapshot() {
       thaiBuy = String(h.Buy || '');
     }
     await Pg.pushSnapshot({
-      price: A.price,
+      price: displayPrice() || A.price,
       bias: A.bias?.dir || 'side',
       side: S.side || 'WAIT',
       conf: S.conf || 0,
@@ -1231,6 +1306,7 @@ function renderAll() {
   renderLang();
   renderThai();
   renderA();
+  renderReco();
   renderPlan();
   renderSignalHist();
   refreshPfxStatus();
@@ -1323,9 +1399,11 @@ async function loadA() {
     if (tab === 'chart' || tab === 'home' || chartReady()) await loadChart();
   } catch (e) {
     if (!A) {
-      $('xau').innerHTML = `<div class="state-err">${t('err')}</div>`;
-      $('setupHero').innerHTML = `<div class="state-err">${t('err')}</div>`;
+      const msg = (e && String(e.message || e) === 'no_fx_spot') ? t('errSpot') : t('err');
+      $('xau').innerHTML = `<div class="state-err">${msg}</div>`;
+      $('setupHero').innerHTML = `<div class="state-err">${msg}</div>`;
     } else setOffline(true);
+    renderReco();
   }
 }
 
@@ -1381,7 +1459,7 @@ async function loadNews(opts = {}) {
 }
 
 async function refresh() {
-  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate()]);
+  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot()]);
   stamp();
 }
 
@@ -1702,6 +1780,9 @@ if ($('clClose')) $('clClose').onclick = closeChangelog;
 if ($('clOk')) $('clOk').onclick = closeChangelog;
 if ($('btnChangelog')) $('btnChangelog').onclick = () => openChangelog();
 $('clModal')?.addEventListener('click', e => { if (e.target === $('clModal')) closeChangelog(); });
+if ($('recoGlossClose')) $('recoGlossClose').onclick = closeRecoGloss;
+if ($('recoGlossOk')) $('recoGlossOk').onclick = closeRecoGloss;
+$('recoGloss')?.addEventListener('click', e => { if (e.target === $('recoGloss')) closeRecoGloss(); });
 
 // Chart + techniques also live on Home; full panels remain available
 if (tab === 'tech' || tab === 'chart') { /* keep */ }
@@ -1722,3 +1803,5 @@ setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
 setInterval(loadNews, 5 * 60 * 1000);
 setInterval(checkUpdate, 30 * 60 * 1000);
+setInterval(pollLiveSpot, 15000);
+setInterval(loadDesk, 60000);

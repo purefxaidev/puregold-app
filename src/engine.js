@@ -1,7 +1,9 @@
 // Rule-based analysis (adapted from PUREGOLD engine + gold-dashboard SMC).
-// Data: Binance PAXGUSDT proxy (OHLC) + gold-api.com XAU spot. Education only.
+// Data: Binance PAXGUSDT for OHLC shape only, shifted onto XAUUSD FX spot.
+// Displayed price is never raw PAXG. Education only.
 import { analyseSmc, smcNote } from './smc.js';
 import { buildTechniques } from './techniques.js';
+import { resolveSpot } from './spot.js';
 
 const HOSTS = ['https://data-api.binance.vision', 'https://api.binance.com', 'https://api1.binance.com'];
 
@@ -154,10 +156,12 @@ export async function analyze() {
     bn('/api/v3/ticker/24hr?symbol=PAXGUSDT'),
   ]);
   const px = m15.at(-1).c;
-  let spot = null;
-  try { spot = +(await gj('https://api.gold-api.com/price/XAU')).price; } catch (e) {}
+  let spot = null, spotMeta = null;
+  try { spotMeta = await resolveSpot(); spot = spotMeta?.price ?? null; } catch (e) {}
+  // Never fall back to raw PAXG as the displayed XAUUSD price.
   const basis = spot ? spot - px : 0;
-  const price = spot || px;
+  const price = spot || null;
+  if (!price) throw new Error('no_fx_spot');
   const c1 = h1.map(x => x.c), c15 = m15.map(x => x.c);
   const e20 = ema(c1, 20).at(-1), e50 = ema(c1, 50).at(-1);
   const e20m = ema(c15, 20).at(-1), e50m = ema(c15, 50).at(-1);
@@ -214,8 +218,12 @@ export async function analyze() {
   return {
     price: r2(price),
     basis: r2(basis),
-    ch: +tk.priceChange,
-    chp: +tk.priceChangePercent,
+    // Dollar change from the FX spot; % from the gold proxy move (not a raw PAXG print).
+    ch: r2(price * ((+tk.priceChangePercent || 0) / 100)),
+    chp: +tk.priceChangePercent || 0,
+    spotSrc: spotMeta?.src || '',
+    spotLabelTh: spotMeta?.labelTh || '',
+    spotLabelEn: spotMeta?.labelEn || '',
     res, sup, bias,
     atr15: a15,
     plan,

@@ -134,6 +134,9 @@ const en = {
   newsAlertTpl: 'Strong gold news · {dir} · {title}',
   openNews: 'Open link',
   newsNeedTranslateKey: 'Could not translate headlines right now. Pull to refresh or try again in a moment.',
+  recoGlossOk: 'Got it',
+  errSpot: 'Could not fetch a live FX gold price. Pull to refresh.',
+  spotSrc: 'FX spot',
 };
 
 
@@ -273,6 +276,9 @@ const th = {
   newsAlertTpl: 'ข่าวแรง · {dir} · {title}',
   openNews: 'เปิดข่าว',
   newsNeedTranslateKey: 'แปลพาดหัวไม่สำเร็จในตอนนี้ ลองรีเฟรชหรือรอสักครู่',
+  recoGlossOk: 'เข้าใจแล้ว',
+  errSpot: 'ดึงราคาทอง FX สดไม่ได้ ลองรีเฟรชอีกครั้ง',
+  spotSrc: 'สปอต FX',
 };
 
 
@@ -406,6 +412,9 @@ const zh = {
   newsAlertTpl: '重要黄金新闻 · {dir} · {title}',
   openNews: '打开原文',
   newsNeedTranslateKey: '暂时无法翻译标题，请稍后刷新重试。',
+  recoGlossOk: '知道了',
+  errSpot: '无法获取实时外汇金价，请下拉刷新。',
+  spotSrc: '外汇现货',
 };
 
 
@@ -539,6 +548,9 @@ const ja = {
   newsAlertTpl: '重要ニュース · {dir} · {title}',
   openNews: '記事を開く',
   newsNeedTranslateKey: '見出しを翻訳できませんでした。しばらくして再読み込みしてください。',
+  recoGlossOk: 'OK',
+  errSpot: 'ライブのFX金価格を取得できませんでした。再読み込みしてください。',
+  spotSrc: 'FXスポット',
 };
 
 

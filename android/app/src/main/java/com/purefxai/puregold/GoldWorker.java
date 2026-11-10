@@ -23,7 +23,10 @@ public class GoldWorker extends Worker {
       if(k==null) throw new Exception("binance");
       int n=k.length();double[] H=new double[n],L=new double[n],C=new double[n];
       for(int i=0;i<n;i++){JSONArray r=k.getJSONArray(i);H[i]=r.getDouble(2);L[i]=r.getDouble(3);C[i]=r.getDouble(4);}
-      double px=C[n-1],spot=px; try{spot=new JSONObject(get("https://api.gold-api.com/price/XAU")).getDouble("price");}catch(Exception e){}
+      double px=C[n-1];
+      GoldSpot.Quote fx=GoldSpot.resolve();
+      if(fx==null) throw new Exception("fx_spot");
+      double spot=fx.price;
       double basis=spot-px, atr=0; for(int i=n-14;i<n;i++) atr+=Math.max(H[i]-L[i],Math.max(Math.abs(H[i]-C[i-1]),Math.abs(L[i]-C[i-1])));atr/=14;
       List<Double> pv=new ArrayList<>(); for(int i=3;i<n-3;i++){boolean hi=true,lo=true;for(int j=i-3;j<=i+3;j++){if(H[j]>H[i])hi=false;if(L[j]<L[i])lo=false;}if(hi)pv.add(H[i]+basis);if(lo)pv.add(L[i]+basis);}
       Collections.sort(pv); List<Double> lv=new ArrayList<>(); double s=0;int m=0;
