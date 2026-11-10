@@ -4,9 +4,9 @@
 [![License](https://img.shields.io/badge/education-not%20financial%20advice-1a1a22)](#disclaimer--คำเตือน--风险提示)
 [![Whitepaper](https://img.shields.io/badge/landing-gold.purefxai.store-c9a227)](https://gold.purefxai.store/)
 
-**TH:** แอป Android วิเคราะห์ราคาทองไทย (ฮั่วเซ่งเฮง) และทองโลก XAUUSD พร้อมแชทบอท PureFxAi, เมนูแผน, วิดเจ็ต, หน้าต่างลอย, กราฟ, SMC, ข่าวล่าสุด และการวิเคราะห์ข่าว
+**TH:** แอป Android วิเคราะห์ราคาทองไทย และทองโลก XAUUSD พร้อมแชทบอท PureFxAi, เมนูแผน, วิดเจ็ต, หน้าต่างลอย, กราฟ, SMC, ข่าวล่าสุด และการวิเคราะห์ข่าว
 
-**EN:** Android app for Thai gold (Hua Seng Heng) and world gold XAUUSD: PureFxAi chat, Plan tab, widget, overlay, charts, SMC, latest news analysis.
+**EN:** Android app for Thai gold and world gold XAUUSD: PureFxAi chat, Plan tab, widget, overlay, charts, SMC, latest news analysis.
 
 **ZH:** 泰国金与国际金（XAUUSD）分析应用：PureFxAi 聊天、计划页、小组件、悬浮窗、图表与新闻分析。
 
@@ -28,7 +28,7 @@ Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper
 ## Home-screen widget
 **TH:** กดค้างพื้นที่ว่างบนหน้าจอหลัก → วิดเจ็ต → เลือก **PUREGOLD**  
 **EN:** Long-press an empty area on the home screen → Widgets → **PUREGOLD**  
-The widget shows live XAU, Hua Seng Heng Thai gold, and the short signal. Tap it to open the app.
+The widget shows live XAU, Thai gold, and the short signal. Tap it to open the app.
 
 ## API key
 PureFxAi works out of the box. You may optionally paste your own key in **More → Settings** for cloud voices or as an override. Stored on this phone only.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.9 — 2026-11-11
+### TH
+- ใช้คำว่า «ทองไทย» สำหรับราคาทองในประเทศทั้งแอป วิดเจ็ต หน้าต่างลอย และเว็บ
+
+### EN
+- In-app, widget, overlay, and website labels now say “Thai gold” for the domestic gold price
+
+### ZH
+- 应用、小组件、悬浮窗和网站均改称泰国金
+
+### JA
+- アプリ・ウィジェット・オーバーレイ・サイトの表記を「タイの金」に統一
+
+
 ## 0.9.8 — 2026-11-11
 ### TH
 - แผนเทรดจากโต๊ะวิเคราะห์ (จุดเข้า / SL / TP1–TP3) อัปเดตสถานะตามราคาสด พร้อมแจ้งเตือนเมื่อเข้าแล้ว ชน TP หรือโดน SL
@@ -271,14 +285,14 @@
 ### TH
 - เมนูแผนแยก — สรุปแผนวันนี้ (เข้า / SL / TP / ระดับสำคัญ)
 - แสดงรายละเอียดอัปเดตแต่ละเวอร์ชันในแอป
-- วิดเจ็ตหน้าจอหลัก — ทองไทย HSH / XAU + สัญญาณสั้น
+- วิดเจ็ตหน้าจอหลัก — ทองไทย / XAU + สัญญาณสั้น
 - หน้าต่างลอยทับแอปอื่น (เช่น MT5) — ต้องอนุญาตแสดงทับแอปอื่น
 - ประวัติสัญญาณ Buy/Sell ในเครื่อง + ผลโดยประมาณ
 
 ### EN
 - Dedicated Plan tab with today’s plan summary card
 - In-app per-version changelog (offline + GitHub)
-- Home-screen widget (Thai HSH / XAU + short signal)
+- Home-screen widget (Thai gold / XAU + short signal)
 - Floating overlay over other apps (SYSTEM_ALERT_WINDOW permission)
 - On-device Buy/Sell signal history with best-effort outcome
 

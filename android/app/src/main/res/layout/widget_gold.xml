@@ -13,7 +13,7 @@
         android:text="XAU —" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="20sp"
         android:layout_marginTop="4dp" android:maxLines="1"/>
     <TextView android:id="@+id/w_thai" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="HSH —" android:textColor="#C9B48A" android:textSize="13sp" android:layout_marginTop="2dp"
+        android:text="ทองไทย —" android:textColor="#C9B48A" android:textSize="13sp" android:layout_marginTop="2dp"
         android:maxLines="2"/>
     <TextView android:id="@+id/w_signal" android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="WAIT" android:textColor="#F5D27A" android:textStyle="bold" android:textSize="15sp"

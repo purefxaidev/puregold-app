@@ -12,7 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-/** Home-screen widget: live Thai HSH / XAU + short BUY/SELL/WAIT signal. */
+/** Home-screen widget: live Thai gold / XAU + short BUY/SELL/WAIT signal. */
 public class GoldWidget extends AppWidgetProvider {
   @Override
   public void onUpdate(Context c, AppWidgetManager mgr, int[] ids) {
@@ -46,8 +46,8 @@ public class GoldWidget extends AppWidgetProvider {
 
     String xau = px > 0 ? String.format(Locale.US, "XAU $%.2f", px) : "XAU —";
     String hsh = (thai == null || thai.isEmpty())
-        ? (th ? "ฮั่วเซ่งเฮง —" : "HSH —")
-        : (th ? "ฮั่วเซ่งเฮง ขาย " + thai : "HSH sell " + thai);
+        ? (th ? "ทองไทย —" : "Thai gold —")
+        : (th ? "ทองไทย ขาย " + thai : "Thai gold sell " + thai);
     String sig;
     int color = 0xFFF5D27A;
     if ("BUY".equals(side)) { sig = "BUY ↑"; color = 0xFF3DDC84; }

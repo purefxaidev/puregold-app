@@ -1,6 +1,22 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.9',
+    date: '2026-11-11',
+    th: [
+      'ใช้คำว่า «ทองไทย» สำหรับราคาทองในประเทศทั้งแอป วิดเจ็ต หน้าต่างลอย และเว็บ',
+    ],
+    en: [
+      'In-app, widget, overlay, and website labels now say “Thai gold” for the domestic gold price',
+    ],
+    zh: [
+      '应用、小组件、悬浮窗和网站均改称泰国金',
+    ],
+    ja: [
+      'アプリ・ウィジェット・オーバーレイ・サイトの表記を「タイの金」に統一',
+    ],
+  },
+  {
     version: '0.9.8',
     date: '2026-11-11',
     th: [
@@ -330,14 +346,14 @@ export const CHANGELOG = [
     th: [
       'เมนูแผนแยก — สรุปแผนวันนี้ (เข้า / SL / TP / ระดับสำคัญ) อ่านจบเร็ว',
       'แสดงรายละเอียดอัปเดตแต่ละเวอร์ชันในแอป (ออฟไลน์ + จาก GitHub)',
-      'วิดเจ็ตหน้าจอหลัก — ราคาทองไทย (ฮั่วเซ่งเฮง) / XAU + สัญญาณสั้น',
+      'วิดเจ็ตหน้าจอหลัก — ราคาทองไทย / XAU + สัญญาณสั้น',
       'หน้าต่างลอยทับแอปอื่น (เช่น MT5) — ราคา + สัญญาณ + แผนย่อ (ต้องอนุญาตแสดงทับแอปอื่น)',
       'ประวัติสัญญาณ Buy/Sell ในเครื่อง พร้อมผลลัพธ์โดยประมาณเทียบราคาภายหลัง',
     ],
     en: [
       'Dedicated Plan tab — today’s plan card (entry / SL / TP / key levels) in ~10 seconds',
       'In-app per-version changelog (offline notes + GitHub release body)',
-      'Home-screen widget — Thai HSH gold / XAU + short signal',
+      'Home-screen widget — Thai gold / XAU + short signal',
       'Floating overlay over other apps (e.g. MT5) — price + signal + tiny plan (needs “Display over other apps” permission)',
       'On-device Buy/Sell signal history with best-effort outcome vs later price',
     ],

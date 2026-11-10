@@ -594,8 +594,8 @@ public class OverlayService extends Service {
 
     xau.setText(px > 0 ? String.format(Locale.US, "XAU $%.2f", px) : "XAU —");
     thaiV.setText(thaiSell == null || thaiSell.isEmpty()
-        ? (th ? "ฮั่วเซ่งเฮง —" : "HSH —")
-        : (th ? "ฮั่วเซ่งเฮง ขาย " + thaiSell : "HSH sell " + thaiSell));
+        ? (th ? "ทองไทย —" : "Thai gold —")
+        : (th ? "ทองไทย ขาย " + thaiSell : "Thai gold sell " + thaiSell));
 
     String s;
     if ("BUY".equals(side)) s = "BUY";
