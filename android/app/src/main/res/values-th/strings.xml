@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PUREGOLD</string>
+    <string name="splash_brand">PureGold by PureFxAi</string>
+    <string name="title_activity_main">PUREGOLD</string>
+    <string name="widget_desc">PUREGOLD: ทองไทย, ราคา XAU และสัญญาณสั้น กดค้างหน้าจอหลัก → วิดเจ็ต → PUREGOLD</string>
+    <string name="overlay_channel">หน้าต่างลอย PUREGOLD</string>
+    <string name="overlay_notif">หน้าต่างลอย · ราคาไลฟ์</string>
+    <string name="overlay_notif_bubble">บับเบิลราคาทอง · อัปเดตไลฟ์</string>
+    <string name="overlay_minimize">ย่อเป็นบับเบิล</string>
+    <string name="overlay_close">ปิด</string>
+    <string name="overlay_expand">ขยายหน้าต่าง</string>
+    <string name="overlay_dismiss">ปิดหน้าต่างลอย</string>
+</resources>

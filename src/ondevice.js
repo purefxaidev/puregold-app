@@ -1,7 +1,9 @@
 /**
  * PureFxAi cloud analysis + speech for PUREGOLD.
- * Uses the user's API key (stored on-device). UI must brand as "PureFxAi" only —
- * never expose vendor/model names in user-facing strings.
+ * Cloud text uses a built-in default provider (Vite-injected at build time)
+ * with an optional user key override stored on-device. Cloud TTS requires
+ * the optional user key. UI must brand as "PureFxAi" only — never expose
+ * vendor/model names in user-facing strings.
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
@@ -41,11 +43,73 @@ function scrub(text) {
     .replace(/\bGemini[\w.\-]*/gi, 'PureFxAi')
     .replace(/\bGoogle\b/gi, 'PureFxAi')
     .replace(/\bQwen[\w.\-]*/gi, 'PureFxAi')
+    .replace(/\bNemotron[\w.\-]*/gi, 'PureFxAi')
+    .replace(/\bOpenRouter\b/gi, 'PureFxAi')
+    .replace(/\bOpenAI\b/gi, 'PureFxAi')
+    .replace(/\bNVIDIA\b/gi, 'PureFxAi')
     .replace(/\bGGUF\b/gi, '')
     .replace(/\b2B\b/g, '')
     .replace(/\b0\.8B\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+}
+
+const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OR_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'nvidia/nemotron-3.5-super-vl:free';
+const OR_REFERER = import.meta.env.VITE_OPENROUTER_REFERER || 'https://gold.purefxai.store';
+const OR_TITLE = import.meta.env.VITE_OPENROUTER_TITLE || 'PUREGOLD';
+
+function builtinOpenRouterKey() {
+  return String(import.meta.env.VITE_OPENROUTER_API_KEY || '').trim();
+}
+
+function isGeminiKey(key) {
+  return /^AIza[0-9A-Za-z_\-]{10,}/.test(String(key || '').trim());
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function retryAfterMs(res) {
+  const h = res?.headers?.get?.('retry-after') || res?.headers?.get?.('Retry-After');
+  if (!h) return 0;
+  const n = Number(h);
+  if (Number.isFinite(n)) return Math.min(20000, Math.max(500, n >= 100 ? n : n * 1000));
+  const t = Date.parse(h);
+  if (!Number.isNaN(t)) return Math.min(20000, Math.max(500, t - Date.now()));
+  return 0;
+}
+
+function httpError(status, message, extra = {}) {
+  const err = new Error(message || `http_${status}`);
+  err.status = status;
+  if (status === 429) err.code = 'rate_limit';
+  Object.assign(err, extra);
+  return err;
+}
+
+/** Optional user-supplied override (Settings). Empty unless the user pasted a key. */
+export async function getUserApiKey() {
+  return getApiKey();
+}
+
+/** True when the optional Settings key can drive cloud TTS / Gemini text. */
+export async function hasGeminiOverride() {
+  return isGeminiKey(await getApiKey());
+}
+
+function hasBuiltinAi() {
+  return !!builtinOpenRouterKey();
+}
+
+/** Credentials for chat / plan / news text. Built-in default, or Gemini if the user pasted one. */
+async function textAuth() {
+  const user = String(await getApiKey() || '').trim();
+  if (isGeminiKey(user)) return { provider: 'gemini', key: user };
+  if (hasBuiltinAi()) return { provider: 'openrouter', key: builtinOpenRouterKey() };
+  if (user) return { provider: 'openrouter', key: user };
+  return null;
 }
 
 export async function getApiKey() {
@@ -91,10 +155,10 @@ export function voiceMeta(id) {
   return PUREFX_VOICES.find(v => v.id === (id || getVoiceId())) || PUREFX_VOICES[0];
 }
 
-/** True when user has pasted an API key (PureFxAi online ready). */
+/** True when PureFxAi text is available (built-in default or a user key). */
 export async function isMarkedReady() {
-  const k = await getApiKey();
-  return !!k;
+  const auth = await textAuth();
+  return !!auth;
 }
 
 export function clearReady() {
@@ -156,12 +220,85 @@ async function geminiGenerate(apiKey, model, body) {
   return data;
 }
 
-async function generateText(apiKey, system, user, opts = {}) {
+function orMessageText(data) {
+  const msg = data?.choices?.[0]?.message || {};
+  let text = msg.content;
+  if (Array.isArray(text)) {
+    text = text.map(p => (typeof p === 'string' ? p : (p?.text || p?.content || ''))).join('');
+  }
+  return scrub(String(text || '').trim());
+}
+
+async function openRouterOnce(apiKey, system, user, maxTokens) {
+  const r = await fetch(OR_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': OR_REFERER,
+      'X-Title': OR_TITLE,
+    },
+    body: JSON.stringify({
+      model: OR_MODEL,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.4,
+      top_p: 0.9,
+      max_tokens: maxTokens,
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 429) {
+    throw httpError(429, data?.error?.message || 'rate_limit', { retryAfterMs: retryAfterMs(r) });
+  }
+  if (!r.ok) {
+    const msg = data?.error?.message || data?.message || `http_${r.status}`;
+    throw httpError(r.status, msg);
+  }
+  const text = orMessageText(data);
+  if (!text) throw httpError(r.status, 'empty');
+  return text;
+}
+
+async function withRetry(fn) {
+  let lastErr;
+  for (let i = 0; i < 4; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const retryable = e.status === 429 || e.status === 503 || e.status === 502;
+      if (!retryable || i === 3) throw e;
+      const wait = e.retryAfterMs || (800 * (2 ** i) + Math.floor(Math.random() * 250));
+      await sleep(Math.min(20000, wait));
+    }
+  }
+  throw lastErr || new Error('unavailable');
+}
+
+async function generateOpenRouter(apiKey, system, user, opts = {}) {
+  const base = opts.maxOutputTokens || 512;
+  // Leave room for hidden reasoning tokens on the default model.
+  let budget = Math.max(base + 256, 768);
+  try {
+    return await withRetry(() => openRouterOnce(apiKey, system, user, budget));
+  } catch (e) {
+    if (e && e.message === 'empty') {
+      budget = Math.max(budget * 2, 1600);
+      return await withRetry(() => openRouterOnce(apiKey, system, user, budget));
+    }
+    throw e;
+  }
+}
+
+async function generateGemini(apiKey, system, user, opts = {}) {
   let lastErr;
   const maxOutputTokens = opts.maxOutputTokens || 512;
   for (const model of TEXT_MODELS) {
     try {
-      const data = await geminiGenerate(apiKey, model, {
+      const data = await withRetry(() => geminiGenerate(apiKey, model, {
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: user }] }],
         generationConfig: {
@@ -169,7 +306,7 @@ async function generateText(apiKey, system, user, opts = {}) {
           topP: 0.9,
           maxOutputTokens,
         },
-      });
+      }));
       const text = scrub(
         data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || ''
       );
@@ -177,13 +314,30 @@ async function generateText(apiKey, system, user, opts = {}) {
       return text;
     } catch (e) {
       lastErr = e;
-      // try next model on 404/not found
-      if (e.status === 404 || /not found|NOT_FOUND/i.test(String(e.message))) continue;
+      if (e.status === 404 || /not found|NOT_FOUND/i.test(String(e.message || ''))) continue;
       if (e.status === 429) throw e;
       continue;
     }
   }
   throw lastErr || new Error('unavailable');
+}
+
+async function generateText(system, user, opts = {}) {
+  const auth = await textAuth();
+  if (!auth) {
+    const err = new Error('need_key');
+    err.code = 'need_key';
+    throw err;
+  }
+  if (auth.provider === 'gemini') return generateGemini(auth.key, system, user, opts);
+  return generateOpenRouter(auth.key, system, user, opts);
+}
+
+function errCode(e) {
+  if (!e) return '';
+  if (e.code === 'rate_limit' || e.status === 429) return 'rate_limit';
+  if (e.code === 'need_key' || e.message === 'need_key') return 'need_key';
+  return String(e.message || e);
 }
 
 function buildPlanPrompt(A, lang) {
@@ -260,37 +414,25 @@ export function ruleNarrative(A, lang) {
 }
 
 /**
- * Run PureFxAi analysis via cloud (requires API key in Settings).
+ * Run PureFxAi analysis via the default cloud provider (or a user override).
  */
 export async function analyzeWithPureFxAi(A, lang, onProgress) {
   onProgress?.({ phase: 'analyzing', pct: 100, done: 1, total: 1 });
-  const key = await getApiKey();
-  if (!key) {
-    return {
-      text: ruleNarrative(A, lang),
-      source: 'rules',
-      error: 'need_key',
-    };
-  }
   try {
     const { system, user } = buildPlanPrompt(A, lang);
-    const text = await generateText(key, system, user);
+    const text = await generateText(system, user);
     return { text, source: 'model' };
   } catch (e) {
     return {
       text: ruleNarrative(A, lang),
       source: 'rules',
-      error: String(e?.message || e),
+      error: errCode(e),
     };
   }
 }
 
 
 export async function analyzeNewsWithPureFxAi(items, lang) {
-  const key = await getApiKey();
-  if (!key) {
-    return { summary: '', items: {}, source: 'none', error: 'need_key' };
-  }
   const langName = { th: 'Thai', en: 'English', zh: 'Simplified Chinese', ja: 'Japanese' }[lang] || 'English';
   const pack = (items || []).slice(0, 10).map(n => ({
     id: n.id,
@@ -310,7 +452,7 @@ export async function analyzeNewsWithPureFxAi(items, lang) {
     `Analyze these latest gold headlines for XAU/gold market impact.\n` +
     JSON.stringify(pack);
   try {
-    const raw = await generateText(key, system, user, { maxOutputTokens: 1400 });
+    const raw = await generateText(system, user, { maxOutputTokens: 1400 });
     const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
     const start = cleaned.indexOf('{');
     const end = cleaned.lastIndexOf('}');
@@ -328,14 +470,12 @@ export async function analyzeNewsWithPureFxAi(items, lang) {
       source: 'model',
     };
   } catch (e) {
-    return { summary: '', items: {}, source: 'none', error: String(e?.message || e) };
+    return { summary: '', items: {}, source: 'none', error: errCode(e) };
   }
 }
 
 
 export async function translateNewsWithPureFxAi(items, lang) {
-  const key = await getApiKey();
-  if (!key) return { items: {}, error: 'need_key' };
   const langName = { th: 'Thai', zh: 'Simplified Chinese', ja: 'Japanese' }[lang];
   if (!langName) return { items: {}, error: 'skip' };
   const pack = (items || []).map(n => ({
@@ -351,7 +491,7 @@ export async function translateNewsWithPureFxAi(items, lang) {
     `JSON shape: {"items":[{"id":"...","title":"...","summary":"..."}]}`;
   const user = `Translate these headlines into ${langName}:\n` + JSON.stringify(pack);
   try {
-    const raw = await generateText(key, system, user, { maxOutputTokens: 1800 });
+    const raw = await generateText(system, user, { maxOutputTokens: 1800 });
     const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
     const start = cleaned.indexOf('{');
     const end = cleaned.lastIndexOf('}');
@@ -365,24 +505,20 @@ export async function translateNewsWithPureFxAi(items, lang) {
     });
     return { items: map, source: 'model' };
   } catch (e) {
-    return { items: {}, error: String(e?.message || e) };
+    return { items: {}, error: errCode(e) };
   }
 }
 
 export async function chatWithPureFxAi(userText, A, lang) {
-  const key = await getApiKey();
-  if (!key) {
-    return { text: ruleNarrative(A, lang), source: 'rules', error: 'need_key' };
-  }
   try {
     const { system, user } = buildChatPrompt(userText, A, lang);
-    const text = await generateText(key, system, user);
+    const text = await generateText(system, user);
     return { text, source: 'model' };
   } catch (e) {
     return {
       text: ruleNarrative(A, lang),
       source: 'rules',
-      error: String(e?.message || e),
+      error: errCode(e),
     };
   }
 }
@@ -477,6 +613,8 @@ export async function speakWithPureFxAi(text, lang) {
   if (!plain) return 'device';
   const meta = voiceMeta(getVoiceId());
   if (!meta.voice) return 'device';
+  // Cloud TTS needs the optional user override key. Otherwise use device TTS.
+  if (!(await hasGeminiOverride())) return 'device';
   const key = await getApiKey();
   if (!key) return 'device';
 

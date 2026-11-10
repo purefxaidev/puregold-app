@@ -3,6 +3,11 @@
 set -e;export JAVA_HOME=${JAVA_HOME:-/home/box/jdk/current};export PATH=$JAVA_HOME/bin:$PATH;cd "$(dirname "$0")";export ANDROID_HOME=${ANDROID_HOME:-/home/box/android};BT=$ANDROID_HOME/build-tools/35.0.0
 KS=${KS:-/home/box/secrets/purefxai-release.jks};export PW=$(grep storePassword ${KS_TXT:-/home/box/secrets/purefxai-keystore.txt}|cut -d= -f2)
 source ./version.env
+# Vite injects VITE_* from .env at build time. Never commit the secret file.
+if [ ! -f .env ] && [ -f /home/box/secrets/puregold-vite.env ]; then
+  cp /home/box/secrets/puregold-vite.env .env
+  chmod 600 .env
+fi
 sed -i -E "s/versionCode [0-9]+/versionCode $VERSION_CODE/; s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
 npx vite build && npx cap sync android
 # Capacitor 7 defaults to Java 21; this box uses JDK 17.

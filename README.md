@@ -13,14 +13,14 @@
 Landing (APK download): https://gold.purefxai.store/  
 Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper/
 
-## Features (0.9.2)
+## Features (0.9.3)
 - **Home** shows a live **chart** and **techniques** (full pages still available)
 - **Latest gold news** from multiple sources, each with a clean “Open link / เปิดข่าว” button (no raw HTML)
 - Headlines localize to Thai / 中文 / 日本語 when the app language is set (uses feed text or PureFxAi + API key)
 - **PureFxAi** analyzes those headlines for gold-market impact (Nong Mee / น้องหมี)
 - Strong-impact news can send an SMS-style alert (toggle in Settings)
-- Home-screen **widget** and floating **overlay** with live XAU + Thai gold + short signal
-- PureFxAi chat + plan analysis via your free API key (Settings) — branded PureFxAi only
+- Home-screen **widget** and floating **overlay** with live XAU + Thai gold + short signal — minimize the overlay to a round gold bubble (drag, snap to the edge, tap to expand)
+- PureFxAi chat, plan, and news analysis work out of the box — branded PureFxAi only
 - Languages: Thai / English / 中文 / 日本語
 
 ## Home-screen widget
@@ -29,7 +29,7 @@ Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper
 The widget shows live XAU, Hua Seng Heng Thai gold, and the short signal. Tap it to open the app.
 
 ## API key
-Paste a free key from Google AI Studio in **More → Settings**. Stored on this phone only.
+PureFxAi works out of the box. You may optionally paste your own key in **More → Settings** for cloud voices or as an override. Stored on this phone only.
 
 ## Build
 ```

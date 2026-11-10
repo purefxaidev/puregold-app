@@ -11,3 +11,4 @@ android/app/build/
 android/.gradle/
 secrets/
 .env
+.env.local

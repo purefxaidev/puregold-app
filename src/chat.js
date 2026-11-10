@@ -344,13 +344,16 @@ export async function replyTo(userText, ctx) {
   }
   if (intent === 'plan') {
     // Prefer installed PureFxAi narrative when available (no re-download from chat)
-    if (isMarkedReady() && A) {
+    if (A && await isMarkedReady()) {
       try {
         const r = await chatWithPureFxAi(
           lang === 'th' ? 'สรุปแผนวันนี้' : lang === 'zh' ? '总结今日计划' : "Summarize today's plan",
           A,
           lang
         );
+        if (r.error === 'rate_limit') {
+          return { text: (lang === 'th' ? 'PureFxAi ใช้งานหนาในตอนนี้ ลองใหม่อีกสักครู่' : 'PureFxAi is busy right now. Please try again in a moment.') + '\n\n' + riskShort(lang), source: 'rules' };
+        }
         const base = stripModelNames(r.text || ruleNarrative(A, lang));
         return { text: base + '\n\n' + riskShort(lang), source: r.source || 'model' };
       } catch {
@@ -364,9 +367,17 @@ export async function replyTo(userText, ctx) {
   }
 
   // Free-form: use PureFxAi only if pack already installed (never trigger install from chat)
-  if (isMarkedReady() && A) {
+  if (A && await isMarkedReady()) {
     try {
       const r = await chatWithPureFxAi(userText, A, lang);
+      if (r.error === 'rate_limit') {
+        const busy = lang === 'th'
+          ? 'PureFxAi ใช้งานหนาในตอนนี้ ลองใหม่อีกสักครู่'
+          : lang === 'zh' ? 'PureFxAi 正忙，请稍后再试。'
+          : lang === 'ja' ? 'PureFxAiが混み合っています。しばらくして再試行してください。'
+          : 'PureFxAi is busy right now. Please try again in a moment.';
+        return { text: busy + '\n\n' + riskShort(lang), source: 'rules' };
+      }
       const body = stripModelNames(r.text || ruleNarrative(A, lang));
       return {
         text: body + '\n\n' + riskShort(lang),
@@ -378,19 +389,19 @@ export async function replyTo(userText, ctx) {
     }
   }
 
-  // No cloud key / offline: map free text toward plan + help
+  // Offline / temporary failure: map free text toward plan + help
   const fallback =
     lang === 'th'
       ? `รับทราบ: “${String(userText).slice(0, 80)}”\n\n` +
         replyPlan(A, lang) +
-        '\n\nพิมพ์ “สมัคร Exness” หรือ “แนะนำการเทรด” ได้เลย หรือใส่ API key ที่เมนู→ตั้งค่า เพื่อ PureFxAi เต็มรูปแบบ'
+        '\n\nพิมพ์ “สมัคร Exness” หรือ “แนะนำการเทรด” ได้เลย'
       : lang === 'zh'
         ? `已收到：“${String(userText).slice(0, 80)}”\n\n` +
           replyPlan(A, lang) +
-          '\n\n可输入“注册 Exness”或“交易建议”；或在「更多→设置」添加 API 密钥以启用完整 PureFxAi'
+          '\n\n可输入“注册 Exness”或“交易建议”'
         : `Got it: “${String(userText).slice(0, 80)}”\n\n` +
           replyPlan(A, lang) +
-          '\n\nTry “Exness signup” or “trading tips”, or add an API key in More → Settings for full PureFxAi';
+          '\n\nTry “Exness signup” or “trading tips”';
 
   return {
     text: fallback,

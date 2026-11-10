@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.9.3 — 2026-11-10
+### TH
+- หน้าต่างลอยย่อเป็นบับเบิลกลมได้ (แบบแชทเฮด) — ปุ่ม **ย่อ** บนการ์ด
+- ลากบับเบิลไปที่ไหนก็ได้ ดูดติดขอบจอ กดเพื่อขยายกลับ การ์ดเดิม · ลากไปที่ X ด้านล่างเพื่อปิด
+- บับเบิลแสดงราคาไลฟ์สั้นๆ และวงแหวน/จุดตามสัญญาณ (เขียวขึ้น / แดงลง)
+- จำสถานะย่อ/ขยายและตำแหน่งไว้แม้รีสตาร์ทบริการ
+- ราคาและสัญญาณอัปเดตต่อเนื่องทั้งโหมดการ์ดและบับเบิล
+- PureFxAi ใช้ได้ทันที ไม่ต้องใส่คีย์ — แชท แผน วิเคราะห์ข่าว (คีย์เสริมในตั้งค่าสำหรับเสียงคลาวด์)
+
+### EN
+- Floating overlay minimizes to a round chat-head bubble — **Min** on the card
+- Drag the bubble anywhere; it snaps to the nearest edge. Tap to expand back. Drag to the bottom X to close
+- Bubble shows a tiny live price and a signal-colored ring/dot (green up / red down)
+- Remembers bubble vs expanded state and position across service restarts
+- Live price and signal updates keep running in both states
+- PureFxAi works out of the box — no key needed for chat, plan, and news analysis (optional key in Settings for cloud voices)
+
+### ZH
+- 悬浮窗可缩小为圆形气泡（聊天气泡样式）— 卡片上的“缩小”按钮
+- 可拖到任意位置并吸附边缘，点按展开，拖到底部 X 关闭
+- 气泡显示实时短价和信号色环/点 · 记住状态与位置 · 两种状态下价格持续更新
+- PureFxAi 开箱即用，聊天/计划/新闻分析无需密钥（设置中可选密钥用于云端语音）
+
+### JA
+- フローティングを丸いバブルに最小化（チャットヘッド風）
+- ドラッグして端にスナップ、タップで展開、下部のXへドラッグして閉じる
+- バブルにライブ価格とシグナル色のリング/ドット · 状態と位置を記憶 · 両モードで更新継続
+- PureFxAiはキーなしですぐ使えます（チャット・計画・ニュース）。クラウド音声は設定の任意キー
+
 ## 0.9.2 — 2026-11-06
 ### TH
 - ขัด UI แอปให้หรูขึ้น — โทนทอง / glass / glow · การ์ดและตัวอักษรคมขึ้น

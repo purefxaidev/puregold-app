@@ -17,7 +17,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.2';
+const APP_VERSION = '0.9.3';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -432,6 +432,7 @@ async function renderSet() {
   const presets = [5, 10, 15, 30, 60];
   const isPreset = presets.includes(+S.interval);
   const key = await getApiKey();
+  const ready = await isMarkedReady();
   const masked = key ? (key.slice(0, 4) + '…' + key.slice(-4)) : '';
   const voiceOpts = PUREFX_VOICES.map(v => {
     const lab = (v.label && (v.label[L] || v.label.en)) || v.id;
@@ -445,7 +446,7 @@ async function renderSet() {
       <button type="button" class="btn" id="apiKeySave" style="margin:0">${t('apiKeySave')}</button>
       <button type="button" class="btn sec danger" id="apiKeyClear" style="margin:0">${t('apiKeyClear')}</button>
     </div>
-    <div id="apiKeyStatus" class="mut s" style="margin:6px 0 12px">${key ? t('pureFxAiReady') : t('pureFxAiNeedKey')}</div>
+    <div id="apiKeyStatus" class="mut s" style="margin:6px 0 12px">${key ? t('apiKeySaved') : (ready ? t('pureFxAiReady') : t('pureFxAiNeedKey'))}</div>
     <label class="row"><span>${t('voicePick')}</span>
       <select id="voicePickSet">${voiceOpts}</select></label>
     <button type="button" class="btn sec" id="voiceTestSet" style="margin:8px 0">${t('voiceTest')}</button>
@@ -488,7 +489,8 @@ async function renderSet() {
     await setApiKey(v.trim());
     $('apiKeyInput').value = '';
     const st = $('apiKeyStatus');
-    if (st) st.textContent = (await getApiKey()) ? t('apiKeySaved') : t('pureFxAiNeedKey');
+    const stReady = await isMarkedReady();
+    if (st) st.textContent = (await getApiKey()) ? t('apiKeySaved') : (stReady ? t('pureFxAiReady') : t('pureFxAiNeedKey'));
     refreshPfxStatus();
   };
   const clr = $('apiKeyClear');
@@ -496,7 +498,7 @@ async function renderSet() {
     await setApiKey('');
     if ($('apiKeyInput')) $('apiKeyInput').value = '';
     const st = $('apiKeyStatus');
-    if (st) st.textContent = t('pureFxAiNeedKey');
+    if (st) st.textContent = (await isMarkedReady()) ? t('pureFxAiReady') : t('pureFxAiNeedKey');
     refreshPfxStatus();
   };
   const vp = $('voicePickSet');
@@ -619,11 +621,17 @@ function newsAiFor(id) {
 function renderNewsAiBox() {
   const box = $('newsAiBox');
   if (!box) return;
+  const newsErr = NEWS_AI?.error === 'rate_limit' ? t('pureFxAiRateLimit')
+    : NEWS_AI?.error === 'need_key' ? t('newsAiNeedKey')
+    : NEWS_AI?.error ? t('pureFxAiFail')
+    : '';
   const body = NEWS_AI?.summary
     ? `<div class="pfx-news-body">${esc(NEWS_AI.summary)}</div>`
     : newsAiBusy
       ? `<div class="mut s">${t('newsAnalyzing')}</div>`
-      : `<div class="mut s">${t('newsAiNeedKey')}</div>`;
+      : newsErr
+        ? `<div class="mut s">${esc(newsErr)}</div>`
+        : `<div class="mut s">${esc(t('newsAnalyzing'))}</div>`;
   box.innerHTML = `<div class="pfx-news">
     <div class="pfx-news-head">
       <img class="mee-avatar" src="/nong-mee.jpg" alt="${esc(t('nongMee'))}">
@@ -726,8 +734,8 @@ async function maybeAnalyzeNews(force) {
     maybeAlertStrongNews();
     return;
   }
-  const apiKey = await getApiKey();
-  if (!apiKey) {
+  const ready = await isMarkedReady();
+  if (!ready) {
     NEWS_AI = { key, summary: '', items: {}, source: 'none', error: 'need_key', at: Date.now() };
     store.saveNewsAi(NEWS_AI);
     renderNews();
@@ -779,7 +787,7 @@ function maybeAlertStrongNews() {
 
 
 
-/* ---- PureFxAi (cloud via user API key) ---- */
+/* ---- PureFxAi (built-in cloud, optional user key) ---- */
 let pfxBusy = false;
 
 async function refreshPfxStatus() {
@@ -788,9 +796,7 @@ async function refreshPfxStatus() {
   if (!st) return;
   if (pfxBusy) return;
   try {
-    const key = await getApiKey();
-    if (key) st.textContent = t('pureFxAiReady');
-    else st.textContent = t('pureFxAiNeedKey');
+    st.textContent = (await isMarkedReady()) ? t('pureFxAiReady') : t('pureFxAiNeedKey');
     if (del) {
       // Show cleanup only if native (may have leftover pack from older builds)
       del.classList.toggle('hidden', !native);
@@ -798,7 +804,7 @@ async function refreshPfxStatus() {
       del.onclick = cleanupPureFxAiLeftover;
     }
   } catch {
-    st.textContent = t('pureFxAiNeedKey');
+    st.textContent = (await isMarkedReady()) ? t('pureFxAiReady') : t('pureFxAiNeedKey');
   }
 }
 
@@ -823,8 +829,7 @@ async function runPureFxAi() {
     if (out) { out.classList.remove('hidden'); out.textContent = t('empty'); }
     return;
   }
-  const key = await getApiKey();
-  if (!key) {
+  if (!(await isMarkedReady())) {
     if (out) { out.classList.remove('hidden'); out.textContent = t('pureFxAiNeedKey'); }
     showTab('more');
     return;
@@ -840,7 +845,10 @@ async function runPureFxAi() {
       const tag = res.source === 'model' ? t('pureFxAiModel') : t('pureFxAiRules');
       out.textContent = `${tag}\n\n${res.text}`;
       if (res.error === 'need_key') out.textContent = t('pureFxAiNeedKey');
-      else if (res.source === 'rules' && res.error) {
+      else if (res.error === 'rate_limit') {
+        out.textContent = t('pureFxAiRateLimit') + (res.text ? `\n\n${res.text}` : '');
+        if (st) st.textContent = t('pureFxAiRateLimit');
+      } else if (res.source === 'rules' && res.error) {
         if (st) st.textContent = t('pureFxAiFail');
       }
     }
@@ -1332,8 +1340,7 @@ async function localizeNewsHeadlines(lang) {
     NEWS_META.needKeyForLocale = false;
     return;
   }
-  const apiKey = await getApiKey();
-  if (!apiKey) {
+  if (!(await isMarkedReady())) {
     NEWS_META.needKeyForLocale = true;
     return;
   }

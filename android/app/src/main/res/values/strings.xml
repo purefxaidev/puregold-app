@@ -7,4 +7,10 @@
     <string name="custom_url_scheme">com.purefxai.puregold</string>
     <string name="widget_desc">PUREGOLD: Thai gold, XAU price, and short signal. Long-press the home screen → Widgets → PUREGOLD.</string>
     <string name="overlay_channel">PUREGOLD overlay</string>
+    <string name="overlay_notif">Floating overlay · live prices</string>
+    <string name="overlay_notif_bubble">Gold price bubble · live</string>
+    <string name="overlay_minimize">Minimize to bubble</string>
+    <string name="overlay_close">Close</string>
+    <string name="overlay_expand">Expand window</string>
+    <string name="overlay_dismiss">Close floating window</string>
 </resources>
