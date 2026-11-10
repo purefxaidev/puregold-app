@@ -495,3 +495,9 @@ section.reco-sec{
 .spdr-home{border-radius:16px;padding:14px;background:linear-gradient(165deg,rgba(22,18,30,.96),rgba(12,10,18,.98));border:1px solid rgba(245,210,122,.28);box-shadow:0 8px 24px #0005, inset 0 1px 0 #f5d27a18}
 .spdr-home .row{gap:12px}
 .spdr-h small{display:block;color:var(--gold-dim);font-size:11px;letter-spacing:.4px;font-weight:600;margin-bottom:6px}
+
+.perf-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.perf-chip{display:inline-flex;align-items:baseline;gap:6px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:#0d0f17;font-variant-numeric:tabular-nums;font-size:12px;font-weight:700}
+.perf-chip .k{color:var(--muted);font-weight:600;font-size:11px}
+.perf-chip.up .v{color:var(--up)}.perf-chip.dn .v{color:var(--dn)}.perf-chip.flat .v{color:var(--muted)}
+.perf-src{margin-top:4px;font-size:11px;color:var(--muted);line-height:1.4}

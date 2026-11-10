@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.6 — 2026-11-10
+### TH
+- หน้า Home แสดงผลตอบแทนทองคำ XAUUSD 1 สัปดาห์ 1 เดือน 3 เดือน ปีนี้ และ 1 ปี สีเขียวเมื่อบวก สีแดงเมื่อลบ จากราคาปิดรายวันจริง
+- ราคาและระยะแนวรับแนวต้านรีเฟรชจากสปอตสดทุกไม่กี่วินาที ไม่ยึดมุมมองเก่าเมื่อราคาผ่านจุดพิวอตแล้ว
+
+### EN
+- Home shows XAUUSD performance for 1 week, 1 month, 3 months, year to date, and 1 year — green when up, red when down — from real daily closes
+- Price and support/resistance distances refresh from the live mid every few seconds, and no longer keep a stale bias after price has moved through the pivot
+
+### ZH
+- 首页显示 XAUUSD 一周、一个月、三个月、年初至今和一年涨跌，上涨绿色、下跌红色，依据真实日收盘
+- 价格与支撑/阻力距离随实时中间价数秒刷新，价格穿过枢轴后不再沿用过时偏向
+
+### JA
+- ホームに XAUUSD の1週間・1か月・3か月・年初来・1年の騰落を表示。プラスは緑、マイナスは赤。実際の日足終値を使用
+- 価格とサポレジ距離を数秒ごとにライブ中値で更新し、ピボットを越えたあとに古いバイアスを残さない
+
+
 ## 0.9.5 — 2026-11-10
 ### TH
 - แจ้งเตือนเมื่อสปอต XAUUSD (Swissquote) แตะหรือเบรกแนวรับ S1–S3 / แนวต้าน R1–R3 จากแดชบอร์ด พร้อมคูลดาวน์และสวิตช์ในตั้งค่า

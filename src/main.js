@@ -41,6 +41,64 @@ const native = Capacitor.isNativePlatform();
 let DESK = readCachedDesk();
 let LIVE = null; // resolved FX spot {price, src, labelTh, labelEn}
 
+let PERF = null;
+
+function fmtPerfPct(pct) {
+  if (!Number.isFinite(pct)) return '';
+  return (pct > 0 ? '+' : pct < 0 ? '\u2212' : '') + Math.abs(pct).toFixed(2) + '%';
+}
+function perfWithLive(data, livePx) {
+  if (!data || !Array.isArray(data.periods)) return null;
+  const spot = Number(livePx != null ? livePx : data.spot);
+  const periods = data.periods.map((p) => {
+    const ref = Number(p.ref_close);
+    if (!(ref > 0) || !Number.isFinite(spot)) return null;
+    const change = spot - ref;
+    return Object.assign({}, p, { change, change_pct: change / ref * 100 });
+  }).filter(Boolean);
+  if (!periods.length) return null;
+  return Object.assign({}, data, { spot, periods });
+}
+function perfRowHtml(px) {
+  const data = perfWithLive(PERF, px);
+  if (!data) return '';
+  const chips = data.periods.map((p) => {
+    const pct = Number(p.change_pct);
+    const cls = !Number.isFinite(pct) || Math.abs(pct) < 0.005 ? 'flat' : (pct > 0 ? 'up' : 'dn');
+    const lab = L === 'en' ? (p.label_en || p.id) : (p.label_th || p.id);
+    return `<span class="perf-chip ${cls}"><span class="k">${esc(lab)}</span><span class="v">${fmtPerfPct(pct)}</span></span>`;
+  }).join('');
+  return `<div class="perf-row">${chips}</div><div class="perf-src mut s">${esc(t('perfSrc'))}</div>`;
+}
+function paintHomePerf(px) {
+  const el = $('xauPerf');
+  if (!el) return;
+  const html = perfRowHtml(px != null ? px : displayPrice());
+  if (!html) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = html;
+}
+async function loadPerf() {
+  const urls = [
+    'https://dashboard.purefxai.store/perf.json?t=' + Date.now(),
+    'https://gold.purefxai.store/assets/perf.json?t=' + Date.now()
+  ];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: 'no-store' });
+      if (r && r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.periods) && j.periods.length) {
+          PERF = j;
+          paintHomePerf(displayPrice());
+          return;
+        }
+      }
+    } catch (e) {}
+  }
+}
+
+
 function displayPrice() {
   const live = LIVE?.price;
   if (Number.isFinite(live) && live > 0) return live;
@@ -101,7 +159,10 @@ async function pollLiveSpot() {
       if (heroBig) heroBig.textContent = label;
       const planBig = $('planToday')?.querySelector('.big');
       if (planBig) planBig.textContent = label;
+      paintHomePerf(q.price);
       if (A) {
+        // Refresh S/R distances and bias against the live mid without a full rebuild.
+        renderA();
         checkCustomAlerts(q.price);
         await watchDashAlerts(q.price);
         await pushNativeSnapshot();
@@ -272,7 +333,8 @@ function renderA() {
   const p = displayPrice() || A.price;
   $('xau').innerHTML = `<div class="big">$${f2(p)}</div>
  <div class="${A.ch >= 0 ? 'up' : 'dn'}">${t('ch24')}: ${A.ch >= 0 ? '+' : ''}${f2(A.ch)} (${A.chp.toFixed(2)}%)</div>
- <div class="mut s">${esc(spotSourceLine())}</div>`;
+ <div class="mut s">${esc(spotSourceLine())}</div>
+ <div id="xauPerf">${perfRowHtml(p)}</div>`;
   renderReco();
   const row = (l, c) => `<div class="row"><span class="${c}">${l[0].toFixed(2)}</span>
  <span class="mut">${l[0] > p ? '+' : ''}${(l[0] - p).toFixed(2)} · ×${l[1]}</span></div>`;
@@ -1571,7 +1633,7 @@ async function loadNews(opts = {}) {
 }
 
 async function refresh() {
-  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot(), loadSpdrCard()]);
+  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot(), loadSpdrCard(), loadPerf()]);
   stamp();
 }
 
@@ -1915,6 +1977,6 @@ setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
 setInterval(loadNews, 5 * 60 * 1000);
 setInterval(checkUpdate, 30 * 60 * 1000);
-setInterval(pollLiveSpot, 15000);
+setInterval(pollLiveSpot, 4000);
 setInterval(loadDesk, 60000);
 setInterval(loadSpdrCard, 10 * 60 * 1000);
