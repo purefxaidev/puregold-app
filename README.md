@@ -13,7 +13,7 @@
 Landing (APK download): https://gold.purefxai.store/  
 Fallback while DNS propagates: https://purefxaidev.github.io/puregold-whitepaper/
 
-## Features (0.9.4)
+## Features (0.9.5)
 - **Home** shows the dashboard **Recommendation now** card (auto-trade status, BUY/SELL/WAIT, zone bar, plans with SL/TP/RR/EV glossary, AI accuracy 7d/30d)
 - XAUUSD uses a real FX mid — never raw PAXG — on Home, the overlay/bubble, the widget, and alerts
 - **Home** also shows a live **chart** and **techniques** (full pages still available)

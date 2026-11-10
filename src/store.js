@@ -18,6 +18,10 @@ const KEYS = {
   signalHist: 'pg_signal_hist',
   seenVer: 'pg_seen_version',
   lastSignalKey: 'pg_last_signal_key',
+  srCooldown: 'pg_sr_cd',
+  eventAlerted: 'pg_event_alerted',
+  dashLevels: 'pg_dash_levels',
+  spdrCache: 'pg_spdr',
 };
 
 function read(k, fallback) {
@@ -215,5 +219,26 @@ export const store = {
       pct: closed > 0 ? Math.round((wins / closed) * 1000) / 10 : null,
     };
   },
+
+  saveDashLevels: (lv) => write(KEYS.dashLevels, lv),
+  loadDashLevels: () => read(KEYS.dashLevels, null),
+  srCooldownOk: (name, ms) => {
+    const m = read(KEYS.srCooldown, {}) || {};
+    const last = +m[name] || 0;
+    return Date.now() - last >= ms;
+  },
+  markSrAlert: (name) => {
+    const m = read(KEYS.srCooldown, {}) || {};
+    m[name] = Date.now();
+    write(KEYS.srCooldown, m);
+  },
+  wasEventAlerted: (id) => read(KEYS.eventAlerted, []).includes(id),
+  markEventAlerted: (id) => {
+    const h = read(KEYS.eventAlerted, []);
+    if (!h.includes(id)) h.push(id);
+    write(KEYS.eventAlerted, h.slice(-200));
+  },
+  saveSpdr: (j) => write(KEYS.spdrCache, { at: Date.now(), data: j }),
+  loadSpdr: () => read(KEYS.spdrCache, null),
 };
 

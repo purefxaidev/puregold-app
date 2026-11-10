@@ -12,6 +12,7 @@ import { TECH_IDS, techTitle, sessionLabel, sessionHint, buildTechniques } from 
 import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
+import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -19,7 +20,7 @@ const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
 const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
 const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
 const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.4';
+const APP_VERSION = '0.9.5';
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -102,6 +103,7 @@ async function pollLiveSpot() {
       if (planBig) planBig.textContent = label;
       if (A) {
         checkCustomAlerts(q.price);
+        await watchDashAlerts(q.price);
         await pushNativeSnapshot();
       }
     }
@@ -481,7 +483,7 @@ function renderTf() {
 }
 
 /* ---- Settings ---- */
-const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, alertStrongNews: true, overlay: false };
+const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, alertStrongNews: true, alertPreNews: true, srCooldownHrs: 4, overlay: false };
 let S = store.getSettings(DEF);
 
 async function saveSet() {
@@ -535,9 +537,14 @@ async function renderSet() {
     ck('voice', t('voice')) +
     ck('mute', t('mute')) +
     ck('alertSR', t('aSR')) +
+    `<div class="mut s" style="margin:-4px 0 8px">${t('aSRHint')}</div>` +
+    `<label class="row"><span>${t('srCooldown')}</span>
+      <select id="srCd">${[1,2,4,6,8,12].map(v => `<option value="${v}" ${(+S.srCooldownHrs||4)===v?'selected':''}>${v}</option>`).join('')}</select></label>` +
     ck('alertBias', t('aBias')) +
     ck('alertStrongNews', t('alertStrongNews')) +
     `<div class="mut s" style="margin:-4px 0 8px">${t('alertStrongNewsHint')}</div>` +
+    ck('alertPreNews', t('alertPreNews')) +
+    `<div class="mut s" style="margin:-4px 0 8px">${t('alertPreNewsHint')}</div>` +
     (native ? `<button id="test" class="btn">${t('test')}</button>` : `<div class="mut s">${t('androidOnly')}</div>`) +
     last;
   $('set').querySelectorAll('input[type=checkbox]').forEach(i => {
@@ -557,6 +564,8 @@ async function renderSet() {
   };
   $('iv').onchange = syncIv;
   if ($('ivCustom')) $('ivCustom').onchange = syncIv;
+  const srCd = $('srCd');
+  if (srCd) srCd.onchange = () => { S.srCooldownHrs = +srCd.value || 4; saveSet(); };
   if ($('test')) $('test').onclick = () => Pg.runNow({ force: true });
   const saveBtn = $('apiKeySave');
   if (saveBtn) saveBtn.onclick = async () => {
@@ -1307,6 +1316,7 @@ function renderAll() {
   renderThai();
   renderA();
   renderReco();
+  renderSpdrCard();
   renderPlan();
   renderSignalHist();
   refreshPfxStatus();
@@ -1328,6 +1338,107 @@ function renderAll() {
   chartViews.forEach(el => { try { el._pg?.applyOptions({ localization: { locale: localeTag(L) } }); } catch (e) {} });
   applyOverlays();
   if (!$('view-signup').classList.contains('hidden')) renderSignup();
+}
+
+
+/* ---- Dashboard S1–S3 / R1–R3 + pre-news (foreground) ---- */
+let DASH_LV = store.loadDashLevels && store.loadDashLevels();
+let SPDR = (store.loadSpdr() || {}).data || null;
+
+async function watchDashAlerts(spot) {
+  try {
+    if (!spot || spot <= 0) return;
+    if (S.alertSR !== false) {
+      const lv = await loadDashLevels();
+      if (lv) {
+        DASH_LV = lv;
+        store.saveDashLevels(lv);
+        const prev = +(localStorage.getItem('pg_last_px') || 0);
+        const cd = Math.max(1, +S.srCooldownHrs || 4) * 3600 * 1000;
+        const hits = detectSrHits(spot, prev, lv);
+        for (const h of hits) {
+          if (!store.srCooldownOk(h.name, cd)) continue;
+          const text = formatSrAlert(h, spot, L);
+          store.markSrAlert(h.name);
+          store.pushAlertHist({ text, kind: 'sr', level: h.name });
+          fireAlert(text, 'price');
+        }
+      }
+    }
+    if (S.alertPreNews !== false) {
+      const evs = await loadUsdHighEvents();
+      const due = duePreNews(evs, 16);
+      for (const ev of due) {
+        if (store.wasEventAlerted(ev.id)) continue;
+        const text = formatPreNews(ev, L);
+        store.markEventAlerted(ev.id);
+        store.pushAlertHist({ text, kind: 'prenews' });
+        fireAlert(text, 'news');
+      }
+    }
+  } catch (e) {}
+}
+
+function fireAlert(text, kind) {
+  if (!text) return;
+  markNotified();
+  if (native) {
+    try { Pg.runNow({ force: true, customText: text }); } catch (e) {}
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification('PUREGOLD', { body: text }); } catch (e) {}
+  }
+  renderAlertHist();
+}
+
+function fmtTon(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtChgTon(n) {
+  if (n == null || isNaN(n)) return '—';
+  const v = Number(n);
+  const abs = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (Math.abs(v) < 0.0005) return '0.00';
+  return (v > 0 ? '+' : '−') + abs;
+}
+
+async function loadSpdrCard() {
+  try {
+    const j = await loadSpdr();
+    if (j) { SPDR = j; store.saveSpdr(j); }
+  } catch (e) {}
+  renderSpdrCard();
+}
+
+function renderSpdrCard() {
+  const el = $('spdrHome');
+  if (!el) return;
+  const j = SPDR || (store.loadSpdr() || {}).data;
+  const unit = L === 'en' ? 't' : (L === 'zh' ? '吨' : (L === 'ja' ? 'トン' : 'ตัน'));
+  if (!j || j.tonnes == null) {
+    el.innerHTML = `<div class="mut s">${t('spdrNone')}</div>`;
+    return;
+  }
+  const side = j.side || (j.change > 0 ? 'buy' : j.change < 0 ? 'sell' : 'flat');
+  const flow = side === 'buy' ? t('spdrIn') : side === 'sell' ? t('spdrOut') : t('spdrFlat');
+  const cls = side === 'buy' ? 'up' : side === 'sell' ? 'dn' : '';
+  const asOf = L === 'en' ? (j.as_of_en || j.as_of) : (j.as_of_th || j.as_of_en || j.as_of);
+  const implied = j.implied_gold_usd != null
+    ? `<div class="mut s">${t('spdrImplied')} · $${Number(j.implied_gold_usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / oz</div>`
+    : '';
+  el.innerHTML = `<div class="spdr-home">
+    <div class="spdr-h"><small>${t('spdrFlow')}</small>
+      <div class="row" style="margin:0;align-items:flex-end">
+        <div>
+          <div class="mut s" style="margin:0">${t('spdrHold')}</div>
+          <div class="big" style="font-size:26px">${fmtTon(j.tonnes)} <span class="mut" style="font-size:13px">${unit}</span></div>
+        </div>
+        <div class="${cls}" style="font-weight:800;font-size:16px">${flow} ${fmtChgTon(j.change)} ${unit}${j.change_pct != null ? ' · ' + fmtChgTon(j.change_pct) + '%' : ''}</div>
+      </div>
+    </div>
+    <div class="mut s">${t('spdrAsOf')} ${esc(asOf || '')}</div>
+    ${implied}
+  </div>`;
 }
 
 /* ---- Custom price alerts (foreground) ---- */
@@ -1395,6 +1506,7 @@ async function loadA() {
     renderPlan();
     renderSignalHist();
     checkCustomAlerts(A.price);
+    await watchDashAlerts(displayPrice() || A.price);
     await pushNativeSnapshot();
     if (tab === 'chart' || tab === 'home' || chartReady()) await loadChart();
   } catch (e) {
@@ -1459,7 +1571,7 @@ async function loadNews(opts = {}) {
 }
 
 async function refresh() {
-  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot()]);
+  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot(), loadSpdrCard()]);
   stamp();
 }
 
@@ -1805,3 +1917,4 @@ setInterval(loadNews, 5 * 60 * 1000);
 setInterval(checkUpdate, 30 * 60 * 1000);
 setInterval(pollLiveSpot, 15000);
 setInterval(loadDesk, 60000);
+setInterval(loadSpdrCard, 10 * 60 * 1000);

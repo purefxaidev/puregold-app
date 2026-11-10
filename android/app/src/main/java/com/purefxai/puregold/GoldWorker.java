@@ -38,8 +38,11 @@ public class GoldWorker extends Worker {
       String thai=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("HSH".equals(o.optString("GoldType")))thai=o.optString("Sell");}}catch(Exception e){}
       boolean th="th".equals(p.getString("lang","th"));
       String lastBias=p.getString("bias",""); double lastPx=p.getFloat("px",0f), lastRes=p.getFloat("res",0f), lastSup=p.getFloat("sup",0f);
+      boolean dashSr=false;
+      try{ dashSr=DashWatch.runSr(c,p,spot,th);}catch(Exception ignore){}
+      try{ DashWatch.runNews(c,p,th);}catch(Exception ignore){}
       boolean flip=!lastBias.isEmpty()&&!lastBias.equals(bias)&&p.getBoolean("alertBias",true);
-      boolean brk=lastPx>0&&p.getBoolean("alertSR",true)&&((lastRes>0&&lastPx<lastRes&&spot>lastRes)||(lastSup>0&&lastPx>lastSup&&spot<lastSup));
+      boolean brk=!dashSr&&lastPx>0&&p.getBoolean("alertSR",true)&&((lastRes>0&&lastPx<lastRes&&spot>lastRes)||(lastSup>0&&lastPx>lastSup&&spot<lastSup));
       String bw=th?(bias.equals("up")?"ขึ้น":bias.equals("down")?"ลง":"ทรงตัว"):bias;
       String text=th?("ทองนอก"+bw+" ราคา"+ThaiNum.say((long)spot)+(res>0?" แนวต้าน"+ThaiNum.say(Math.round(res)):"")+(sup>0?" แนวรับ"+ThaiNum.say(Math.round(sup)):"")+(thai.isEmpty()?"":" ทองแท่งขายออก"+ThaiNum.say(Long.parseLong(thai.replace(",","").split("\\.")[0]))+"บาท"))
                     :("Gold "+bw+" at "+Math.round(spot)+(res>0?", resistance "+Math.round(res):"")+(sup>0?", support "+Math.round(sup):""));

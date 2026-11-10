@@ -30,6 +30,9 @@ public class PgPlugin extends Plugin {
     e.putBoolean("mute",c.getBoolean("mute",false));
     e.putBoolean("alertSR",c.getBoolean("alertSR",true));
     e.putBoolean("alertBias",c.getBoolean("alertBias",true));
+    if(c.getData().has("alertPreNews")) e.putBoolean("alertPreNews",c.getBoolean("alertPreNews",true));
+    if(c.getData().has("alertStrongNews")) e.putBoolean("alertStrongNews",c.getBoolean("alertStrongNews",true));
+    if(c.getData().has("srCooldownHrs")) e.putInt("srCooldownHrs",c.getInt("srCooldownHrs",4));
     e.putString("lang",c.getString("lang","th"));
     if(c.getData().has("overlay")) e.putBoolean("overlay",c.getBoolean("overlay",false));
     String pa=c.getString("priceAlerts",null);

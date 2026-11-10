@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.5',
+    date: '2026-11-10',
+    th: [
+      'แจ้งเตือนเมื่อสปอต XAUUSD (Swissquote) แตะหรือเบรกแนวรับ S1–S3 / แนวต้าน R1–R3 จากแดชบอร์ด พร้อมคูลดาวน์และสวิตช์ในตั้งค่า',
+      'แจ้งล่วงหน้าประมาณ 15 นาทีก่อนข่าว USD ผลกระทบสูง (ปฏิทินแดชบอร์ด หรือ Forex Factory หากไฟล์นั้นยังไม่ขึ้น)',
+      'การ์ด SPDR บนหน้า Home แสดงการถือครองและการซื้อขายล่าสุดจากคลังข้อมูลทางการ',
+    ],
+    en: [
+      'Alerts when XAUUSD (Swissquote spot) touches or breaks dashboard S1–S3 / R1–R3, with a cooldown and a Settings toggle',
+      'A heads-up about 15 minutes before high-impact USD events (dashboard calendar, or Forex Factory if that feed is not up yet)',
+      'A compact SPDR card on Home shows the latest official holdings and daily flow',
+    ],
+    zh: [
+      'XAUUSD（Swissquote 现货）触及或突破看板 S1–S3 / R1–R3 时提醒，可设置冷却并在设置中开关',
+      '高影响美元事件前约 15 分钟提醒（看板日历；若尚未上线则用 Forex Factory）',
+      '首页 SPDR 卡片显示最新官方持仓与流向',
+    ],
+    ja: [
+      'XAUUSD（Swissquoteスポット）がダッシュボードのS1–S3 / R1–R3にタッチまたはブレイクしたら通知。クールダウンと設定のスイッチ付き',
+      '米ドル重要指標の約15分前に通知（ダッシュボードのカレンダー、未公開時はForex Factory）',
+      'ホームのSPDRカードで最新の公式保有とフローを表示',
+    ],
+  },
+  {
     version: '0.9.4',
     date: '2026-11-10',
     th: [
