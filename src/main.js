@@ -13,14 +13,20 @@ import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
+import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels } from './tradeplan.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
 const USDT = '0x920deab53daf94ca2030ad5ceec2265bf5686941';
-const RELEASES_LATEST = 'https://github.com/purefxaidev/puregold-app/releases/latest';
-const RELEASES_API = 'https://api.github.com/repos/purefxaidev/puregold-app/releases/latest';
-const RELEASES_LIST = 'https://api.github.com/repos/purefxaidev/puregold-app/releases?per_page=12';
-const APP_VERSION = '0.9.5';
+const APK_URL = 'https://gold.purefxai.store/downloads/PUREGOLD.apk';
+const LATEST_URLS = [
+  'https://gold.purefxai.store/data/latest.json',
+  'https://gold.purefxai.store/version.json',
+];
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.8');
+const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 21);
+const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
 let L = store.getLang();
 let A = store.loadAnalysis();
@@ -34,6 +40,11 @@ let NEWS_META = store.loadNews() || { at: 0, sources: [] };
 let NEWS_AI = store.loadNewsAi() || null;
 let offline = false;
 const t = k => tr(L, k);
+const fillT = (k, vars = {}) => {
+  let s = t(k);
+  Object.keys(vars).forEach(n => { s = s.replaceAll('{' + n + '}', String(vars[n])); });
+  return s;
+};
 const f2 = x => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const reason = r => (r && (r[L] || r.en || r.th)) || '';
@@ -42,6 +53,8 @@ let DESK = readCachedDesk();
 let LIVE = null; // resolved FX spot {price, src, labelTh, labelEn}
 
 let PERF = null;
+let TRADE_PLAN = null;
+let lastRemoteRelease = null;
 
 function fmtPerfPct(pct) {
   if (!Number.isFinite(pct)) return '';
@@ -160,9 +173,12 @@ async function pollLiveSpot() {
       const planBig = $('planToday')?.querySelector('.big');
       if (planBig) planBig.textContent = label;
       paintHomePerf(q.price);
+      paintTradePlan(q.price);
+      watchPlanAlerts(q.price);
       if (A) {
         // Refresh S/R distances and bias against the live mid without a full rebuild.
         renderA();
+        renderPlan();
         checkCustomAlerts(q.price);
         await watchDashAlerts(q.price);
         await pushNativeSnapshot();
@@ -184,7 +200,7 @@ function setOffline(on) {
   b.textContent = on ? t('savedOffline') : '';
 }
 
-/* ---- Update check (GitHub releases) ---- */
+/* ---- Update check (same-origin latest.json, landing APK) ---- */
 function parseVer(v) {
   return String(v || '').replace(/^v/i, '').trim().split(/[.+-]/).map(x => parseInt(x, 10) || 0);
 }
@@ -198,45 +214,160 @@ function isNewer(remote, local) {
   }
   return false;
 }
-
-let lastRemoteRelease = null;
-async function checkUpdate() {
+function remoteIsNewer(d) {
+  if (!d) return false;
+  const code = Number(d.versionCode);
+  if (Number.isFinite(code) && code > 0) return code > APP_VERSION_CODE;
+  const ver = d.version || d.tag_name || d.name || '';
+  return ver ? isNewer(ver, APP_VERSION) : false;
+}
+function remoteIsCurrent(d) {
+  if (!d) return false;
+  const code = Number(d.versionCode);
+  if (Number.isFinite(code) && code > 0) return code === APP_VERSION_CODE;
+  const ver = String(d.version || '').replace(/^v/i, '');
+  return ver && ver === String(APP_VERSION).replace(/^v/i, '');
+}
+function remoteVersion(d) {
+  return String((d && (d.version || d.tag_name || d.name)) || APP_VERSION).replace(/^v/i, '');
+}
+function remoteNotes(d) {
+  if (!d) return [];
+  const n = d.notes;
+  if (Array.isArray(n)) return n;
+  if (n && typeof n === 'object') return n[L] || n.th || n.en || [];
+  return notesFor(remoteVersion(d), L);
+}
+async function openApkDownload() {
   try {
-    const r = await fetch(RELEASES_API, {
-      cache: 'no-store',
-      headers: { Accept: 'application/vnd.github+json' },
-    });
-    if (!r.ok) return;
-    const d = await r.json();
-    lastRemoteRelease = d;
-    const tag = d.tag_name || d.name || '';
-    if (!isNewer(tag, APP_VERSION)) {
-      const old = document.getElementById('updateBanner');
-      if (old) old.remove();
-      return;
-    }
-    let ban = document.getElementById('updateBanner');
+    if (native) await Browser.open({ url: APK_URL });
+    else window.open(APK_URL, '_blank', 'noopener');
+  } catch (e) {
+    try { window.location.href = APK_URL; } catch (x) {}
+  }
+}
+
+function paintUpdateUi(d, status) {
+  const ver = remoteVersion(d) || APP_VERSION;
+  const code = Number(d && d.versionCode) || APP_VERSION_CODE;
+  const current = status === 'current' || remoteIsCurrent(d);
+  const newer = status === 'newer' || remoteIsNewer(d);
+  const failed = status === 'failed';
+  const hdr = $('hdrVer');
+  if (hdr) {
+    hdr.textContent = current
+      ? fillT('verLatest', { v: APP_VERSION, n: APP_VERSION_CODE })
+      : `v${APP_VERSION}`;
+    hdr.classList.toggle('ok', !!current);
+    hdr.classList.toggle('fresh', !!newer);
+  }
+  const about = $('aboutVer');
+  if (about) about.textContent = fillT('verInstalled', { v: APP_VERSION, n: APP_VERSION_CODE }) + ' · PureFxAi';
+
+  const notes = newer ? remoteNotes(d).slice(0, 5) : [];
+  const boxHtml = failed
+    ? `<div class="mut">${esc(t('updateFailed'))}</div>`
+    : current
+      ? `<div class="update-ok">${esc(fillT('verLatest', { v: ver, n: code }))}</div>`
+      : newer
+        ? `<div class="update-avail">${esc(t('updAvail') + ' v' + ver)}</div>
+           ${notes.length ? `<ul class="upd-notes">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+           <div class="upd-actions">
+             <button type="button" class="btn" data-upd-apk>${esc(t('updBtn'))}</button>
+             <button type="button" class="btn sec" data-upd-notes>${esc(t('viewNotes'))}</button>
+           </div>`
+        : `<div class="mut">${esc(fillT('verInstalled', { v: APP_VERSION, n: APP_VERSION_CODE }))}</div>`;
+  const actions = `<div class="upd-actions"><button type="button" class="btn sec" data-upd-check>${esc(t('checkUpdate'))}</button></div>`;
+
+  ['aboutUpdate', 'setUpdate'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.innerHTML = boxHtml + actions;
+    el.querySelector('[data-upd-apk]')?.addEventListener('click', openApkDownload);
+    el.querySelector('[data-upd-notes]')?.addEventListener('click', () => openChangelog(ver));
+    el.querySelector('[data-upd-check]')?.addEventListener('click', () => checkUpdate({ force: true }));
+  });
+
+  let ban = document.getElementById('updateBanner');
+  if (newer) {
     if (!ban) {
       ban = document.createElement('div');
       ban.id = 'updateBanner';
       ban.className = 'banner update';
-      $('offlineBanner').after(ban);
+      $('offlineBanner')?.after(ban);
     }
-    ban.innerHTML = `<div class="upd-row"><span>${esc(t('updAvail') + ' ' + tag)}</span>
+    ban.innerHTML = `<div class="upd-row"><span>${esc(t('updAvail') + ' v' + ver)}</span>
       <div style="display:flex;gap:6px;flex-shrink:0">
         <button type="button" class="btn upd-btn sec" id="btnUpdNotes">${esc(t('viewNotes'))}</button>
         <button type="button" class="btn upd-btn" id="btnUpdate">${esc(t('updBtn'))}</button>
       </div></div>`;
     ban.classList.remove('hidden');
-    $('btnUpdNotes').onclick = () => openChangelog(tag.replace(/^v/i, ''), d.body || '');
-    $('btnUpdate').onclick = async () => {
-      const url = d.html_url || RELEASES_LATEST;
-      try {
-        if (native) await Browser.open({ url });
-        else window.open(url, '_blank', 'noopener');
-      } catch (e) { window.open(RELEASES_LATEST, '_blank'); }
-    };
-  } catch (e) { /* ignore network errors */ }
+    const nbtn = $('btnUpdNotes'); if (nbtn) nbtn.onclick = () => openChangelog(ver);
+    const ubtn = $('btnUpdate'); if (ubtn) ubtn.onclick = openApkDownload;
+  } else if (ban) {
+    ban.remove();
+  }
+}
+
+async function fetchLatest() {
+  for (const u of LATEST_URLS) {
+    try {
+      const r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) continue;
+      const j = await r.json();
+      if (j && (j.version || j.versionCode)) return j;
+    } catch (e) {}
+  }
+  return null;
+}
+
+async function checkUpdate(opts = {}) {
+  const force = !!opts.force;
+  const last = +(localStorage.getItem('pg_update_checked_at') || 0);
+  if (!force && last && (Date.now() - last) < UPDATE_COOLDOWN_MS && lastRemoteRelease) {
+    paintUpdateUi(lastRemoteRelease);
+    return lastRemoteRelease;
+  }
+  if (force) {
+    ['aboutUpdate', 'setUpdate'].forEach(id => {
+      const el = $(id);
+      if (el) {
+        const b = el.querySelector('[data-upd-check]');
+        if (b) b.textContent = t('checkingUpdate');
+      }
+    });
+  }
+  try {
+    const d = await fetchLatest();
+    localStorage.setItem('pg_update_checked_at', String(Date.now()));
+    if (!d) {
+      paintUpdateUi(lastRemoteRelease, lastRemoteRelease ? undefined : 'failed');
+      return null;
+    }
+    lastRemoteRelease = d;
+    paintUpdateUi(d);
+    return d;
+  } catch (e) {
+    paintUpdateUi(lastRemoteRelease, lastRemoteRelease ? undefined : 'failed');
+    return null;
+  }
+}
+
+function showUpdatedToast() {
+  const el = $('updToast');
+  if (!el) return;
+  const notes = notesFor(APP_VERSION, L).slice(0, 4);
+  el.innerHTML = `<b>${esc(fillT('updateOkToast', { v: APP_VERSION }))}</b>
+    ${notes.length ? `<ul>${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+    <div class="row">
+      <button type="button" class="btn sec" id="toastCl">${esc(t('whatsNew'))}</button>
+      <button type="button" class="btn" id="toastOk">${esc(t('dismiss'))}</button>
+    </div>`;
+  el.classList.remove('hidden');
+  const hide = () => el.classList.add('hidden');
+  $('toastOk')?.addEventListener('click', hide);
+  $('toastCl')?.addEventListener('click', () => { hide(); openChangelog(APP_VERSION); });
+  setTimeout(hide, 12000);
 }
 
 /* ---- Tabs ---- */
@@ -340,12 +471,19 @@ function renderA() {
  <span class="mut">${l[0] > p ? '+' : ''}${(l[0] - p).toFixed(2)} · ×${l[1]}</span></div>`;
   $('sr').innerHTML = `<div class="grid"><div class="c"><b>${t('res')}</b>${A.res.slice().reverse().map(l => row(l, 'dn')).join('') || '-'}
  </div><div class="c"><b>${t('sup')}</b>${A.sup.map(l => row(l, 'up')).join('') || '-'}</div></div>`;
-  const b = A.bias;
-  $('bias').innerHTML = `<span class="tag ${b.dir === 'up' ? 'up' : b.dir === 'down' ? 'dn' : ''}">${t(b.dir)}</span>
- <span class="mut">${t('conf')} ${b.conf}%</span><ul>${b.reasons.map(r => `<li>${esc(reason(r))}</li>`).join('')}</ul>`;
+  const liveB = liveBiasFromLevels(p, DASH_LV);
+  const b = A.bias || {};
+  const dir = liveB ? liveB.dir : b.dir;
+  const liveLine = liveB ? (L === 'en' ? liveB.en : liveB.th) : '';
+  const reasons = (b.reasons || []).map(r => `<li>${esc(reason(r))}</li>`).join('');
+  $('bias').innerHTML = `<span class="tag ${dir === 'up' ? 'up' : dir === 'down' ? 'dn' : ''}">${t(dir || 'side')}</span>
+ ${liveB ? `<span class="mut">${esc(liveLine)}</span>` : `<span class="mut">${t('conf')} ${b.conf || '—'}%</span>`}
+ ${liveB ? `<div class="mut s">${esc(L === 'en' ? 'From the live mid vs daily S/R' : 'จากราคาสดเทียบแนวรับแนวต้านรายวัน')}</div>` : ''}
+ <ul>${reasons}</ul>`;
   renderFc();
   renderSmcList();
   renderSetup();
+  paintTradePlan(p);
 }
 
 function renderFc() {
@@ -545,7 +683,7 @@ function renderTf() {
 }
 
 /* ---- Settings ---- */
-const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertBias: true, alertStrongNews: true, alertPreNews: true, srCooldownHrs: 4, overlay: false };
+const DEF = { auto: true, interval: 10, voice: true, mute: false, alertSR: true, alertPlan: true, alertBias: true, alertStrongNews: true, alertPreNews: true, srCooldownHrs: 4, overlay: false };
 let S = store.getSettings(DEF);
 
 async function saveSet() {
@@ -600,6 +738,7 @@ async function renderSet() {
     ck('mute', t('mute')) +
     ck('alertSR', t('aSR')) +
     `<div class="mut s" style="margin:-4px 0 8px">${t('aSRHint')}</div>` +
+    ck('alertPlan', t('alertPlan')) +
     `<label class="row"><span>${t('srCooldown')}</span>
       <select id="srCd">${[1,2,4,6,8,12].map(v => `<option value="${v}" ${(+S.srCooldownHrs||4)===v?'selected':''}>${v}</option>`).join('')}</select></label>` +
     ck('alertBias', t('aBias')) +
@@ -608,6 +747,7 @@ async function renderSet() {
     ck('alertPreNews', t('alertPreNews')) +
     `<div class="mut s" style="margin:-4px 0 8px">${t('alertPreNewsHint')}</div>` +
     (native ? `<button id="test" class="btn">${t('test')}</button>` : `<div class="mut s">${t('androidOnly')}</div>`) +
+    `<div id="setUpdate" class="upd-box"></div>` +
     `<div style="margin-top:16px"><button type="button" class="btn" id="setLine">${t('contactLine')}</button>
       <div class="mut s" style="margin-top:6px">${t('contactLineHint')}</div></div>` +
     last;
@@ -616,6 +756,8 @@ async function renderSet() {
   });
   const setLine = $('setLine');
   if (setLine) setLine.onclick = openExt('https://line.me/ti/p/H_Bxfi7so3');
+  if (lastRemoteRelease) paintUpdateUi(lastRemoteRelease);
+  else paintUpdateUi({ version: APP_VERSION, versionCode: APP_VERSION_CODE });
   const syncIv = () => {
     const sel = $('iv').value;
     if (sel === 'custom') {
@@ -1021,6 +1163,49 @@ async function runPureFxAi() {
   }
 }
 
+/* ---- Official desk trade plan ---- */
+function paintTradePlan(px) {
+  const plan = TRADE_PLAN;
+  const html = plan ? tradePlanHtml(plan, px != null ? px : displayPrice(), L, esc) : '';
+  ['tradePlanHome', 'tradePlanPlan'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    if (!html) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = html;
+  });
+}
+async function loadTradePlan() {
+  try {
+    const j = await fetchTradePlan();
+    if (j) {
+      TRADE_PLAN = j;
+      const px = displayPrice();
+      paintTradePlan(px);
+      watchPlanAlerts(px);
+    }
+  } catch (e) {}
+}
+function watchPlanAlerts(px) {
+  if (!TRADE_PLAN || S.alertPlan === false) return;
+  const st = planStatus(TRADE_PLAN, px);
+  const planKey = String(TRADE_PLAN.updated || TRADE_PLAN.entry || '') + '|' + (TRADE_PLAN.side || '');
+  const cur = planKey + '|' + st.id;
+  const prev = localStorage.getItem('pg_plan_status_cur') || '';
+  if (prev === cur) return;
+  const wasEmpty = !prev;
+  localStorage.setItem('pg_plan_status_cur', cur);
+  if (wasEmpty) return;
+  if (!['in', 'tp1', 'sl'].includes(st.id)) return;
+  const alertId = cur;
+  if (!store.planAlertOk(alertId, PLAN_ALERT_COOLDOWN_MS)) return;
+  store.markPlanAlert(alertId);
+  const lab = L === 'en' ? st.en : st.th;
+  const text = (L === 'en' ? 'Trade plan: ' : 'แผนเทรด: ') + lab + (Number.isFinite(Number(px)) ? ' · $' + f2(px) : '');
+  store.pushAlertHist({ text, kind: 'plan', status: st.id });
+  fireAlert(text, 'signal');
+}
+
 /* ---- Plan tab + signal history ---- */
 function renderPlan() {
   const el = $('planToday');
@@ -1062,6 +1247,7 @@ function renderPlan() {
     $('planLevels').innerHTML = `<div class="grid"><div class="c"><b>${t('res')}</b>${(A.res || []).slice().reverse().slice(0, 3).map(l => row(l, 'dn')).join('') || '-'}
       </div><div class="c"><b>${t('sup')}</b>${(A.sup || []).slice(0, 3).map(l => row(l, 'up')).join('') || '-'}</div></div>`;
   }
+  paintTradePlan(displayPrice());
 }
 
 function outcomeLabel(o) {
@@ -1152,8 +1338,11 @@ function renderChangelogBox() {
 }
 
 function maybeShowWhatsNew() {
-  if (store.getSeenVersion() === APP_VERSION) return;
-  openChangelog(APP_VERSION);
+  const lastCode = +(localStorage.getItem('pg_launched_version_code') || 0);
+  if (lastCode && lastCode < APP_VERSION_CODE) showUpdatedToast();
+  else if (!lastCode && store.getSeenVersion() !== APP_VERSION) openChangelog(APP_VERSION);
+  localStorage.setItem('pg_launched_version_code', String(APP_VERSION_CODE));
+  store.setSeenVersion(APP_VERSION);
 }
 
 /* ---- Overlay + native snapshot (widget / overlay) ---- */
@@ -1387,13 +1576,17 @@ function renderAll() {
   document.documentElement.lang = L;
   document.querySelectorAll('[data-i]').forEach(e => { e.textContent = t(e.dataset.i); });
   $('disc').textContent = t('disc');
-  $('aboutVer').textContent = `${t('version')} ${APP_VERSION} · PureFxAi`;
+  $('aboutVer').textContent = fillT('verInstalled', { v: APP_VERSION, n: APP_VERSION_CODE }) + ' · PureFxAi';
+  if ($('hdrVer') && !$('hdrVer').textContent) $('hdrVer').textContent = 'v' + APP_VERSION;
+  if (lastRemoteRelease) paintUpdateUi(lastRemoteRelease);
+  else paintUpdateUi({ version: APP_VERSION, versionCode: APP_VERSION_CODE });
   renderLang();
   renderThai();
   renderA();
   renderReco();
   renderSpdrCard();
   renderPlan();
+  paintTradePlan(displayPrice());
   renderSignalHist();
   refreshPfxStatus();
   { const b=$('btnPureFxAi'); if(b){ b.textContent=t('pureFxAiBtn'); b.onclick=runPureFxAi; } const d=$('btnPfxCleanup'); if(d){ d.textContent=t('pureFxAiCleanup'); d.onclick=cleanupPureFxAiLeftover; } }
@@ -1648,7 +1841,7 @@ async function loadNews(opts = {}) {
 }
 
 async function refresh() {
-  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot(), loadSpdrCard(), loadPerf()]);
+  await Promise.all([loadThai(), loadA(), loadNews(), checkUpdate(), loadDesk(), pollLiveSpot(), loadSpdrCard(), loadPerf(), loadTradePlan()]);
   stamp();
 }
 
@@ -1991,7 +2184,8 @@ refresh().then(() => maybeShowWhatsNew());
 setInterval(loadThai, 30000);
 setInterval(loadA, 60000);
 setInterval(loadNews, 5 * 60 * 1000);
-setInterval(checkUpdate, 30 * 60 * 1000);
+setInterval(() => checkUpdate(), 30 * 60 * 1000);
 setInterval(pollLiveSpot, 4000);
 setInterval(loadDesk, 60000);
 setInterval(loadSpdrCard, 10 * 60 * 1000);
+setInterval(loadTradePlan, 5 * 60 * 1000);

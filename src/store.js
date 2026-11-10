@@ -22,6 +22,7 @@ const KEYS = {
   eventAlerted: 'pg_event_alerted',
   dashLevels: 'pg_dash_levels',
   spdrCache: 'pg_spdr',
+  planAlert: 'pg_plan_alert',
 };
 
 function read(k, fallback) {
@@ -240,5 +241,17 @@ export const store = {
   },
   saveSpdr: (j) => write(KEYS.spdrCache, { at: Date.now(), data: j }),
   loadSpdr: () => read(KEYS.spdrCache, null),
+  planAlertKey: (id) => id,
+  planAlertOk: (id, ms) => {
+    const m = read(KEYS.planAlert, {});
+    const at = m[id] || 0;
+    return !at || (Date.now() - at) >= ms;
+  },
+  markPlanAlert: (id) => {
+    const m = read(KEYS.planAlert, {});
+    m[id] = Date.now();
+    write(KEYS.planAlert, m);
+  },
+
 };
 

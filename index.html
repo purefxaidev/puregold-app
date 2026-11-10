@@ -11,7 +11,7 @@
 <div id="appWallpaper" aria-hidden="true"></div>
 <div id="view-main">
   <header class="top">
-    <div class="brand"><img class="brand-mee" src="/nong-mee.jpg" alt="น้องหมี" width="42" height="42"><div><b>PURE</b>GOLD<small>by PureFxAi</small></div></div>
+    <div class="brand"><img class="brand-mee" src="/nong-mee.jpg" alt="น้องหมี" width="42" height="42"><div><b>PURE</b>GOLD<small>by PureFxAi</small><span class="ver-label" id="hdrVer"></span></div></div>
     <div class="hb">
       <button type="button" id="btnChangelog" class="icon-btn" title="Changelog">ⓘ</button>
       <button type="button" id="ref" class="icon-btn" title="Refresh">⟳</button>
@@ -28,6 +28,9 @@
       </section>
       <section class="reco-sec" id="recoSec">
         <div id="reco" class="reco"><div class="skel" data-i="load"></div></div>
+      </section>
+      <section id="tradePlanSec">
+        <div id="tradePlanHome" class="tp-card" hidden></div>
       </section>
       <section class="spdr-sec">
         <h2 data-i="spdrHome"></h2>
@@ -79,6 +82,9 @@
 
     <!-- PLAN (dedicated tab) -->
     <div class="panel panel-dense hidden" data-panel="plan">
+      <section>
+        <div id="tradePlanPlan" class="tp-card" hidden></div>
+      </section>
       <section class="hero plan-hero" id="planToday">
         <div class="skel" data-i="load"></div>
       </section>
@@ -231,6 +237,7 @@
       <section class="about">
         <h2 data-i="about"></h2>
         <div class="mut s" id="aboutVer"></div>
+        <div id="aboutUpdate" class="upd-box"></div>
         <div class="mut s" data-i="widgetHint" style="margin-top:8px"></div>
         <footer id="disc"></footer>
       </section>
@@ -280,4 +287,5 @@
 </div>
 </div>
 <script type="module" src="/src/main.js"></script>
+<div id="updToast" class="upd-toast hidden" role="status"></div>
 </body></html>

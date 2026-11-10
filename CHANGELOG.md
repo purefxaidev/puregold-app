@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.9.8 — 2026-11-11
+### TH
+- แผนเทรดจากโต๊ะวิเคราะห์ (จุดเข้า / SL / TP1–TP3) อัปเดตสถานะตามราคาสด พร้อมแจ้งเตือนเมื่อเข้าแล้ว ชน TP หรือโดน SL
+- แสดงเวอร์ชันบนหน้า Home และในตั้งค่า ตรวจอัปเดตจากเว็บ PureGold และบอกเมื่อเป็นเวอร์ชั่นล่าสุดแล้ว
+- แนวเอียง S/R คำนวณจากราคาสดเทียบแนวรับแนวต้านรายวัน
+
+### EN
+- The desk trade plan (entry / stop / TP1–TP3) follows the live price, with alerts when the plan is entered, hits TP, or hits the stop
+- The installed version is shown on Home and in Settings, with an update check from the PureGold site and a “latest version” label when you are current
+- Support/resistance bias is computed from the live mid against daily levels
+
+### ZH
+- 分析台交易计划随实时价格更新，进场、触及 TP 或止损时提醒
+- 首页与设置显示已安装版本，从 PureGold 网站检查更新，已是最新时会标明
+- 支撑/阻力偏向按实时中间价与日线水平计算
+
+### JA
+- デスクのトレードプランをライブ価格で更新し、参入・TP・ストップを通知
+- ホームと設定にバージョンを表示し、PureGoldサイトで更新確認。最新ならその旨を表示
+- サポレジバイアスをライブ中値と日足レベルから計算
+
+
 ## 0.9.7 — 2026-11-11
 ### TH
 - เพิ่มปุ่ม «ติดต่อผู้พัฒนาผ่าน LINE» ในเมนูตั้งค่าและการสนับสนุน เปิดแชท LINE ของ PureFxAi

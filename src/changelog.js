@@ -1,7 +1,68 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.8',
+    date: '2026-11-11',
+    th: [
+      'แผนเทรดจากโต๊ะวิเคราะห์ (จุดเข้า / SL / TP1–TP3 / อัตราส่วนเสี่ยง) อัปเดตสถานะตามราคาสด พร้อมแจ้งเตือนเมื่อเข้าแล้ว ชน TP หรือโดน SL',
+      'แสดงเวอร์ชันที่ติดตั้งบนหน้า Home และในตั้งค่า และตรวจอัปเดตจากเว็บ PureGold — ถ้าเป็นเวอร์ชั่นล่าสุดแล้วจะขึ้นว่า เวอร์ชั่นล่าสุดแล้ว',
+      'แนวเอียง S/R คำนวณจากราคาสดเทียบแนวรับแนวต้านรายวัน',
+    ],
+    en: [
+      'The desk trade plan (entry / stop / TP1–TP3 / risk:reward) follows the live price, with alerts when the plan is entered, hits TP, or hits the stop',
+      'The installed version is shown on Home and in Settings, with an update check from the PureGold site — if you are current it says you already have the latest version',
+      'Support/resistance bias is computed from the live mid against daily levels',
+    ],
+    zh: [
+      '分析台交易计划（进场 / 止损 / TP1–TP3 / 盈亏比）随实时价格更新，进场、触及 TP 或止损时提醒',
+      '首页与设置显示已安装版本，并从 PureGold 网站检查更新 — 已是最新时会显示已是最新版本',
+      '支撑/阻力偏向按实时中间价与日线水平计算',
+    ],
+    ja: [
+      'デスクのトレードプラン（エントリー / SL / TP1–TP3 / リスクリワード）をライブ価格で更新し、参入・TP・ストップを通知',
+      'ホームと設定にインストール済みバージョンを表示し、PureGoldサイトで更新を確認 — 最新なら「最新バージョンです」と表示',
+      'サポート/レジスタンスのバイアスをライブ中値と日足レベルから計算',
+    ],
+  },
+  {
+    version: '0.9.7',
+    date: '2026-11-11',
+    th: [
+      'เพิ่มปุ่ม «ติดต่อผู้พัฒนาผ่าน LINE» ในเมนูตั้งค่าและการสนับสนุน เปิดแชท LINE ของ PureFxAi',
+    ],
+    en: [
+      'Added a “Contact the developer on LINE” button in Settings and Support that opens the PureFxAi LINE chat',
+    ],
+    zh: [
+      '在设置与支持中新增“通过 LINE 联系开发者”按钮，打开 PureFxAi 的 LINE 聊天',
+    ],
+    ja: [
+      '設定とサポートに「LINEで開発者に連絡」ボタンを追加し、PureFxAi の LINE チャットを開く',
+    ],
+  },
+  {
+    version: '0.9.6',
+    date: '2026-11-10',
+    th: [
+      'หน้า Home แสดงผลตอบแทนทองคำ XAUUSD 1 สัปดาห์ 1 เดือน 3 เดือน ปีนี้ และ 1 ปี สีเขียวเมื่อบวก สีแดงเมื่อลบ จากราคาปิดรายวันจริง',
+      'ราคาและระยะแนวรับแนวต้านรีเฟรชจากสปอตสดทุกไม่กี่วินาที ไม่ยึดมุมมองเก่าเมื่อราคาผ่านจุดพิวอตแล้ว',
+    ],
+    en: [
+      'Home shows XAUUSD performance for 1 week, 1 month, 3 months, year to date, and 1 year — green when up, red when down — from real daily closes',
+      'Price and support/resistance distances refresh from the live mid every few seconds, and no longer keep a stale bias after price has moved through the pivot',
+    ],
+    zh: [
+      '首页显示 XAUUSD 一周、一个月、三个月、年初至今和一年涨跌，上涨绿色、下跌红色，依据真实日收盘',
+      '价格与支撑/阻力距离随实时中间价数秒刷新，价格穿过枢轴后不再沿用过时偏向',
+    ],
+    ja: [
+      'ホームに XAUUSD の1週間・1か月・3か月・年初来・1年の騰落を表示。プラスは緑、マイナスは赤。実際の日足終値を使用',
+      '価格とサポレジ距離を数秒ごとにライブ中値で更新し、ピボットを越えたあとに古いバイアスを残さない',
+    ],
+  },
+  {
     version: '0.9.5',
+
     date: '2026-11-10',
     th: [
       'แจ้งเตือนเมื่อสปอต XAUUSD (Swissquote) แตะหรือเบรกแนวรับ S1–S3 / แนวต้าน R1–R3 จากแดชบอร์ด พร้อมคูลดาวน์และสวิตช์ในตั้งค่า',
