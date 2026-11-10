@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.7 — 2026-11-11
+### TH
+- เพิ่มปุ่ม «ติดต่อผู้พัฒนาผ่าน LINE» ในเมนูตั้งค่าและการสนับสนุน เปิดแชท LINE ของ PureFxAi
+
+### EN
+- Added a “Contact the developer on LINE” button in Settings and Support that opens the PureFxAi LINE chat
+
+### ZH
+- 在设置与支持中新增“通过 LINE 联系开发者”按钮，打开 PureFxAi 的 LINE 聊天
+
+### JA
+- 設定とサポートに「LINEで開発者に連絡」ボタンを追加し、PureFxAi の LINE チャットを開く
+
+
 ## 0.9.6 — 2026-11-10
 ### TH
 - หน้า Home แสดงผลตอบแทนทองคำ XAUUSD 1 สัปดาห์ 1 เดือน 3 เดือน ปีนี้ และ 1 ปี สีเขียวเมื่อบวก สีแดงเมื่อลบ จากราคาปิดรายวันจริง

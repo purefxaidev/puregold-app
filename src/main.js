@@ -608,10 +608,14 @@ async function renderSet() {
     ck('alertPreNews', t('alertPreNews')) +
     `<div class="mut s" style="margin:-4px 0 8px">${t('alertPreNewsHint')}</div>` +
     (native ? `<button id="test" class="btn">${t('test')}</button>` : `<div class="mut s">${t('androidOnly')}</div>`) +
+    `<div style="margin-top:16px"><button type="button" class="btn" id="setLine">${t('contactLine')}</button>
+      <div class="mut s" style="margin-top:6px">${t('contactLineHint')}</div></div>` +
     last;
   $('set').querySelectorAll('input[type=checkbox]').forEach(i => {
     i.onchange = () => { S[i.dataset.k] = i.checked; saveSet(); };
   });
+  const setLine = $('setLine');
+  if (setLine) setLine.onclick = openExt('https://line.me/ti/p/H_Bxfi7so3');
   const syncIv = () => {
     const sel = $('iv').value;
     if (sel === 'custom') {
@@ -714,6 +718,16 @@ function renderAlertHist() {
   $('alertHist').innerHTML = h.length
     ? h.slice(0, 12).map(x => `<div>${esc(new Date(x.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' }))} · ${esc(x.text)}</div>`).join('')
     : t('noHist');
+}
+
+function renderContactLine() {
+  const el = $('contactLine');
+  if (!el) return;
+  el.innerHTML = `<p class="mut s">${t('contactLineHint')}</p>
+    <img class="qr" src="/line-qr.png" alt="LINE QR" onerror="this.style.display='none'">
+    <p><button type="button" class="btn" id="openLine">${t('contactLine')}</button></p>`;
+  const btn = $('openLine');
+  if (btn) btn.onclick = openExt('https://line.me/ti/p/H_Bxfi7so3');
 }
 
 function renderDon() {
@@ -1390,6 +1404,7 @@ function renderAll() {
   renderPriceAlerts();
   renderAlertHist();
   renderChangelogBox();
+  renderContactLine();
   renderDon();
   renderNews();
   renderTech();
