@@ -64,6 +64,14 @@ export function liveBiasFromLevels(px, lv) {
   return { dir, th, en, pp, s1, r1 };
 }
 
+export function entryZoneLabel(side, lang) {
+  const s = String(side || 'wait').toLowerCase();
+  const th = lang !== 'en';
+  if (s === 'buy') return th ? 'โซนซื้อ · BUY' : 'Buy zone · BUY';
+  if (s === 'sell') return th ? 'โซนขาย · SELL' : 'Sell zone · SELL';
+  return th ? 'รอ · WAIT' : 'Wait · WAIT';
+}
+
 export function tradePlanHtml(plan, px, lang, esc) {
   if (!plan) return '';
   const th = lang === 'th' || lang === 'zh' || lang === 'ja' ? lang === 'th' : false;
@@ -85,13 +93,13 @@ export function tradePlanHtml(plan, px, lang, esc) {
     ? (plan.disclaimer_th || 'เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน ใช้ SL เสมอ')
     : (plan.disclaimer_en || 'Education only — not investment advice. Always use a stop loss.');
   const title = useTh ? 'แผนเทรด' : 'Trade plan';
-  const sideLab = useTh ? (plan.side_th || 'รอ') : (plan.side_en || 'WAIT');
+  const sideLab = entryZoneLabel(side, useTh ? 'th' : 'en');
   const stLab = useTh ? st.th : st.en;
   const asof = useTh ? (plan.updated_th || '') : (plan.updated_en || '');
   const live = Number.isFinite(Number(px))
     ? (useTh ? 'ราคาสด ' : 'Live ') + '$' + Number(px).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
-  const entryK = useTh ? 'จุดเข้า' : 'Entry';
+  const entryK = entryZoneLabel(side, useTh ? 'th' : 'en');
   return `<div class="tp-head">
       <div class="tp-title">${title}</div>
       <span class="tp-side ${esc(side)}">${esc(sideLab)}</span>
@@ -99,7 +107,7 @@ export function tradePlanHtml(plan, px, lang, esc) {
     </div>
     ${thesis ? `<p class="tp-thesis">${esc(thesis)}</p>` : ''}
     <div class="tp-grid">
-      <div><span class="k">${entryK}</span><span class="v">${esc(entry)}</span></div>
+      <div class="tp-zone-cell ${esc(side)}"><span class="k">${esc(entryK)}</span><span class="v">${esc(entry)}</span></div>
       <div><span class="k">SL</span><span class="v">${plan.sl != null ? fmtPlanPx(plan.sl) : '—'}</span></div>
       ${tps}
     </div>

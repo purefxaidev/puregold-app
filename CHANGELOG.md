@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.10 — 2026-11-13
+### TH
+- แผนเทรดติดป้ายโซนซื้อ · BUY (เขียว) โซนขาย · SELL (แดง) หรือ รอ · WAIT เมื่อยังไม่มีจุดเข้า
+- หน้า Home แสดงราคารับซื้อและขายออกของทองคำแท่ง 96.5% และทองรูปพรรณ จากประกาศราคาทองไทย พร้อมเวลาอัปเดต
+
+### EN
+- The trade plan labels the entry as Buy zone · BUY (green), Sell zone · SELL (red), or Wait · WAIT when there is no setup
+- Home shows buy-back and sell prices for 96.5% gold bar and jewelry from the Thai gold announcement, with the update time
+
+### ZH
+- 交易计划将入场区标为买入 BUY（绿）、卖出 SELL（红），无机会则为等待 WAIT
+- 首页显示泰国金 96.5% 金条与饰金的回收价与卖出价，并标明更新时间
+
+### JA
+- トレードプランのエントリーを「買いゾーン · BUY」（緑）「売りゾーン · SELL」（赤）、セットアップがなければ「待ち · WAIT」と表示
+- ホームにタイの金（96.5% バーとジュエリー）の買い取り・売値と更新時刻を表示
+
+
 ## 0.9.9 — 2026-11-11
 ### TH
 - ใช้คำว่า «ทองไทย» สำหรับราคาทองในประเทศทั้งแอป วิดเจ็ต หน้าต่างลอย และเว็บ

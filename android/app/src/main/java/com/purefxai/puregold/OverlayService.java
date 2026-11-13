@@ -159,7 +159,7 @@ public class OverlayService extends Service {
           JSONArray t = new JSONArray(GoldWorker.get("https://apicheckprice.huasengheng.com/api/values/getprice/"));
           for (int i = 0; i < t.length(); i++) {
             JSONObject o = t.getJSONObject(i);
-            if ("HSH".equals(o.optString("GoldType"))) {
+            if ("REF".equals(o.optString("GoldType"))) {
               thaiSell = o.optString("Sell");
               break;
             }

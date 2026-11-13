@@ -13,7 +13,7 @@ import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
-import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels } from './tradeplan.js';
+import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel } from './tradeplan.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -23,7 +23,7 @@ const LATEST_URLS = [
   'https://gold.purefxai.store/data/latest.json',
   'https://gold.purefxai.store/version.json',
 ];
-const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.9');
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.10');
 const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 21);
 const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
@@ -409,20 +409,74 @@ if ($('backMoreTech')) $('backMoreTech').onclick = () => showTab('home');
 if ($('backMoreChart')) $('backMoreChart').onclick = () => showTab('home');
 
 /* ---- Renderers ---- */
+function parseBaht(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const n = Number(String(v).replace(/,/g, '').replace(/[^\d.-]/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+function officialThaiFromFeed(arr) {
+  const list = Array.isArray(arr) ? arr : [];
+  const ref = list.find(x => String(x.GoldType || '').toUpperCase() === 'REF');
+  const jewel = list.find(x => String(x.GoldType || '').toUpperCase() === 'JEWEL');
+  if (!ref && !jewel) return null;
+  const t0 = (ref || jewel).TimeUpdate || '';
+  const hm = String(t0).slice(11, 16);
+  return {
+    as_of: t0, as_of_hm: hm,
+    as_of_th: hm ? 'อัปเดตล่าสุด ' + hm : 'อัปเดตล่าสุด —',
+    as_of_en: hm ? 'Updated ' + hm : 'Updated —',
+    fetched_at: new Date().toISOString(),
+    source_label_th: 'ราคาทองไทย', source_label_en: 'Thai gold',
+    bar: ref ? { buy: parseBaht(ref.Buy), sell: parseBaht(ref.Sell), change: parseBaht(ref.BuyChange) } : null,
+    jewelry: jewel ? { buy: parseBaht(jewel.Buy), sell: parseBaht(jewel.Sell), change: parseBaht(jewel.BuyChange) } : null
+  };
+}
+function thaiIsStale(doc) {
+  if (!doc) return true;
+  const now = Date.now();
+  const fetched = Date.parse(doc.fetched_at || '') || 0;
+  const asof = Date.parse(doc.as_of || '') || 0;
+  if (fetched && now - fetched > 20 * 60 * 1000) return true;
+  if (asof && now - asof > 18 * 60 * 60 * 1000) return true;
+  return false;
+}
+function fmtThb(n) {
+  return n == null || !Number.isFinite(Number(n)) ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
 function renderThai() {
-  if (!TG || !TG.length) {
-    $('tg').innerHTML = `<div class="state-empty">${t('empty')}</div>`;
+  const doc = window.__THAI_GOLD;
+  const el = $('tg');
+  if (!el) return;
+  if (!doc || (!doc.bar && !doc.jewelry)) {
+    el.innerHTML = `<div class="state-empty">${t('empty')}</div>`;
     return;
   }
-  $('tg').innerHTML = TG.map(x => {
-    const ch = +x.BuyChange || 0;
-    return `<div class="c"><b>${esc(t(x.GoldType))} ${esc(x.GoldCode)}%</b>
- <div class="row"><span>${t('buy')}</span><span class="v">${esc(x.Buy)}</span></div>
- <div class="row"><span>${t('sell')}</span><span class="v">${esc(x.Sell)}</span></div>
- <div class="row"><span class="${ch > 0 ? 'up' : ch < 0 ? 'dn' : 'mut'}">${ch > 0 ? '▲ +' : ch < 0 ? '▼ ' : '• '}${ch}</span>
- <span class="mut">${esc(String(x.TimeUpdate || '').slice(11, 16))}</span></div></div>`;
+  const useTh = L !== 'en';
+  const stale = thaiIsStale(doc);
+  const items = [
+    [useTh ? 'ทองคำแท่ง 96.5%' : 'Gold bar 96.5%', doc.bar],
+    [useTh ? 'ทองรูปพรรณ 96.5%' : 'Jewelry 96.5%', doc.jewelry]
+  ];
+  el.innerHTML = items.map(([name, p]) => {
+    if (!p || (p.buy == null && p.sell == null)) return '';
+    const ch = Number(p.change);
+    const has = Number.isFinite(ch);
+    const cc = has ? (ch > 0 ? 'up' : ch < 0 ? 'dn' : 'mut') : 'mut';
+    const chg = has ? ((ch > 0 ? '▲ +' : ch < 0 ? '▼ ' : '• ') + fmtThb(Math.abs(ch))) : '—';
+    return `<div class="c">
+      <b>${esc(name)}</b>
+      <div class="row"><span>${useTh ? 'รับซื้อ' : 'Buy-back'}</span><span class="v">${fmtThb(p.buy)}</span></div>
+      <div class="row"><span>${useTh ? 'ขายออก' : 'Sell'}</span><span class="v">${fmtThb(p.sell)}</span></div>
+      <div class="row"><span class="${cc}">${chg}</span></div>
+    </div>`;
   }).join('');
-  $('tgSrc').textContent = t('src');
+  const src = $('tgSrc');
+  if (src) {
+    const stamp = useTh ? (doc.as_of_th || (doc.as_of_hm ? 'อัปเดตล่าสุด ' + doc.as_of_hm : '')) : (doc.as_of_en || (doc.as_of_hm ? 'Updated ' + doc.as_of_hm : ''));
+    src.textContent = t('src') + (stamp ? ' · ' + stamp : '') + (stale ? (useTh ? ' · ล่าช้า' : ' · delayed') : '');
+    src.classList.toggle('stale', stale);
+  }
 }
 
 function renderSetup() {
@@ -1352,7 +1406,7 @@ async function pushNativeSnapshot() {
     const S = A.setup || {};
     let thaiSell = '', thaiBuy = '';
     if (TG && TG.length) {
-      const h = TG.find(x => x.GoldType === 'HSH') || TG[0];
+      const h = TG.find(x => x.GoldType === 'REF') || TG.find(x => x.GoldType === 'HSH') || TG[0];
       thaiSell = String(h.Sell || '');
       thaiBuy = String(h.Buy || '');
     }
@@ -1746,16 +1800,41 @@ function checkCustomAlerts(price) {
 
 /* ---- Data load ---- */
 async function loadThai() {
+  let jsonDoc = null, feedDoc = null;
+  const jsonUrls = [
+    'https://gold.purefxai.store/data/thai_gold.json',
+    'https://dashboard.purefxai.store/thai_gold.json'
+  ];
+  for (const u of jsonUrls) {
+    try {
+      const r = await fetch(u + '?t=' + Date.now(), { cache: 'no-store' });
+      if (r && r.ok) {
+        const j = await r.json();
+        if (j && (j.bar || j.jewelry)) { jsonDoc = j; break; }
+      }
+    } catch (e) {}
+  }
   try {
     const r = await fetch('https://apicheckprice.huasengheng.com/api/values/getprice/', { cache: 'no-store' });
-    TG = await r.json();
-    store.saveThai(TG);
+    const raw = await r.json();
+    TG = raw;
+    store.saveThai(raw);
+    feedDoc = officialThaiFromFeed(raw);
+  } catch (e) {}
+  let doc = jsonDoc || feedDoc;
+  if (jsonDoc && feedDoc && feedDoc.bar && jsonDoc.bar) {
+    const same = Math.abs((feedDoc.bar.buy || 0) - (jsonDoc.bar.buy || 0)) < 1 && Math.abs((feedDoc.bar.sell || 0) - (jsonDoc.bar.sell || 0)) < 1;
+    doc = same ? jsonDoc : feedDoc;
+  }
+  if (doc) {
+    window.__THAI_GOLD = doc;
     renderThai();
     await pushNativeSnapshot();
-  } catch (e) {
-    if (!TG) $('tgSrc').textContent = t('err');
-    else setOffline(true);
-  }
+    setOffline(false);
+  } else if (!window.__THAI_GOLD) {
+    const src = $('tgSrc');
+    if (src) src.textContent = t('err');
+  } else setOffline(true);
 }
 
 async function loadA() {

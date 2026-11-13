@@ -35,7 +35,7 @@ public class GoldWorker extends Worker {
       double[] e20=ema(C,20),e50=ema(C,50); double g=0,l=0; for(int i=n-14;i<n;i++){double d=C[i]-C[i-1];if(d>0)g+=d;else l-=d;} double rsi=l==0?100:100-100/(1+g/l);
       double sc=Math.max(-1,Math.min(1,(e20[n-1]-e50[n-1])/atr))*.6+Math.max(-1,Math.min(1,(rsi-50)/20))*.4;
       String bias=sc>.2?"up":sc<-.2?"down":"side";
-      String thai=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("HSH".equals(o.optString("GoldType")))thai=o.optString("Sell");}}catch(Exception e){}
+      String thai=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("REF".equals(o.optString("GoldType")))thai=o.optString("Sell");}}catch(Exception e){}
       boolean th="th".equals(p.getString("lang","th"));
       String lastBias=p.getString("bias",""); double lastPx=p.getFloat("px",0f), lastRes=p.getFloat("res",0f), lastSup=p.getFloat("sup",0f);
       boolean dashSr=false;

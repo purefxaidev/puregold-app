@@ -530,3 +530,9 @@ section.reco-sec{
 .tp-grid .v{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
 .tp-inv,.tp-meta,.tp-disc,.tp-asof{margin:0 0 6px;line-height:1.45}
 .tp-disc{margin-bottom:0}
+
+.tp-zone-cell .k{font-weight:800}
+.tp-zone-cell.buy .k,.tp-side.buy{color:#22e39a}
+.tp-zone-cell.sell .k,.tp-side.sell{color:#ff4d6d}
+.tp-zone-cell.wait .k,.tp-side.wait{color:#f5c542}
+#tgSrc.stale,.tg-stale{color:#f5c542}
