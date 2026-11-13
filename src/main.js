@@ -13,7 +13,7 @@ import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
-import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel, formatPlanAlert, aiActivity, zoneHint } from './tradeplan.js';
+import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel, formatPlanAlert, aiActivity, zoneHint, accuracyHtml, bindLotCalc } from './tradeplan.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -23,8 +23,8 @@ const LATEST_URLS = [
   'https://gold.purefxai.store/data/latest.json',
   'https://gold.purefxai.store/version.json',
 ];
-const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.11');
-const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 24);
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.12');
+const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 25);
 const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
@@ -53,7 +53,9 @@ let DESK = readCachedDesk();
 let LIVE = null; // resolved FX spot {price, src, labelTh, labelEn}
 
 let PERF = null;
+let PLAN_HIST = null;
 let TRADE_PLAN = null;
+let __USDTHB = 34;
 let lastRemoteRelease = null;
 
 function fmtPerfPct(pct) {
@@ -1222,20 +1224,103 @@ async function runPureFxAi() {
 }
 
 /* ---- Official desk trade plan ---- */
+function usdthbRate() {
+  return Number(__USDTHB) || 34;
+}
+function finishPlanExtras(el, plan, px, lang) {
+  if (!el || !plan) return;
+  const host = el.querySelector('.tp-lot-calc-host');
+  if (host) bindLotCalc(host, plan, usdthbRate(), lang);
+  const acc = el.querySelector('.tp-acc-host');
+  if (acc) acc.innerHTML = accuracyHtml(PLAN_HIST, lang, esc);
+}
+function hookNativeShare() {
+  if (hookNativeShare._done) return;
+  if (!window.ShareCard || !Capacitor.isNativePlatform()) return;
+  hookNativeShare._done = true;
+  const blobToB64 = (blob) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+  const firstPng = async (kind, payload) => {
+    const files = await ShareCard.blobsFor(kind, payload);
+    const f = (files && files[0]) || null;
+    if (!f || !f.blob) throw new Error('empty');
+    return { name: f.name || 'puregold.png', data: await blobToB64(f.blob) };
+  };
+  ShareCard.download = async (kind, payload) => {
+    const f = await firstPng(kind, payload);
+    return Pg.saveToGallery({ image: f.data, filename: f.name });
+  };
+  ShareCard.share = async (kind, payload) => {
+    const f = await firstPng(kind, payload);
+    return Pg.shareImage({ image: f.data, filename: f.name, title: 'PureGold' });
+  };
+}
+function mountPlanShare(hostId) {
+  const el = $(hostId);
+  if (!el || !window.ShareCard || !TRADE_PLAN) return;
+  hookNativeShare();
+  if (el.querySelector('.share-dl')) return;
+  ShareCard.mount(el, () => Object.assign({
+    kind: 'plan',
+    lang: L === 'en' ? 'en' : 'th',
+    plan: TRADE_PLAN,
+    price: displayPrice()
+  }, TRADE_PLAN));
+}
 function paintTradePlan(px) {
   const plan = TRADE_PLAN;
-  const html = plan ? tradePlanHtml(plan, px != null ? px : displayPrice(), L, esc) : '';
+  const live = px != null ? px : displayPrice();
+  const html = plan ? tradePlanHtml(plan, live, L, esc) : '';
   ['tradePlanHome', 'tradePlanPlan'].forEach(id => {
     const el = $(id);
     if (!el) return;
     if (!html) { el.hidden = true; el.innerHTML = ''; return; }
+    const busy = el.contains(document.activeElement) && document.activeElement && document.activeElement.matches && document.activeElement.matches('[data-lot]');
     el.hidden = false;
-    el.innerHTML = html;
+    if (!busy) el.innerHTML = html;
+    finishPlanExtras(el, plan, live, L);
   });
+  mountPlanShare('planShareHome');
+  mountPlanShare('planSharePlan');
+}
+async function loadPlanHistory() {
+  const urls = [
+    'https://dashboard.purefxai.store/plan_history.json',
+    'https://gold.purefxai.store/data/plan_history.json',
+    'https://gold.purefxai.store/assets/plan_history.json',
+  ];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) continue;
+      const j = await r.json();
+      if (j && j.stats) { PLAN_HIST = j; return j; }
+    } catch (e) {}
+  }
+  return null;
+}
+async function loadUsdThb() {
+  const urls = [
+    'https://dashboard.purefxai.store/compare.json',
+    'https://gold.purefxai.store/data/compare.json',
+  ];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!r || !r.ok) continue;
+      const j = await r.json();
+      if (j && Number(j.usdthb) > 0) { __USDTHB = Number(j.usdthb); return __USDTHB; }
+    } catch (e) {}
+  }
+  return __USDTHB;
 }
 async function loadTradePlan() {
   try {
-    const j = await fetchTradePlan();
+    const [j] = await Promise.all([fetchTradePlan(), loadPlanHistory(), loadUsdThb()]);
     if (j) {
       TRADE_PLAN = j;
       const px = displayPrice();
@@ -1246,8 +1331,9 @@ async function loadTradePlan() {
 }
 function watchPlanAlerts(px) {
   if (!TRADE_PLAN || S.alertPlan === false) return;
-  const st = planStatus(TRADE_PLAN, px);
-  const act = aiActivity(TRADE_PLAN, px);
+  const ctx = { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news };
+  const st = planStatus(TRADE_PLAN, px, ctx);
+  const act = aiActivity(TRADE_PLAN, px, ctx);
   const planKey = String(TRADE_PLAN.updated || TRADE_PLAN.entry || '') + '|' + (TRADE_PLAN.side || '');
   const cur = planKey + '|' + st.id + '|' + act.id;
   const prev = localStorage.getItem('pg_plan_status_cur') || '';
@@ -1255,14 +1341,22 @@ function watchPlanAlerts(px) {
   const wasEmpty = !prev;
   localStorage.setItem('pg_plan_status_cur', cur);
   if (wasEmpty) return;
-  const notable = ['in', 'tp1', 'sl', 'cancelled', 'manage', 'confirm', 'watch'].includes(act.id) || ['in', 'tp1', 'sl', 'cancelled'].includes(st.id);
+  const notable = ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'manage', 'confirm', 'watch', 'news'].includes(act.id)
+    || ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'news', 'confirm'].includes(st.id);
   if (!notable) return;
-  const alertId = planKey + '|' + act.id;
+  const alertId = planKey + '|' + act.id + '|' + st.id;
   if (!store.planAlertOk(alertId, PLAN_ALERT_COOLDOWN_MS)) return;
   store.markPlanAlert(alertId);
-  const msg = formatPlanAlert(TRADE_PLAN, px, L === 'en' ? 'en' : 'th');
-  store.pushAlertHist({ text: msg.short, detail: msg.full, kind: 'plan', status: st.id, activity: act.id });
-  fireAlert(msg.short, 'signal');
+  const msg = formatPlanAlert(TRADE_PLAN, px, L === 'en' ? 'en' : 'th', ctx);
+  let short = msg.short;
+  if (st.id === 'tp1') short = L === 'en' ? 'TP1 hit — move the stop to entry' : 'ชน TP1 — เลื่อน SL มาจุดเข้า';
+  else if (st.id === 'tp2') short = L === 'en' ? 'TP2 hit' : 'ชน TP2';
+  else if (st.id === 'tp3') short = L === 'en' ? 'TP3 hit' : 'ชน TP3';
+  else if (st.id === 'sl') short = L === 'en' ? 'Stop hit' : 'ชนจุดตัดขาดทุน (SL)';
+  else if (st.id === 'cancelled') short = (L === 'en' ? 'Plan cancelled' : 'แผนถูกยกเลิก') + (st.en || st.th ? ' — ' + (L === 'en' ? (st.en || '') : (st.th || '')) : '');
+  else if (st.id === 'news' || act.id === 'news') short = (TRADE_PLAN.news && (L === 'en' ? TRADE_PLAN.news.label_en : TRADE_PLAN.news.label_th)) || short;
+  store.pushAlertHist({ text: short, detail: msg.full, kind: 'plan', status: st.id, activity: act.id });
+  fireAlert(short, 'signal');
 }
 
 /* ---- Plan tab + signal history ---- */

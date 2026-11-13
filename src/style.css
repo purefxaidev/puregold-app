@@ -570,3 +570,14 @@ html.pg-mobile .tp-ds { grid-template-columns:1fr; }
 .alert-item .detail, .hist-item .detail, #alertHist li .detail { white-space:pre-wrap; font-size:12px; line-height:1.45; margin-top:4px; }
 
 #tgSrc.stale,.tg-stale{color:#f5c542}
+
+
+.tp-news{margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(245,197,66,.45);background:rgba(245,197,66,.12);color:#f5c542;font-weight:700;font-size:13px;line-height:1.4}
+.tp-h1{margin:0 0 8px;font-size:11px;color:var(--muted, var(--mut,#9aa4b5));line-height:1.4}
+.tp-acc,.tp-lot-calc{margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(201,169,98,.22);background:rgba(10,16,28,.35)}
+.tp-acc-row,.tp-lot-row{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-weight:700;font-variant-numeric:tabular-nums}
+.tp-lot-row label{display:flex;align-items:center;gap:6px;font-size:12px}
+.tp-lot-row input,.tp-lot-row select{width:92px;background:rgba(255,255,255,.06);color:inherit;border:1px solid rgba(201,169,98,.3);border-radius:8px;padding:4px 6px;font:inherit}
+.tp-lot-out{font-weight:800;font-size:14px}
+.tp-acc-note,.tp-lot-calc .tp-lots-note{margin:4px 0 0;font-size:11px;font-weight:500;color:var(--muted, var(--mut,#9aa4b5));line-height:1.4}
+.tp-ai[data-ai="news"]{border-color:rgba(245,197,66,.55)}

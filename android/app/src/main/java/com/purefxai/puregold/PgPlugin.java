@@ -14,6 +14,13 @@ import android.webkit.WebViewClient;
 import com.getcapacitor.*;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.File;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+import androidx.core.content.FileProvider;
+import android.util.Base64;
+import android.provider.MediaStore;
+import android.os.Environment;
+import android.content.ContentValues;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -223,4 +230,80 @@ public class PgPlugin extends Plugin {
       c.resolve();
     }catch(Exception e){ c.resolve(); }
   }
+
+  private byte[] decodeImage(PluginCall c){
+    String raw=c.getString("image");
+    if(raw==null||raw.isEmpty()) return null;
+    int comma=raw.indexOf(',');
+    if(raw.startsWith("data:") && comma>0) raw=raw.substring(comma+1);
+    try { return Base64.decode(raw, Base64.DEFAULT); } catch(Exception e){ return null; }
+  }
+
+  @PluginMethod public void saveToGallery(PluginCall c){
+    byte[] bytes=decodeImage(c);
+    if(bytes==null){ c.reject("image required"); return; }
+    String name=c.getString("filename","puregold.png");
+    if(name==null||name.isEmpty()) name="puregold.png";
+    try {
+      if(Build.VERSION.SDK_INT>=29){
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, name);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES+"/PureGold");
+        values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        android.content.ContentResolver resolver=getContext().getContentResolver();
+        android.net.Uri uri=resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        if(uri==null){ c.reject("insert failed"); return; }
+        try(OutputStream os=resolver.openOutputStream(uri)){
+          if(os==null){ c.reject("open failed"); return; }
+          os.write(bytes);
+        }
+        values.clear();
+        values.put(MediaStore.Images.Media.IS_PENDING, 0);
+        resolver.update(uri, values, null, null);
+        JSObject ret=new JSObject();
+        ret.put("ok", true);
+        ret.put("uri", uri.toString());
+        c.resolve(ret);
+      } else {
+        File dir=new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "PureGold");
+        if(!dir.exists() && !dir.mkdirs()){ c.reject("mkdir failed"); return; }
+        File out=new File(dir, name);
+        try(FileOutputStream os=new FileOutputStream(out)){ os.write(bytes); }
+        getContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(out)));
+        JSObject ret=new JSObject();
+        ret.put("ok", true);
+        ret.put("path", out.getAbsolutePath());
+        c.resolve(ret);
+      }
+    } catch(Exception e){ c.reject(e.getMessage()); }
+  }
+
+  @PluginMethod public void shareImage(PluginCall c){
+    byte[] bytes=decodeImage(c);
+    if(bytes==null){ c.reject("image required"); return; }
+    String name=c.getString("filename","puregold.png");
+    if(name==null||name.isEmpty()) name="puregold.png";
+    String title=c.getString("title","PureGold");
+    try {
+      File dir=new File(getContext().getCacheDir(), "share");
+      if(!dir.exists() && !dir.mkdirs()){ c.reject("mkdir failed"); return; }
+      File out=new File(dir, name);
+      try(FileOutputStream os=new FileOutputStream(out)){ os.write(bytes); }
+      Uri uri=FileProvider.getUriForFile(getContext(), getContext().getPackageName()+".fileprovider", out);
+      Intent send=new Intent(Intent.ACTION_SEND);
+      send.setType("image/png");
+      send.putExtra(Intent.EXTRA_STREAM, uri);
+      send.putExtra(Intent.EXTRA_SUBJECT, title);
+      send.putExtra(Intent.EXTRA_TEXT, title);
+      send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      Intent chooser=Intent.createChooser(send, title);
+      chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      getContext().startActivity(chooser);
+      JSObject ret=new JSObject();
+      ret.put("ok", true);
+      c.resolve(ret);
+    } catch(Exception e){ c.reject(e.getMessage()); }
+  }
+
 }

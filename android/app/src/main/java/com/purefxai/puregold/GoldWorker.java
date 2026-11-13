@@ -125,7 +125,7 @@ public class GoldWorker extends Worker {
     int id=2100 + Math.abs((kind==null?"a":kind).hashCode()%80);
     try{
       NotificationCompat.Builder b=new NotificationCompat.Builder(c,CH_POP)
-        .setSmallIcon(R.mipmap.ic_launcher)
+        .setSmallIcon(R.drawable.ic_stat_notify)
         .setContentTitle(title==null||title.isEmpty()?"PUREGOLD":title)
         .setContentText(text)
         .setStyle(new NotificationCompat.BigTextStyle().bigText(text))

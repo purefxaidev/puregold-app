@@ -125,7 +125,7 @@ public class OverlayService extends Service {
     Notification n = new NotificationCompat.Builder(this, CH)
         .setContentTitle("PUREGOLD")
         .setContentText(text)
-        .setSmallIcon(R.mipmap.ic_launcher)
+        .setSmallIcon(R.drawable.ic_stat_notify)
         .setContentIntent(pi)
         .setOngoing(true)
         .build();
