@@ -13,7 +13,7 @@ import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
-import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel, formatPlanAlert, aiActivity, zoneHint, accuracyHtml, bindLotCalc } from './tradeplan.js';
+import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel, formatPlanAlert, aiActivity, zoneHint, accuracyHtml, bindLotCalc, alertLead, withAlertLead } from './tradeplan.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -23,8 +23,8 @@ const LATEST_URLS = [
   'https://gold.purefxai.store/data/latest.json',
   'https://gold.purefxai.store/version.json',
 ];
-const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.12');
-const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 25);
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.13');
+const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 26);
 const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
@@ -1341,8 +1341,8 @@ function watchPlanAlerts(px) {
   const wasEmpty = !prev;
   localStorage.setItem('pg_plan_status_cur', cur);
   if (wasEmpty) return;
-  const notable = ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'manage', 'confirm', 'watch', 'news'].includes(act.id)
-    || ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'news', 'confirm'].includes(st.id);
+  const notable = ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'manage', 'confirm', 'watch', 'news', 'reversal', 'sideways', 'breakout'].includes(act.id)
+    || ['in', 'tp1', 'tp2', 'tp3', 'sl', 'cancelled', 'news', 'confirm', 'reversal', 'sideways', 'breakout'].includes(st.id);
   if (!notable) return;
   const alertId = planKey + '|' + act.id + '|' + st.id;
   if (!store.planAlertOk(alertId, PLAN_ALERT_COOLDOWN_MS)) return;
@@ -1509,8 +1509,11 @@ async function pushNativeSnapshot() {
       thaiSell = String(h.Sell || '');
       thaiBuy = String(h.Buy || '');
     }
+    const px = displayPrice() || A.price;
+    const deskSide = (TRADE_PLAN && TRADE_PLAN.side) ? TRADE_PLAN.side : (S.side || 'WAIT');
+    const lead = TRADE_PLAN ? alertLead(TRADE_PLAN, px, L === 'en' ? 'en' : 'th', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }) : '';
     await Pg.pushSnapshot({
-      price: displayPrice() || A.price,
+      price: px,
       bias: A.bias?.dir || 'side',
       side: S.side || 'WAIT',
       conf: S.conf || 0,
@@ -1520,6 +1523,8 @@ async function pushNativeSnapshot() {
       tp: S.tp || 0,
       thaiSell, thaiBuy,
       lang: L,
+      alert: lead,
+      stance: TRADE_PLAN ? ((L === 'en' ? (formatPlanAlert(TRADE_PLAN, px, 'en', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }).stance) : (formatPlanAlert(TRADE_PLAN, px, 'th', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }).stance)) || deskSide) : (S.side || 'WAIT'),
     });
   } catch (e) {}
 }
@@ -1527,7 +1532,7 @@ async function pushNativeSnapshot() {
 async function notifyPopup(title, text, kind) {
   if (!native || !text) return;
   try {
-    await Pg.notifyPopup({ title: title || 'PUREGOLD', text: String(text).slice(0, 240), kind: kind || 'alert' });
+    await Pg.notifyPopup({ title: title || 'PUREGOLD', text: String(text).slice(0, 900), kind: kind || 'alert' });
   } catch (e) {}
 }
 
@@ -1803,6 +1808,9 @@ async function watchDashAlerts(spot) {
 }
 
 function fireAlert(text, kind) {
+  const px = (typeof displayPrice === 'function' ? displayPrice() : null) || (TRADE_PLAN && TRADE_PLAN.spot);
+  if (TRADE_PLAN) text = withAlertLead(text, TRADE_PLAN, px, L === 'en' ? 'en' : 'th', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news });
+
   if (!text) return;
   markNotified();
   if (native) {

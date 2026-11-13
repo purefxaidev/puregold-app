@@ -44,10 +44,31 @@ public class GoldWorker extends Worker {
       boolean flip=!lastBias.isEmpty()&&!lastBias.equals(bias)&&p.getBoolean("alertBias",true);
       boolean brk=!dashSr&&lastPx>0&&p.getBoolean("alertSR",true)&&((lastRes>0&&lastPx<lastRes&&spot>lastRes)||(lastSup>0&&lastPx>lastSup&&spot<lastSup));
       String bw=th?(bias.equals("up")?"ขึ้น":bias.equals("down")?"ลง":"ทรงตัว"):bias;
-      String text=th?("ทองนอก"+bw+" ราคา"+ThaiNum.say((long)spot)+(res>0?" แนวต้าน"+ThaiNum.say(Math.round(res)):"")+(sup>0?" แนวรับ"+ThaiNum.say(Math.round(sup)):"")+(thai.isEmpty()?"":" ทองแท่งขายออก"+ThaiNum.say(Long.parseLong(thai.replace(",","").split("\\.")[0]))+"บาท"))
+      JSONObject planDoc=null;
+      try{
+        for(String u:new String[]{"https://dashboard.purefxai.store/trade_plan.json","https://gold.purefxai.store/data/trade_plan.json"}){
+          try{ planDoc=new JSONObject(get(u)); break; }catch(Exception ignore){}
+        }
+      }catch(Exception ignore){}
+      String text;
+      if(planDoc!=null){
+        text=AlertCopy.fromPlan(planDoc, spot, th);
+        if(brk) text=text+" "+(th?"เบรกแนวสำคัญ":"Key level broken.");
+        else if(flip) text=text+" "+(th?"มุมมองเปลี่ยน":"Bias changed.");
+      } else {
+        String fallback=th?("ทองนอก"+bw+" ราคา"+ThaiNum.say((long)spot)+(res>0?" แนวต้าน"+ThaiNum.say(Math.round(res)):"")+(sup>0?" แนวรับ"+ThaiNum.say(Math.round(sup)):"")+(thai.isEmpty()?"":" ทองแท่งขายออก"+ThaiNum.say(Long.parseLong(thai.replace(",","").split("\\.")[0]))+"บาท"))
                     :("Gold "+bw+" at "+Math.round(spot)+(res>0?", resistance "+Math.round(res):"")+(sup>0?", support "+Math.round(sup):""));
-      if(brk) text=(th?"ราคาเบรกแนวสำคัญ ":"Key level broken. ")+text; else if(flip) text=(th?"มุมมองเปลี่ยน ":"Bias changed. ")+text;
-      JSONObject js=new JSONObject().put("price",spot).put("res",res).put("sup",sup).put("bias",bias).put("rsi",rsi).put("thaiSell",thai);
+        text=AlertCopy.wrap(fallback, spot, th?"รอ":"waiting", th?"กำลังดูโครงสร้าง":"the structure is being read", th);
+        if(brk) text=AlertCopy.wrap((th?"เบรกแนวสำคัญ ":"Key level broken. ")+fallback, spot, th?"รอ":"waiting", th?"กำลังดูโครงสร้าง":"the structure is being read", th);
+        else if(flip) text=AlertCopy.wrap((th?"มุมมองเปลี่ยน ":"Bias changed. ")+fallback, spot, th?"รอ":"waiting", th?"กำลังดูโครงสร้าง":"the structure is being read", th);
+      }
+      if(planDoc!=null){
+        JSONObject al=planDoc.optJSONObject("alert");
+        if(al!=null){
+          p.edit().putString("snap_alert", text).putString("snap_stance", th?al.optString("stance","รอ"):al.optString("stance_en","waiting")).apply();
+        }
+      }
+            JSONObject js=new JSONObject().put("price",spot).put("res",res).put("sup",sup).put("bias",bias).put("rsi",rsi).put("thaiSell",thai);
       p.edit().putString("bias",bias).putFloat("px",(float)spot).putFloat("res",(float)res).putFloat("sup",(float)sup).putString("lastText",text).putLong("lastAt",System.currentTimeMillis()).putString("lastJson",js.toString())
         .putFloat("snap_price",(float)spot).putString("snap_bias",bias).putString("snap_thaiSell",thai)
         .putLong("snap_at",System.currentTimeMillis()).apply();
@@ -115,9 +136,19 @@ public class GoldWorker extends Worker {
     p.edit().putLong("lastAlertAt",System.currentTimeMillis()).putString("lastAlertText",text==null?"":text).apply();
   }
   /** SMS-like heads-up popup (HIGH channel). */
+  static String ensureLead(String text, SharedPreferences p){
+    if(text==null) text="";
+    if(text.startsWith("ราคาล่าสุด") || text.startsWith("Latest price")) return text;
+    boolean th="th".equals(p.getString("lang","th"));
+    double px=p.getFloat("snap_price", p.getFloat("px",0f));
+    String stance=p.getString("snap_stance", th?"รอ":"waiting");
+    String reason=p.getString("snap_reason", th?"กำลังดูโครงสร้าง":"the structure is being read");
+    return AlertCopy.wrap(text, px, stance, reason, th);
+  }
   static void popup(Context c,String title,String text,String kind){ popup(c,title,text,kind,false); }
   static void popup(Context c,String title,String text,String kind,boolean bypass){
     SharedPreferences p=sp(c);
+    text=ensureLead(text,p);
     if(!bypass && !allowAlert(p,text)) return;
     NotificationManager nm=(NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
     ensureChannels(nm);

@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.13',
+    date: '2026-11-13',
+    th: [
+      'ทุกการแจ้งเตือนขึ้นต้นด้วย «ราคาล่าสุด $X · ตอนนี้ BUY/SELL/รอ เพราะ…» และระบุ Demand Zone หรือ Supply Zone',
+      'เมื่อแท่ง H1 ปิดยืนยันที่โซน จะแจ้งกลับตัว เช่น «ราคากลับตัวที่ Demand Zone A–B นี่คือจุดกลับตัว เปลี่ยนจากลงเป็นขึ้น ให้สัญญาณ BUY» และฝั่ง Supply กลับกัน',
+      'ตรวจกราฟไซด์เวย์จากแท่ง H1 ที่ปิดแล้ว ตามกฎ «กราฟไซด์เวย์ ราคาระหว่าง A–B ไม่มีทิศชัด แนะนำรอดูแท่ง H1 ปิดออกจากช่วงก่อนเข้า» และแจ้งอีกครั้งเมื่อแท่ง H1 ปิดยืนยันเบรกออกจากช่วง'
+    ],
+    en: [
+      'Every alert now starts with “Latest price $X · now BUY/SELL/waiting because …” and names the Demand or Supply zone',
+      'A confirmed H1 close at a zone sends a reversal alert, e.g. a Demand bounce turning down to up (BUY), and the Supply mirror (SELL)',
+      'Sideways H1 ranges use the documented wait rule, and a second alert fires when a closed H1 confirms the breakout'
+    ],
+    zh: [
+      '每条提醒均以“最新价 $X · 现在 BUY/SELL/等待，因为…”开头，并标明 Demand Zone 或 Supply Zone',
+      'H1 在区域收盘确认后发出反转提醒：需求区由下转上为 BUY，供给区由上转下为 SELL',
+      '按已收盘的 H1 识别横盘，并在 H1 收盘确认突破该区间时再次提醒'
+    ],
+    ja: [
+      'すべての通知を「最新価格 $X · いま BUY/SELL/待ち、理由は…」で始め、Demand Zone または Supply Zone を明示する',
+      'ゾーンで確定した H1 終値の反転通知（Demand は下降から上昇で BUY、Supply はその逆で SELL）',
+      '確定 H1 でレンジを判定し、H1 終値がレンジを抜けて確定したときに再度通知する'
+    ],
+  },
+  {
     version: '0.9.12',
     date: '2026-11-13',
     th: [

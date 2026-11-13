@@ -87,7 +87,7 @@
         android:textStyle="bold"
         android:textSize="14sp"
         android:layout_marginTop="4dp"
-        android:maxLines="1"/>
+        android:maxLines="2"/>
     <TextView
         android:id="@+id/ov_plan"
         android:layout_width="match_parent"
@@ -96,7 +96,7 @@
         android:textColor="#A89F88"
         android:textSize="11sp"
         android:layout_marginTop="2dp"
-        android:maxLines="2"/>
+        android:maxLines="6"/>
     <TextView
         android:id="@+id/ov_updated"
         android:layout_width="match_parent"

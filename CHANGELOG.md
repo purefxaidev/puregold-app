@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.13 — 2026-11-13
+### TH
+- ทุกการแจ้งเตือนขึ้นต้นด้วย «ราคาล่าสุด $X · ตอนนี้ BUY/SELL/รอ เพราะ…» และระบุ Demand Zone หรือ Supply Zone
+- เมื่อแท่ง H1 ปิดยืนยันที่โซน จะแจ้งกลับตัว เช่น «ราคากลับตัวที่ Demand Zone A–B นี่คือจุดกลับตัว เปลี่ยนจากลงเป็นขึ้น ให้สัญญาณ BUY» และฝั่ง Supply กลับกัน
+- ตรวจกราฟไซด์เวย์จากแท่ง H1 ที่ปิดแล้ว ตามกฎ «กราฟไซด์เวย์ ราคาระหว่าง A–B ไม่มีทิศชัด แนะนำรอดูแท่ง H1 ปิดออกจากช่วงก่อนเข้า» และแจ้งอีกครั้งเมื่อแท่ง H1 ปิดยืนยันเบรกออกจากช่วง
+
+### EN
+- Every alert now starts with “Latest price $X · now BUY/SELL/waiting because …” and names the Demand or Supply zone
+- A confirmed H1 close at a zone sends a reversal alert, e.g. a Demand bounce turning down to up (BUY), and the Supply mirror (SELL)
+- Sideways H1 ranges use the documented wait rule, and a second alert fires when a closed H1 confirms the breakout
+
+
 ## 0.9.12 — 2026-11-13
 ### TH
 - ยืนยันสัญญาณจากแท่ง H1 ที่ปิดแล้วจริง ไม่เดาจากตำแหน่งราคาในโซน

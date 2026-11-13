@@ -82,6 +82,8 @@ public class PgPlugin extends Plugin {
     Double tp=c.getDouble("tp",null); if(tp!=null) e.putFloat("snap_tp",tp.floatValue());
     String thaiSell=c.getString("thaiSell",null); if(thaiSell!=null) e.putString("snap_thaiSell",thaiSell);
     String thaiBuy=c.getString("thaiBuy",null); if(thaiBuy!=null) e.putString("snap_thaiBuy",thaiBuy);
+    String alert=c.getString("alert",null); if(alert!=null) e.putString("snap_alert",alert);
+    String stance=c.getString("stance",null); if(stance!=null) e.putString("snap_stance",stance);
     String lang=c.getString("lang",null); if(lang!=null) e.putString("lang",lang);
     e.putLong("snap_at",System.currentTimeMillis());
     e.apply();

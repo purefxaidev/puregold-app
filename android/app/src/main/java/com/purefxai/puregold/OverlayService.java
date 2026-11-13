@@ -606,10 +606,16 @@ public class OverlayService extends Service {
       if ("up".equals(bias)) s += th ? " · ขึ้น" : " · up";
       else if ("down".equals(bias)) s += th ? " · ลง" : " · down";
     }
+    String alert = p.getString("snap_alert", "");
+    String stance = p.getString("snap_stance", "");
+    if (stance != null && !stance.isEmpty()) s = stance;
     sig.setText(s);
     sig.setTextColor(color);
 
-    if (e0 > 0 && sl > 0 && tp > 0) {
+    if (alert != null && !alert.isEmpty()) {
+      plan.setText(alert);
+      plan.setVisibility(View.VISIBLE);
+    } else if (e0 > 0 && sl > 0 && tp > 0) {
       plan.setText(String.format(Locale.US, "E %.0f–%.0f  SL %.0f  TP %.0f", e0, e1, sl, tp));
       plan.setVisibility(View.VISIBLE);
     } else {
