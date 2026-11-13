@@ -13,7 +13,7 @@ import { CHANGELOG, notesFor } from './changelog.js';
 import { analyzeWithPureFxAi, analyzeNewsWithPureFxAi, translateNewsWithPureFxAi, nativeStatus, isMarkedReady, deleteDeviceModel, getApiKey, setApiKey, getVoiceId, setVoiceId, PUREFX_VOICES, speakWithPureFxAi, stopCloudSpeech } from './ondevice.js';
 import { replyTo, welcomeMessage, quickPrompts, riskShort } from './chat.js';
 import { loadDashLevels, detectSrHits, loadUsdHighEvents, duePreNews, formatSrAlert, formatPreNews, loadSpdr } from './alerts.js';
-import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel } from './tradeplan.js';
+import { planStatus, tradePlanHtml, fetchTradePlan, liveBiasFromLevels, entryZoneLabel, formatPlanAlert, aiActivity, zoneHint } from './tradeplan.js';
 
 const Pg = registerPlugin('PgNative');
 const $ = id => document.getElementById(id);
@@ -23,8 +23,8 @@ const LATEST_URLS = [
   'https://gold.purefxai.store/data/latest.json',
   'https://gold.purefxai.store/version.json',
 ];
-const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.10');
-const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 21);
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.11');
+const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 24);
 const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
@@ -912,7 +912,11 @@ function renderPriceAlerts() {
 function renderAlertHist() {
   const h = store.getAlertHist();
   $('alertHist').innerHTML = h.length
-    ? h.slice(0, 12).map(x => `<div>${esc(new Date(x.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' }))} · ${esc(x.text)}</div>`).join('')
+    ? h.slice(0, 12).map(x => {
+        const when = esc(new Date(x.at).toLocaleString(localeTag(L), { timeZone: 'Asia/Bangkok' }));
+        const detail = x.detail ? `<div class="detail">${esc(x.detail)}</div>` : '';
+        return `<div class="alert-item">${when} · ${esc(x.text)}${detail}</div>`;
+      }).join('')
     : t('noHist');
 }
 
@@ -1243,21 +1247,22 @@ async function loadTradePlan() {
 function watchPlanAlerts(px) {
   if (!TRADE_PLAN || S.alertPlan === false) return;
   const st = planStatus(TRADE_PLAN, px);
+  const act = aiActivity(TRADE_PLAN, px);
   const planKey = String(TRADE_PLAN.updated || TRADE_PLAN.entry || '') + '|' + (TRADE_PLAN.side || '');
-  const cur = planKey + '|' + st.id;
+  const cur = planKey + '|' + st.id + '|' + act.id;
   const prev = localStorage.getItem('pg_plan_status_cur') || '';
   if (prev === cur) return;
   const wasEmpty = !prev;
   localStorage.setItem('pg_plan_status_cur', cur);
   if (wasEmpty) return;
-  if (!['in', 'tp1', 'sl'].includes(st.id)) return;
-  const alertId = cur;
+  const notable = ['in', 'tp1', 'sl', 'cancelled', 'manage', 'confirm', 'watch'].includes(act.id) || ['in', 'tp1', 'sl', 'cancelled'].includes(st.id);
+  if (!notable) return;
+  const alertId = planKey + '|' + act.id;
   if (!store.planAlertOk(alertId, PLAN_ALERT_COOLDOWN_MS)) return;
   store.markPlanAlert(alertId);
-  const lab = L === 'en' ? st.en : st.th;
-  const text = (L === 'en' ? 'Trade plan: ' : 'แผนเทรด: ') + lab + (Number.isFinite(Number(px)) ? ' · $' + f2(px) : '');
-  store.pushAlertHist({ text, kind: 'plan', status: st.id });
-  fireAlert(text, 'signal');
+  const msg = formatPlanAlert(TRADE_PLAN, px, L === 'en' ? 'en' : 'th');
+  store.pushAlertHist({ text: msg.short, detail: msg.full, kind: 'plan', status: st.id, activity: act.id });
+  fireAlert(msg.short, 'signal');
 }
 
 /* ---- Plan tab + signal history ---- */
@@ -1682,7 +1687,7 @@ async function watchDashAlerts(spot) {
         const hits = detectSrHits(spot, prev, lv);
         for (const h of hits) {
           if (!store.srCooldownOk(h.name, cd)) continue;
-          const text = formatSrAlert(h, spot, L);
+          const text = formatSrAlert(h, spot, L) + zoneHint(TRADE_PLAN, spot, L === "en" ? "en" : "th");
           store.markSrAlert(h.name);
           store.pushAlertHist({ text, kind: 'sr', level: h.name });
           fireAlert(text, 'price');

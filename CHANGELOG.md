@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.9.11 — 2026-11-13
+### TH
+- แผนเทรดแสดง Demand Zone และ Supply Zone เป็นช่วงราคา และบอกว่าสัญญาณ BUY หรือ SELL มาจากโซนไหน
+- มีขั้นตอนเป็นข้อ ๆ อธิบายแบบเข้าใจง่าย ความมั่นใจ และตัวอย่างขนาดล็อตตามเงินทุนความเสี่ยง 1–2%
+- บล็อก «AI กำลังทำอะไรอยู่» อัปเดตตามราคาสด บอกขั้นถัดไปกับเวลาเช็กล่าสุด และแจ้งเตือนเมื่อสถานะเปลี่ยน
+
+### EN
+- The trade plan now shows Demand and Supply zones as price ranges, and which zone triggered a BUY or SELL
+- Numbered beginner steps, a confidence reading, and an example lot-size table at 1–2% of capital
+- A live “What the AI is doing” status follows the price, with the next step, last-check time, and alerts when that state changes
+
+### ZH
+- 交易计划现显示需求区与供给区的价格区间，并标明 BUY 或 SELL 来自哪一区
+- 用分步说明、信心水平，以及按资金 1–2% 风险计算的示例手数
+- 「AI 正在做什么」会随实时价格更新，并给出下一步、最近检查时间，以及状态变化时的提醒
+
+### JA
+- トレードプランに Demand Zone と Supply Zone の価格帯を表示し、BUY / SELL がどのゾーンから出たかを示す
+- 初心者向けの手順、信頼度、資金の 1–2% リスクで見たロット例を追加
+- 「AI が今していること」をライブ価格に合わせて更新し、次の一歩・最終確認時刻と、状態が変わったときの通知を出す
+
+
 ## 0.9.10 — 2026-11-13
 ### TH
 - แผนเทรดติดป้ายโซนซื้อ · BUY (เขียว) โซนขาย · SELL (แดง) หรือ รอ · WAIT เมื่อยังไม่มีจุดเข้า

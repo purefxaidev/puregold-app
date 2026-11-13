@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { readFileSync } from 'fs';
 
 function readVersion() {
-  const out = { VERSION_NAME: '0.9.10', VERSION_CODE: '23' };
+  const out = { VERSION_NAME: '0.9.11', VERSION_CODE: '24' };
   try {
     for (const line of readFileSync(new URL('./version.env', import.meta.url), 'utf8').split(/\n/)) {
       const m = line.match(/^([A-Z_]+)=(.*)$/);
