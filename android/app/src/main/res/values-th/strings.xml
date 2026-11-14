@@ -11,4 +11,5 @@
     <string name="overlay_close">ปิด</string>
     <string name="overlay_expand">ขยายหน้าต่าง</string>
     <string name="overlay_dismiss">ปิดหน้าต่างลอย</string>
+    <string name="overlay_resize">ลากเพื่อปรับขนาดหน้าต่างลอย</string>
 </resources>

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.14 — 2026-11-14
+### TH
+- หน้าต่างลอยปรับขนาดได้เอง: ลากด้ามจับลายกระจกทองที่มุมขวาล่าง เพื่อขยายหรือย่อความกว้างและความสูง
+- ขนาดถูกจำกัดให้อ่านได้ (ขั้นต่ำ 200×160 dp) และไม่ล้นจอ ส่วนข้อความจัดเรียงใหม่ให้พอดี ไม่ทับกัน และจำขนาดล่าสุดไว้ครั้งถัดไป
+- ยังลากย้ายตำแหน่ง ย่อเป็นฟองราคา และอัปเดตราคาสดได้เหมือนเดิม
+
+### EN
+- The floating window is now resizable: drag the gold-glass handle at the bottom-right corner to change width and height
+- Size is clamped so text stays readable (minimum 200×160 dp) and the card stays on screen; content reflows to fit, and the last size is remembered
+- Drag-to-move, minimize-to-bubble, and live prices still work as before
+
+
 ## 0.9.13 — 2026-11-13
 ### TH
 - ทุกการแจ้งเตือนขึ้นต้นด้วย «ราคาล่าสุด $X · ตอนนี้ BUY/SELL/รอ เพราะ…» และระบุ Demand Zone หรือ Supply Zone

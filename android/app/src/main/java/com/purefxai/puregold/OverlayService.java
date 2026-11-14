@@ -19,6 +19,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -45,6 +46,12 @@ public class OverlayService extends Service {
   private static final String CH = "pg_overlay";
   private static final long TICK_MS = 30_000L;
   private static final int HEAD_DP = 56;
+  /** Expanded-card size limits, in dp. Min stays readable; max is the screen minus a margin. */
+  static final int MIN_W_DP = 200;
+  static final int MIN_H_DP = 160;
+  static final int DEFAULT_W_DP = 220;
+  static final int DEFAULT_H_DP = 188;
+  static final int EDGE_MARGIN_DP = 8;
   private static volatile boolean running = false;
 
   private WindowManager wm;
@@ -218,6 +225,7 @@ public class OverlayService extends Service {
     lpCard = baseLp();
     lpCard.x = p.getInt("ov_x", dp(24));
     lpCard.y = p.getInt("ov_y", dp(160));
+    restoreCardSize();
 
     lpHead = baseLp();
     lpHead.x = p.getInt("ov_bx", dp(24));
@@ -240,6 +248,9 @@ public class OverlayService extends Service {
     View min = card.findViewById(R.id.ov_min);
     close.setOnClickListener(v -> closeOverlay());
     min.setOnClickListener(v -> showHead(true));
+
+    View resize = card.findViewById(R.id.ov_resize);
+    if (resize != null) resize.setOnTouchListener(new ResizeTouch());
 
     card.setOnTouchListener(new DragTouch(card, lpCard, false));
     head.setOnTouchListener(new DragTouch(head, lpHead, true));
@@ -279,7 +290,8 @@ public class OverlayService extends Service {
       if (!isHead) {
         View close = card.findViewById(R.id.ov_close);
         View min = card.findViewById(R.id.ov_min);
-        if ((hit(close, e) || hit(min, e)) && e.getAction() == MotionEvent.ACTION_DOWN) return false;
+        View resize = card.findViewById(R.id.ov_resize);
+        if ((hit(close, e) || hit(min, e) || hit(resize, e)) && e.getAction() == MotionEvent.ACTION_DOWN) return false;
       }
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
@@ -331,6 +343,105 @@ public class OverlayService extends Service {
       }
       return false;
     }
+  }
+
+  private final class ResizeTouch implements View.OnTouchListener {
+    float downRawX, downRawY;
+    int startW, startH;
+
+    @Override public boolean onTouch(View v, MotionEvent e) {
+      if (lpCard == null || card == null) return false;
+      switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          downRawX = e.getRawX();
+          downRawY = e.getRawY();
+          startW = sized(lpCard.width, card.getWidth(), dp(DEFAULT_W_DP));
+          startH = sized(lpCard.height, card.getHeight(), dp(DEFAULT_H_DP));
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          applyCardSize(
+              startW + (int) (e.getRawX() - downRawX),
+              startH + (int) (e.getRawY() - downRawY),
+              false);
+          return true;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_CANCEL:
+          applyCardSize(lpCard.width, lpCard.height, true);
+          clamp(card, lpCard);
+          return true;
+      }
+      return false;
+    }
+  }
+
+  private static int sized(int lpSize, int measured, int fallback) {
+    if (lpSize > 0) return lpSize;
+    if (measured > 0) return measured;
+    return fallback;
+  }
+
+  private int[] clampCardSize(int w, int h) {
+    DisplayMetrics dm = metrics();
+    int margin = dp(EDGE_MARGIN_DP);
+    int minW = dp(MIN_W_DP), minH = dp(MIN_H_DP);
+    int maxW = Math.max(minW, dm.widthPixels - margin * 2);
+    int maxH = Math.max(minH, dm.heightPixels - margin * 2);
+    if (lpCard != null) {
+      maxW = Math.min(maxW, Math.max(minW, dm.widthPixels - lpCard.x - margin));
+      maxH = Math.min(maxH, Math.max(minH, dm.heightPixels - lpCard.y - margin));
+    }
+    if (w < minW) w = minW;
+    if (h < minH) h = minH;
+    if (w > maxW) w = maxW;
+    if (h > maxH) h = maxH;
+    return new int[] { w, h };
+  }
+
+  private void applyCardSize(int w, int h, boolean persist) {
+    if (lpCard == null) return;
+    int[] wh = clampCardSize(w, h);
+    lpCard.width = wh[0];
+    lpCard.height = wh[1];
+    if (card != null && card.getParent() != null && wm != null) {
+      try { wm.updateViewLayout(card, lpCard); } catch (Exception ignore) {}
+    }
+    applyTypeScale();
+    if (persist) saveCardSize();
+  }
+
+  private void restoreCardSize() {
+    SharedPreferences p = prefs();
+    int w = p.getInt("ov_w", 0);
+    int h = p.getInt("ov_h", 0);
+    if (w < dp(MIN_W_DP) || h < dp(MIN_H_DP)) {
+      w = dp(DEFAULT_W_DP);
+      h = dp(DEFAULT_H_DP);
+    }
+    applyCardSize(w, h, false);
+  }
+
+  private void saveCardSize() {
+    if (lpCard == null) return;
+    if (lpCard.width > 0 && lpCard.height > 0) {
+      prefs().edit().putInt("ov_w", lpCard.width).putInt("ov_h", lpCard.height).apply();
+    }
+  }
+
+  private void applyTypeScale() {
+    if (card == null) return;
+    int width = lpCard != null && lpCard.width > 0 ? lpCard.width : card.getWidth();
+    float density = getResources().getDisplayMetrics().density;
+    float wdp = density > 0 && width > 0 ? width / density : DEFAULT_W_DP;
+    float s = Math.max(0.92f, Math.min(1.22f, wdp / (float) DEFAULT_W_DP));
+    setSp(card.findViewById(R.id.ov_xau), 18f * s);
+    setSp(card.findViewById(R.id.ov_thai), 12f * s);
+    setSp(card.findViewById(R.id.ov_signal), 14f * s);
+    setSp(card.findViewById(R.id.ov_plan), 11f * s);
+    setSp(card.findViewById(R.id.ov_updated), 10f * s);
+  }
+
+  private void setSp(View v, float sp) {
+    if (v instanceof TextView) ((TextView) v).setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
   }
 
   private void closeOverlay() {
@@ -488,8 +599,8 @@ public class OverlayService extends Service {
     if (v == null || lp == null || wm == null) return;
     DisplayMetrics dm = metrics();
     int margin = dp(2);
-    int vw = v.getWidth() > 0 ? v.getWidth() : dp(v == head ? HEAD_DP : 200);
-    int vh = v.getHeight() > 0 ? v.getHeight() : dp(v == head ? HEAD_DP : 150);
+    int vw = (lp.width > 0) ? lp.width : (v.getWidth() > 0 ? v.getWidth() : dp(v == head ? HEAD_DP : DEFAULT_W_DP));
+    int vh = (lp.height > 0) ? lp.height : (v.getHeight() > 0 ? v.getHeight() : dp(v == head ? HEAD_DP : DEFAULT_H_DP));
     lp.x = Math.max(margin, Math.min(lp.x, Math.max(margin, dm.widthPixels - vw - margin)));
     lp.y = Math.max(margin, Math.min(lp.y, Math.max(margin, dm.heightPixels - vh - margin)));
     if (v.getParent() != null) {
@@ -499,7 +610,13 @@ public class OverlayService extends Service {
 
   private void saveCardPos() {
     if (lpCard == null) return;
-    prefs().edit().putInt("ov_x", lpCard.x).putInt("ov_y", lpCard.y).putBoolean("ov_min", false).apply();
+    SharedPreferences.Editor ed = prefs().edit()
+        .putInt("ov_x", lpCard.x)
+        .putInt("ov_y", lpCard.y)
+        .putBoolean("ov_min", false);
+    if (lpCard.width > 0) ed.putInt("ov_w", lpCard.width);
+    if (lpCard.height > 0) ed.putInt("ov_h", lpCard.height);
+    ed.apply();
   }
 
   private void saveHeadPos() {
@@ -584,6 +701,8 @@ public class OverlayService extends Service {
     }
     View close = card.findViewById(R.id.ov_close);
     if (close != null) close.setContentDescription(th ? "ปิด" : "Close");
+    View resize = card.findViewById(R.id.ov_resize);
+    if (resize != null) resize.setContentDescription(th ? "ลากเพื่อปรับขนาดหน้าต่างลอย" : "Drag to resize the floating window");
 
     TextView xau = card.findViewById(R.id.ov_xau);
     TextView thaiV = card.findViewById(R.id.ov_thai);
@@ -612,15 +731,20 @@ public class OverlayService extends Service {
     sig.setText(s);
     sig.setTextColor(color);
 
+    View planScroll = card.findViewById(R.id.ov_plan_scroll);
     if (alert != null && !alert.isEmpty()) {
       plan.setText(alert);
       plan.setVisibility(View.VISIBLE);
+      if (planScroll != null) planScroll.setVisibility(View.VISIBLE);
     } else if (e0 > 0 && sl > 0 && tp > 0) {
       plan.setText(String.format(Locale.US, "E %.0f–%.0f  SL %.0f  TP %.0f", e0, e1, sl, tp));
       plan.setVisibility(View.VISIBLE);
+      if (planScroll != null) planScroll.setVisibility(View.VISIBLE);
     } else {
       plan.setVisibility(View.GONE);
+      if (planScroll != null) planScroll.setVisibility(View.GONE);
     }
+    applyTypeScale();
 
     if (upd != null) {
       if (at > 0) {

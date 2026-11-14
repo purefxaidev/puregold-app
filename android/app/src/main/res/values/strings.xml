@@ -13,4 +13,5 @@
     <string name="overlay_close">Close</string>
     <string name="overlay_expand">Expand window</string>
     <string name="overlay_dismiss">Close floating window</string>
+    <string name="overlay_resize">Drag to resize the floating window</string>
 </resources>

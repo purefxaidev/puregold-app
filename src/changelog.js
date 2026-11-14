@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.14',
+    date: '2026-11-14',
+    th: [
+      'หน้าต่างลอยปรับขนาดได้เอง: ลากด้ามจับลายกระจกทองที่มุมขวาล่าง เพื่อขยายหรือย่อความกว้างและความสูง',
+      'ขนาดถูกจำกัดให้อ่านได้ (ขั้นต่ำ 200×160 dp) และไม่ล้นจอ ส่วนข้อความจัดเรียงใหม่ให้พอดี ไม่ทับกัน และจำขนาดล่าสุดไว้ครั้งถัดไป',
+      'ยังลากย้ายตำแหน่ง ย่อเป็นฟองราคา และอัปเดตราคาสดได้เหมือนเดิม'
+    ],
+    en: [
+      'The floating window is now resizable: drag the gold-glass handle at the bottom-right corner to change width and height',
+      'Size is clamped so text stays readable (minimum 200×160 dp) and the card stays on screen; content reflows to fit, and the last size is remembered',
+      'Drag-to-move, minimize-to-bubble, and live prices still work as before'
+    ],
+    zh: [
+      '浮动窗口可自行调整大小：拖动右下角金色玻璃手柄即可改变宽高',
+      '尺寸限制在可读范围内（最小 200×160 dp）且不超出屏幕，内容会自动重排，并记住上次的大小',
+      '拖动移动、缩成气泡和实时报价仍照常工作'
+    ],
+    ja: [
+      'フローティングウィンドウを右下のゴールドガラスハンドルでドラッグして、幅と高さを変えられる',
+      '読みやすい最小サイズ（200×160 dp）と画面内に収まる最大サイズに制限し、内容は折り返し、前回のサイズを記憶する',
+      'ドラッグ移動・バブル最小化・ライブ価格の更新はそのまま'
+    ],
+  },
+  {
     version: '0.9.13',
     date: '2026-11-13',
     th: [

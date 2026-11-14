@@ -1,109 +1,141 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/ov_root"
-    android:layout_width="200dp"
-    android:layout_height="wrap_content"
-    android:minWidth="188dp"
-    android:orientation="vertical"
-    android:padding="12dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:minWidth="200dp"
+    android:minHeight="160dp"
     android:background="@drawable/widget_bg"
     android:elevation="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-        <TextView
-            android:id="@+id/ov_title"
-            android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingLeft="12dp"
+        android:paddingTop="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="PUREGOLD"
-            android:textColor="#F5D27A"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView
+                android:id="@+id/ov_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="PUREGOLD"
+                android:textColor="#F5D27A"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:ellipsize="end"
+                android:maxLines="1"/>
+            <TextView
+                android:id="@+id/ov_min"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minWidth="36dp"
+                android:text="Min"
+                android:textColor="#F5D27A"
+                android:textStyle="bold"
+                android:textSize="11sp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginRight="6dp"
+                android:background="@drawable/overlay_chip"
+                android:contentDescription="@string/overlay_minimize"
+                android:clickable="true"
+                android:focusable="true"/>
+            <TextView
+                android:id="@+id/ov_close"
+                android:contentDescription="@string/overlay_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✕"
+                android:textColor="#C9B48A"
+                android:textSize="16sp"
+                android:paddingLeft="10dp"
+                android:paddingTop="4dp"
+                android:paddingRight="4dp"
+                android:paddingBottom="4dp"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/ov_xau"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="XAU —"
+            android:textColor="#FFFFFF"
             android:textStyle="bold"
-            android:textSize="12sp"
+            android:textSize="18sp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
             android:maxLines="1"/>
         <TextView
-            android:id="@+id/ov_min"
-            android:layout_width="wrap_content"
+            android:id="@+id/ov_thai"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:minWidth="36dp"
-            android:text="Min"
+            android:text="ทองไทย —"
+            android:textColor="#C9B48A"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="2"/>
+        <TextView
+            android:id="@+id/ov_signal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="WAIT"
             android:textColor="#F5D27A"
             android:textStyle="bold"
-            android:textSize="11sp"
-            android:paddingLeft="8dp"
-            android:paddingRight="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp"
-            android:layout_marginRight="6dp"
-            android:background="@drawable/overlay_chip"
-            android:contentDescription="@string/overlay_minimize"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="2"/>
+        <ScrollView
+            android:id="@+id/ov_plan_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="2dp"
+            android:fillViewport="false"
+            android:scrollbars="none"
+            android:overScrollMode="ifContentScrolls">
+            <TextView
+                android:id="@+id/ov_plan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#A89F88"
+                android:textSize="11sp"/>
+        </ScrollView>
         <TextView
-            android:id="@+id/ov_close"
-            android:contentDescription="@string/overlay_close"
-            android:layout_width="wrap_content"
+            android:id="@+id/ov_updated"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="✕"
-            android:textColor="#C9B48A"
-            android:textSize="16sp"
-            android:paddingLeft="10dp"
-            android:paddingTop="4dp"
-            android:paddingRight="4dp"
-            android:paddingBottom="4dp"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:text=""
+            android:textColor="#6E6858"
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"/>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/ov_xau"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="XAU —"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:textSize="18sp"
-        android:layout_marginTop="4dp"
-        android:maxLines="1"/>
-    <TextView
-        android:id="@+id/ov_thai"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="ทองไทย —"
-        android:textColor="#C9B48A"
-        android:textSize="12sp"
-        android:layout_marginTop="2dp"
-        android:maxLines="2"/>
-    <TextView
-        android:id="@+id/ov_signal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="WAIT"
-        android:textColor="#F5D27A"
-        android:textStyle="bold"
-        android:textSize="14sp"
-        android:layout_marginTop="4dp"
-        android:maxLines="2"/>
-    <TextView
-        android:id="@+id/ov_plan"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#A89F88"
-        android:textSize="11sp"
-        android:layout_marginTop="2dp"
-        android:maxLines="6"/>
-    <TextView
-        android:id="@+id/ov_updated"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#6E6858"
-        android:textSize="10sp"
-        android:layout_marginTop="4dp"
-        android:maxLines="1"/>
-</LinearLayout>
+    <View
+        android:id="@+id/ov_resize"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="bottom|end"
+        android:background="@drawable/overlay_resize_handle"
+        android:contentDescription="@string/overlay_resize"
+        android:clickable="true"
+        android:focusable="true"/>
+</FrameLayout>
