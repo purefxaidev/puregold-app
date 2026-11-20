@@ -589,3 +589,12 @@ html.pg-mobile .tp-ds { grid-template-columns:1fr; }
 .tp-ai[data-ai="reversal"]{border-color:rgba(80,200,120,.55)}
 .tp-ai[data-ai="sideways"]{border-color:rgba(160,170,190,.55)}
 .tp-ai[data-ai="breakout"]{border-color:rgba(245,197,66,.55)}
+
+/* Next-gen Thai gold estimate row */
+.tg-est{display:block;margin-top:10px;padding:10px 12px;border-radius:14px;text-decoration:none;color:inherit;
+  background:linear-gradient(90deg,rgba(232,194,107,.14),rgba(232,194,107,.04));border:1px solid rgba(232,194,107,.35)}
+.tg-est .tge-h{display:flex;align-items:center;gap:8px;font-size:13px}
+.tg-est .tge-h b{margin-left:auto;font-size:19px;color:#f7dc96;font-variant-numeric:tabular-nums}
+.tg-est .tge-b{font-size:10px;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:999px;color:#f7dc96;border:1px solid rgba(232,194,107,.5)}
+.tg-est .tge-s{font-size:11.5px;opacity:.78;margin-top:4px;line-height:1.5}
+.tg-est .up{color:#3ddc97}.tg-est .dn{color:#ff6b6b}

@@ -479,6 +479,7 @@ function renderThai() {
     src.textContent = t('src') + (stamp ? ' · ' + stamp : '') + (stale ? (useTh ? ' · ล่าช้า' : ' · delayed') : '');
     src.classList.toggle('stale', stale);
   }
+  renderThaiEst();
 }
 
 function renderSetup() {
@@ -1909,8 +1910,43 @@ function checkCustomAlerts(price) {
   renderAlertHist();
 }
 
+/* ---- Next-gen Thai gold: AI estimate (ESTIMATE) vs announced (REAL) ---- */
+let THAI_EST = null;
+function estAge(iso) {
+  const ms = Date.now() - (Date.parse(iso || '') || 0);
+  if (!(ms >= 0) || ms > 1e11) return '';
+  const s = Math.round(ms / 1000), th = L !== 'en';
+  if (s < 120) return s + (th ? ' วินาทีที่แล้ว' : ' s ago');
+  if (s < 3600) return Math.floor(s / 60) + (th ? ' นาทีที่แล้ว' : ' min ago');
+  return Math.floor(s / 3600) + (th ? ' ชม. ' : ' h ') + Math.floor((s % 3600) / 60) + (th ? ' นาทีที่แล้ว' : ' min ago');
+}
+function renderThaiEst() {
+  const el = $('tgEst');
+  const d = THAI_EST;
+  if (!el || !d || !d.estimate) return;
+  const th = L !== 'en', e = d.estimate, o = d.official || {}, m = d.market || {};
+  const cur = window.__THAI_GOLD && window.__THAI_GOLD.bar ? window.__THAI_GOLD.bar.sell : o.bar_sell;
+  const dv = cur ? e.bar_sell - cur : null;
+  const dvTxt = dv == null ? '' : (dv > 0 ? '+' : dv < 0 ? '−' : '±') + fmtThb(Math.abs(dv));
+  el.innerHTML = `<div class="tge-h"><span class="tge-b">ESTIMATE</span><span>${th ? 'ราคาประเมิน AI · ขายออก' : 'AI estimate · sell'}</span><b>${fmtThb(e.bar_sell)}</b></div>
+    <div class="tge-s">${dv == null ? '' : `<span class="${dv > 0 ? 'up' : dv < 0 ? 'dn' : 'mut'}">${th ? 'ต่างจากราคาประกาศ ' : 'vs announced '}${dvTxt}</span> · `}${esc(th ? (m.label_th || '') : (m.label_en || ''))} · ${th ? 'คำนวณ ' : 'computed '}${estAge(e.computed_at)}</div>
+    <div class="tge-s">${th ? 'XAU/USD × USD/THB × ค่าปรับเทียบ · ไม่ใช่ราคาซื้อขายจริง · ดูที่มาทุกราคา →' : 'XAU/USD × USD/THB × calibration · not a dealing price · every source →'}</div>`;
+  if (!el.onclick) el.onclick = openExt('https://gold.purefxai.store/thai-gold/');
+  el.hidden = false;
+}
+async function loadThaiEst() {
+  for (const u of ['https://gold.purefxai.store/data/thai_gold_estimate.json', 'https://dashboard.purefxai.store/thai_gold_estimate.json']) {
+    try {
+      const r = await fetch(u + '?t=' + Date.now(), { cache: 'no-store' });
+      if (r && r.ok) { const j = await r.json(); if (j && j.estimate) { THAI_EST = j; break; } }
+    } catch (e) {}
+  }
+  renderThaiEst();
+}
+
 /* ---- Data load ---- */
 async function loadThai() {
+  loadThaiEst();
   let jsonDoc = null, feedDoc = null;
   const jsonUrls = [
     'https://gold.purefxai.store/data/thai_gold.json',

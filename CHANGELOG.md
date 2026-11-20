@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.16 — 2026-11-21
+### TH
+- การ์ดทองไทยแสดง «ราคาประเมิน AI» (ESTIMATE) ของทองคำแท่ง 96.5% จาก XAU/USD × USD/THB × ค่าปรับเทียบ พร้อมส่วนต่างจากราคาประกาศ สถานะตลาดโลก และเวลาที่คำนวณ
+- แตะการ์ดราคาประเมินเพื่อเปิดหน้าราคาทองไทยแบบเต็ม ที่บอกที่มาและเวลาอัปเดตของทุกราคา พร้อมค่าคลาดเคลื่อนจริง
+- แก้แผนเทรดที่ไม่แสดงผลจริงของแผนและตัวคำนวณล็อตในบางหน้าจอ
+
+### EN
+- The Thai gold card shows an “AI estimate” (ESTIMATE) for the 96.5% bar from XAU/USD × USD/THB × calibration, with its gap to the announced price, the global market state, and when it was computed
+- Tap the estimate to open the full Thai gold page with the source and age of every price and the real error
+- Fixed plan results and the lot calculator not showing on some screens
+
+
 ## 0.9.15 — 2026-11-21
 ### TH
 - หน้าต่างลอยปรับขนาดได้จากทุกมุมและทุกขอบ พร้อมด้ามจับกระจกทอง และบีบสองนิ้วเพื่อย่อหรือขยาย มีสั่นเบาเมื่อเริ่มลากหรือชนขนาดต่ำสุด/สูงสุด

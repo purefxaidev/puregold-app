@@ -1,6 +1,30 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.16',
+    date: '2026-11-21',
+    th: [
+      'การ์ดทองไทยแสดง «ราคาประเมิน AI» (ESTIMATE) ของทองคำแท่ง 96.5% จาก XAU/USD × USD/THB × ค่าปรับเทียบ พร้อมส่วนต่างจากราคาประกาศ สถานะตลาดโลก และเวลาที่คำนวณ',
+      'แตะการ์ดราคาประเมินเพื่อเปิดหน้าราคาทองไทยแบบเต็ม ที่บอกที่มาและเวลาอัปเดตของทุกราคา พร้อมค่าคลาดเคลื่อนจริง',
+      'แก้แผนเทรดที่ไม่แสดงผลจริงของแผนและตัวคำนวณล็อตในบางหน้าจอ'
+    ],
+    en: [
+      'The Thai gold card shows an “AI estimate” (ESTIMATE) for the 96.5% bar from XAU/USD × USD/THB × calibration, with its gap to the announced price, the global market state, and when it was computed',
+      'Tap the estimate to open the full Thai gold page with the source and age of every price and the real error',
+      'Fixed plan results and the lot calculator not showing on some screens'
+    ],
+    zh: [
+      '泰国金卡片显示 96.5% 金条的「AI 估算价」（ESTIMATE），由 XAU/USD × USD/THB × 校准系数计算，并显示与公布价的差额、国际市场状态和计算时间',
+      '点击估算价可打开完整的泰国金价格页面，查看每个价格的来源、更新时间和真实误差',
+      '修复部分页面不显示计划结果和手数计算器的问题'
+    ],
+    ja: [
+      'タイ金カードに 96.5% 金地金の「AI 推定価格」（ESTIMATE）を表示。XAU/USD × USD/THB × 補正係数で計算し、公表価格との差、海外市場の状態、計算時刻も表示',
+      '推定価格をタップすると、すべての価格の出所・更新時刻・実際の誤差を載せたタイ金ページを開く',
+      '一部の画面でプラン実績とロット計算が表示されない問題を修正'
+    ],
+  },
+  {
     version: '0.9.15',
     date: '2026-11-21',
     th: [
