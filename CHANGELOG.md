@@ -2,16 +2,16 @@
 
 ## 0.9.15 — 2026-11-21
 ### TH
-- หน้าต่างลอยปรับขนาดได้จากทั้งสี่มุม และบีบสองนิ้วเพื่อย่อหรือขยาย
-- มีปุ่มขนาด S / M / L และแตะสองครั้งที่หัวหน้าต่างเพื่อสลับขนาด แถบความโปร่งใส 40–100% จำค่าไว้ให้
-- ขนาดเล็กแสดงราคาและสัญญาณ ขนาดกลางเพิ่มทองไทยกับสรุปแผน ขนาดใหญ่เพิ่มกราฟเทียน XAU จุดเข้า/SL/TP และสถานะ «AI กำลังทำอะไรอยู่»
-- ปล่อยใกล้ขอบจอแล้วดูดติดขอบ ไม่ล้นจอแม้หมุนเครื่อง จำขนาด ตำแหน่ง และความโปร่งใส ยังลากย้าย ย่อเป็นฟอง และอัปเดตราคาสดได้เหมือนเดิม
+- หน้าต่างลอยปรับขนาดได้จากทุกมุมและทุกขอบ พร้อมด้ามจับกระจกทอง และบีบสองนิ้วเพื่อย่อหรือขยาย มีสั่นเบาเมื่อเริ่มลากหรือชนขนาดต่ำสุด/สูงสุด
+- ปุ่มขนาด «เล็ก / กลาง / ใหญ่» และแตะสองครั้งที่หัวหน้าต่างเพื่อสลับขนาด มีแถบความโปร่งใส 40–100% จำค่าไว้ให้
+- ขนาดเล็กแสดงราคาและสัญญาณ ขนาดกลางเพิ่มทองไทยรับซื้อ–ขายออกกับสรุปแผน ขนาดใหญ่เพิ่มกราฟเทียน XAU จุดเข้า/SL/TP และสถานะ «AI กำลังทำอะไรอยู่»
+- ลายกระจกทองแบบ iPhone มีไฮไลต์และเบลอพื้นหลังบนเครื่องที่รองรับ ปล่อยใกล้ขอบจอแล้วดูดติดขอบ ไม่ล้นจอแม้หมุนเครื่อง จำขนาด ตำแหน่ง และความโปร่งใส ยังลากย้าย ย่อเป็นฟอง และอัปเดตราคาสดได้เหมือนเดิม
 
 ### EN
-- Resize the floating window from all four corners, or pinch with two fingers
-- S / M / L size presets, double-tap the header to cycle them, and a 40–100% opacity slider, all remembered
-- Small shows price and signal; medium adds Thai gold and the plan summary; large adds a mini XAU candle chart, entry/SL/TP, and “What the AI is doing”
-- Release near a screen edge to snap to it; the window stays on screen after rotation. Size, position, and opacity are saved. Drag-to-move, minimize-to-bubble, and live prices still work
+- Resize the floating window from any corner or edge with gold-glass handles, or pinch with two fingers; a light haptic marks the start of a resize and the min/max size
+- Small / medium / large presets («เล็ก / กลาง / ใหญ่»), double-tap the header to cycle them, and a 40–100% opacity slider, all remembered
+- Small shows price and signal; medium adds Thai gold buy-back and sell prices plus the plan summary; large adds a mini XAU candle chart, entry/SL/TP, and “What the AI is doing”
+- An iPhone-style gold-glass look with a highlight and backdrop blur where the system allows. Release near a screen edge to snap to it; the window stays on screen after rotation. Size, position, and opacity are saved. Drag-to-move, minimize-to-bubble, and live prices still work
 
 
 ## 0.9.14 — 2026-11-14
