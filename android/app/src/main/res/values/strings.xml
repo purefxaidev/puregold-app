@@ -14,4 +14,16 @@
     <string name="overlay_expand">Expand window</string>
     <string name="overlay_dismiss">Close floating window</string>
     <string name="overlay_resize">Drag to resize the floating window</string>
+    <string name="overlay_resize_tl">Drag the top-left corner to resize</string>
+    <string name="overlay_resize_tr">Drag the top-right corner to resize</string>
+    <string name="overlay_resize_bl">Drag the bottom-left corner to resize</string>
+    <string name="overlay_preset_s">Small size</string>
+    <string name="overlay_preset_m">Medium size</string>
+    <string name="overlay_preset_l">Large size</string>
+    <string name="overlay_opacity">Window opacity</string>
+    <string name="overlay_ai">What the AI is doing</string>
+    <string name="overlay_resize_t">Drag the top edge to resize</string>
+    <string name="overlay_resize_b">Drag the bottom edge to resize</string>
+    <string name="overlay_resize_l">Drag the left edge to resize</string>
+    <string name="overlay_resize_r">Drag the right edge to resize</string>
 </resources>

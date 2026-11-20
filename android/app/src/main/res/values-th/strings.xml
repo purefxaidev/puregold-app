@@ -12,4 +12,16 @@
     <string name="overlay_expand">ขยายหน้าต่าง</string>
     <string name="overlay_dismiss">ปิดหน้าต่างลอย</string>
     <string name="overlay_resize">ลากเพื่อปรับขนาดหน้าต่างลอย</string>
+    <string name="overlay_resize_tl">ลากมุมซ้ายบนเพื่อปรับขนาด</string>
+    <string name="overlay_resize_tr">ลากมุมขวาบนเพื่อปรับขนาด</string>
+    <string name="overlay_resize_bl">ลากมุมซ้ายล่างเพื่อปรับขนาด</string>
+    <string name="overlay_preset_s">ขนาดเล็ก</string>
+    <string name="overlay_preset_m">ขนาดกลาง</string>
+    <string name="overlay_preset_l">ขนาดใหญ่</string>
+    <string name="overlay_opacity">ความโปร่งใสของหน้าต่าง</string>
+    <string name="overlay_ai">AI กำลังทำอะไรอยู่</string>
+    <string name="overlay_resize_t">ลากขอบบนเพื่อปรับขนาด</string>
+    <string name="overlay_resize_b">ลากขอบล่างเพื่อปรับขนาด</string>
+    <string name="overlay_resize_l">ลากขอบซ้ายเพื่อปรับขนาด</string>
+    <string name="overlay_resize_r">ลากขอบขวาเพื่อปรับขนาด</string>
 </resources>

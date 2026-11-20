@@ -27,7 +27,8 @@ public class GoldWorker extends Worker {
       GoldSpot.Quote fx=GoldSpot.resolve();
       if(fx==null) throw new Exception("fx_spot");
       double spot=fx.price;
-      double basis=spot-px, atr=0; for(int i=n-14;i<n;i++) atr+=Math.max(H[i]-L[i],Math.max(Math.abs(H[i]-C[i-1]),Math.abs(L[i]-C[i-1])));atr/=14;
+      double basis=spot-px, atr=0;
+      persistKlines(p,k,basis); for(int i=n-14;i<n;i++) atr+=Math.max(H[i]-L[i],Math.max(Math.abs(H[i]-C[i-1]),Math.abs(L[i]-C[i-1])));atr/=14;
       List<Double> pv=new ArrayList<>(); for(int i=3;i<n-3;i++){boolean hi=true,lo=true;for(int j=i-3;j<=i+3;j++){if(H[j]>H[i])hi=false;if(L[j]<L[i])lo=false;}if(hi)pv.add(H[i]+basis);if(lo)pv.add(L[i]+basis);}
       Collections.sort(pv); List<Double> lv=new ArrayList<>(); double s=0;int m=0;
       for(double x:pv){ if(m>0&&Math.abs(x-s/m)<=atr*.5){s+=x;m++;}else{if(m>0)lv.add(s/m);s=x;m=1;} } if(m>0)lv.add(s/m);
@@ -35,7 +36,7 @@ public class GoldWorker extends Worker {
       double[] e20=ema(C,20),e50=ema(C,50); double g=0,l=0; for(int i=n-14;i<n;i++){double d=C[i]-C[i-1];if(d>0)g+=d;else l-=d;} double rsi=l==0?100:100-100/(1+g/l);
       double sc=Math.max(-1,Math.min(1,(e20[n-1]-e50[n-1])/atr))*.6+Math.max(-1,Math.min(1,(rsi-50)/20))*.4;
       String bias=sc>.2?"up":sc<-.2?"down":"side";
-      String thai=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("REF".equals(o.optString("GoldType")))thai=o.optString("Sell");}}catch(Exception e){}
+      String thai="", thaiBuy=""; try{JSONArray t=new JSONArray(get("https://apicheckprice.huasengheng.com/api/values/getprice/"));for(int i=0;i<t.length();i++){JSONObject o=t.getJSONObject(i);if("REF".equals(o.optString("GoldType"))){thai=o.optString("Sell");thaiBuy=o.optString("Buy");}}}catch(Exception e){}
       boolean th="th".equals(p.getString("lang","th"));
       String lastBias=p.getString("bias",""); double lastPx=p.getFloat("px",0f), lastRes=p.getFloat("res",0f), lastSup=p.getFloat("sup",0f);
       boolean dashSr=false;
@@ -67,10 +68,11 @@ public class GoldWorker extends Worker {
         if(al!=null){
           p.edit().putString("snap_alert", text).putString("snap_stance", th?al.optString("stance","รอ"):al.optString("stance_en","waiting")).apply();
         }
+        persistPlanOverlay(p, planDoc, text, th);
       }
             JSONObject js=new JSONObject().put("price",spot).put("res",res).put("sup",sup).put("bias",bias).put("rsi",rsi).put("thaiSell",thai);
       p.edit().putString("bias",bias).putFloat("px",(float)spot).putFloat("res",(float)res).putFloat("sup",(float)sup).putString("lastText",text).putLong("lastAt",System.currentTimeMillis()).putString("lastJson",js.toString())
-        .putFloat("snap_price",(float)spot).putString("snap_bias",bias).putString("snap_thaiSell",thai)
+        .putFloat("snap_price",(float)spot).putString("snap_bias",bias).putString("snap_thaiSell",thai).putString("snap_thaiBuy",thaiBuy)
         .putLong("snap_at",System.currentTimeMillis()).apply();
       try{ GoldWidget.updateAll(c); OverlayService.refresh(c);}catch(Exception ignore){}
       // Custom price alerts from SharedPreferences JSON
@@ -201,4 +203,60 @@ public class GoldWorker extends Worker {
       done.await(45,TimeUnit.SECONDS);
     }catch(Exception e){} finally{try{t[0].shutdown();}catch(Exception ignored){}}
   }
+
+  static void persistKlines(SharedPreferences p, JSONArray k, double basis){
+    if(p==null||k==null) return;
+    try{
+      int n=k.length();
+      int from=Math.max(0,n-48);
+      JSONArray out=new JSONArray();
+      for(int i=from;i<n;i++){
+        JSONArray r=k.getJSONArray(i);
+        JSONArray b=new JSONArray();
+        b.put(Math.round((r.getDouble(1)+basis)*100.0)/100.0);
+        b.put(Math.round((r.getDouble(2)+basis)*100.0)/100.0);
+        b.put(Math.round((r.getDouble(3)+basis)*100.0)/100.0);
+        b.put(Math.round((r.getDouble(4)+basis)*100.0)/100.0);
+        out.put(b);
+      }
+      p.edit().putString("snap_klines", out.toString()).apply();
+    }catch(Exception ignore){}
+  }
+  static void persistPlanOverlay(SharedPreferences p, JSONObject plan, String text, boolean th){
+    if(p==null||plan==null) return;
+    try{
+      SharedPreferences.Editor e=p.edit();
+      double entry=plan.optDouble("entry",0);
+      double e0=plan.optDouble("entry_low", entry);
+      double e1=plan.optDouble("entry_high", entry);
+      double sl=plan.optDouble("sl",0);
+      double tp=0;
+      JSONArray tps=plan.optJSONArray("tps");
+      if(tps!=null && tps.length()>0){
+        JSONObject t1=tps.optJSONObject(0);
+        tp=t1!=null ? t1.optDouble("price",0) : tps.optDouble(0,0);
+      }
+      if(e0>0) e.putFloat("snap_entry0",(float)e0);
+      if(e1>0) e.putFloat("snap_entry1",(float)e1);
+      if(sl>0) e.putFloat("snap_sl",(float)sl);
+      if(tp>0) e.putFloat("snap_tp",(float)tp);
+      String side=plan.optString("side","");
+      if("buy".equalsIgnoreCase(side)) e.putString("snap_side","BUY");
+      else if("sell".equalsIgnoreCase(side)) e.putString("snap_side","SELL");
+      else if(!side.isEmpty()) e.putString("snap_side","WAIT");
+      JSONObject al=plan.optJSONObject("alert");
+      String reason="";
+      if(al!=null){
+        reason=th?al.optString("reason_th",""):al.optString("reason_en","");
+        String stance=th?al.optString("stance",""):al.optString("stance_en","");
+        if(!stance.isEmpty()) e.putString("snap_stance", stance);
+        if(!reason.isEmpty()) e.putString("snap_reason", reason);
+      }
+      String ai=reason;
+      if(ai==null || ai.isEmpty()) ai=text==null?"":text;
+      if(!ai.isEmpty()) e.putString("snap_ai", ai);
+      e.apply();
+    }catch(Exception ignore){}
+  }
+
 }

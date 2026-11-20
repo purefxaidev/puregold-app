@@ -84,6 +84,8 @@ public class PgPlugin extends Plugin {
     String thaiBuy=c.getString("thaiBuy",null); if(thaiBuy!=null) e.putString("snap_thaiBuy",thaiBuy);
     String alert=c.getString("alert",null); if(alert!=null) e.putString("snap_alert",alert);
     String stance=c.getString("stance",null); if(stance!=null) e.putString("snap_stance",stance);
+    String ai=c.getString("ai",null); if(ai!=null) e.putString("snap_ai",ai);
+    String klines=c.getString("klines",null); if(klines!=null) e.putString("snap_klines",klines);
     String lang=c.getString("lang",null); if(lang!=null) e.putString("lang",lang);
     e.putLong("snap_at",System.currentTimeMillis());
     e.apply();

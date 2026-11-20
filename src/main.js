@@ -23,7 +23,7 @@ const LATEST_URLS = [
   'https://gold.purefxai.store/data/latest.json',
   'https://gold.purefxai.store/version.json',
 ];
-const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.14');
+const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.9.15');
 const APP_VERSION_CODE = (typeof __APP_VERSION_CODE__ !== 'undefined' ? __APP_VERSION_CODE__ : 26);
 const UPDATE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const PLAN_ALERT_COOLDOWN_MS = 2 * 60 * 60 * 1000;
@@ -1511,7 +1511,10 @@ async function pushNativeSnapshot() {
     }
     const px = displayPrice() || A.price;
     const deskSide = (TRADE_PLAN && TRADE_PLAN.side) ? TRADE_PLAN.side : (S.side || 'WAIT');
-    const lead = TRADE_PLAN ? alertLead(TRADE_PLAN, px, L === 'en' ? 'en' : 'th', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }) : '';
+    const planCtx = TRADE_PLAN ? { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news } : null;
+    const lead = TRADE_PLAN ? alertLead(TRADE_PLAN, px, L === 'en' ? 'en' : 'th', planCtx) : '';
+    const act = TRADE_PLAN ? aiActivity(TRADE_PLAN, px, planCtx) : null;
+    const ai = act ? (L === 'en' ? (act.en || '') : (act.th || '')) : '';
     await Pg.pushSnapshot({
       price: px,
       bias: A.bias?.dir || 'side',
@@ -1524,7 +1527,8 @@ async function pushNativeSnapshot() {
       thaiSell, thaiBuy,
       lang: L,
       alert: lead,
-      stance: TRADE_PLAN ? ((L === 'en' ? (formatPlanAlert(TRADE_PLAN, px, 'en', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }).stance) : (formatPlanAlert(TRADE_PLAN, px, 'th', { h1: TRADE_PLAN.h1, news: TRADE_PLAN.news }).stance)) || deskSide) : (S.side || 'WAIT'),
+      ai,
+      stance: TRADE_PLAN ? ((L === 'en' ? (formatPlanAlert(TRADE_PLAN, px, 'en', planCtx).stance) : (formatPlanAlert(TRADE_PLAN, px, 'th', planCtx).stance)) || deskSide) : (S.side || 'WAIT'),
     });
   } catch (e) {}
 }

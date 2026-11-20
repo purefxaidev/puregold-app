@@ -5,19 +5,22 @@
     android:layout_height="match_parent"
     android:minWidth="200dp"
     android:minHeight="160dp"
-    android:background="@drawable/widget_bg"
-    android:elevation="10dp">
+    android:background="@drawable/overlay_glass_bg"
+    android:clipToPadding="false"
+    android:clipChildren="false"
+    android:elevation="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="12dp"
-        android:paddingTop="12dp"
-        android:paddingRight="12dp"
+        android:paddingLeft="14dp"
+        android:paddingTop="13dp"
+        android:paddingRight="14dp"
         android:paddingBottom="22dp">
 
         <LinearLayout
+            android:id="@+id/ov_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -28,9 +31,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="PUREGOLD"
-                android:textColor="#F5D27A"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.14"
+                android:textColor="#F8E3A8"
                 android:textStyle="bold"
-                android:textSize="12sp"
+                android:textSize="11sp"
+                android:shadowColor="#66000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"
                 android:ellipsize="end"
                 android:maxLines="1"/>
             <TextView
@@ -39,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:minWidth="36dp"
-                android:text="Min"
+                android:text="ย่อ"
                 android:textColor="#F5D27A"
                 android:textStyle="bold"
                 android:textSize="11sp"
@@ -59,7 +68,7 @@
                 android:layout_height="wrap_content"
                 android:text="✕"
                 android:textColor="#C9B48A"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:paddingLeft="10dp"
                 android:paddingTop="4dp"
                 android:paddingRight="4dp"
@@ -68,44 +77,162 @@
                 android:focusable="true"/>
         </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="7dp"
+            android:background="#33F5D27A"/>
+
+        <LinearLayout
+            android:id="@+id/ov_controls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="7dp">
+            <TextView
+                android:id="@+id/ov_sz_s"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="เล็ก"
+                android:textColor="#F5D27A"
+                android:textStyle="bold"
+                android:textSize="10sp"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginRight="4dp"
+                android:background="@drawable/overlay_chip"
+                android:contentDescription="@string/overlay_preset_s"
+                android:clickable="true"
+                android:focusable="true"/>
+            <TextView
+                android:id="@+id/ov_sz_m"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="กลาง"
+                android:textColor="#F5D27A"
+                android:textStyle="bold"
+                android:textSize="10sp"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginRight="4dp"
+                android:background="@drawable/overlay_chip"
+                android:contentDescription="@string/overlay_preset_m"
+                android:clickable="true"
+                android:focusable="true"/>
+            <TextView
+                android:id="@+id/ov_sz_l"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="ใหญ่"
+                android:textColor="#F5D27A"
+                android:textStyle="bold"
+                android:textSize="10sp"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginRight="8dp"
+                android:background="@drawable/overlay_chip"
+                android:contentDescription="@string/overlay_preset_l"
+                android:clickable="true"
+                android:focusable="true"/>
+            <com.purefxai.puregold.OverlayOpacityBar
+                android:id="@+id/ov_opacity"
+                android:layout_width="0dp"
+                android:layout_height="22dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/overlay_opacity"/>
+        </LinearLayout>
+
         <TextView
             android:id="@+id/ov_xau"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="XAU —"
-            android:textColor="#FFFFFF"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#FFF8EE"
             android:textStyle="bold"
             android:textSize="18sp"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="6dp"
             android:ellipsize="end"
             android:maxLines="1"/>
-        <TextView
-            android:id="@+id/ov_thai"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="ทองไทย —"
-            android:textColor="#C9B48A"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="2"/>
         <TextView
             android:id="@+id/ov_signal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="WAIT"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#F5D27A"
             android:textStyle="bold"
             android:textSize="14sp"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
             android:maxLines="2"/>
+        <TextView
+            android:id="@+id/ov_thai"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ทองไทย —"
+            android:textColor="#D4C4A0"
+            android:textSize="12sp"
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
+            android:maxLines="2"/>
+
+        <com.purefxai.puregold.OverlaySparkView
+            android:id="@+id/ov_chart"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/ov_levels"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#D4C4A0"
+            android:textSize="11sp"
+            android:layout_marginTop="5dp"
+            android:ellipsize="end"
+            android:maxLines="2"/>
+
+        <TextView
+            android:id="@+id/ov_ai_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/overlay_ai"
+            android:letterSpacing="0.06"
+            android:textColor="#F5D27A"
+            android:textStyle="bold"
+            android:textSize="10sp"
+            android:layout_marginTop="7dp"
+            android:ellipsize="end"
+            android:maxLines="1"/>
+        <TextView
+            android:id="@+id/ov_ai"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#C9B48A"
+            android:textSize="11sp"
+            android:layout_marginTop="1dp"
+            android:maxLines="4"
+            android:ellipsize="end"/>
+
         <ScrollView
             android:id="@+id/ov_plan_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
             android:fillViewport="false"
             android:scrollbars="none"
             android:overScrollMode="ifContentScrolls">
@@ -122,7 +249,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text=""
-            android:textColor="#6E6858"
+            android:textColor="#7A7364"
             android:textSize="10sp"
             android:layout_marginTop="4dp"
             android:ellipsize="end"
@@ -130,9 +257,78 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/ov_resize_t"
+        android:layout_width="40dp"
+        android:layout_height="18dp"
+        android:layout_gravity="top|center_horizontal"
+        android:background="@drawable/overlay_edge_handle"
+        android:contentDescription="@string/overlay_resize_t"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
+        android:id="@+id/ov_resize_b"
+        android:layout_width="40dp"
+        android:layout_height="18dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@drawable/overlay_edge_handle"
+        android:contentDescription="@string/overlay_resize_b"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
+        android:id="@+id/ov_resize_l"
+        android:layout_width="18dp"
+        android:layout_height="40dp"
+        android:layout_gravity="start|center_vertical"
+        android:background="@drawable/overlay_edge_handle"
+        android:rotation="90"
+        android:contentDescription="@string/overlay_resize_l"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
+        android:id="@+id/ov_resize_r"
+        android:layout_width="18dp"
+        android:layout_height="40dp"
+        android:layout_gravity="end|center_vertical"
+        android:background="@drawable/overlay_edge_handle"
+        android:rotation="90"
+        android:contentDescription="@string/overlay_resize_r"
+        android:clickable="true"
+        android:focusable="true"/>
+
+    <View
+        android:id="@+id/ov_resize_tl"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="top|start"
+        android:background="@drawable/overlay_resize_handle"
+        android:rotation="180"
+        android:contentDescription="@string/overlay_resize_tl"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
+        android:id="@+id/ov_resize_tr"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="top|end"
+        android:background="@drawable/overlay_resize_handle"
+        android:scaleY="-1"
+        android:contentDescription="@string/overlay_resize_tr"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
+        android:id="@+id/ov_resize_bl"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="bottom|start"
+        android:background="@drawable/overlay_resize_handle"
+        android:scaleX="-1"
+        android:contentDescription="@string/overlay_resize_bl"
+        android:clickable="true"
+        android:focusable="true"/>
+    <View
         android:id="@+id/ov_resize"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:layout_gravity="bottom|end"
         android:background="@drawable/overlay_resize_handle"
         android:contentDescription="@string/overlay_resize"

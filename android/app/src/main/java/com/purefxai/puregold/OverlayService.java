@@ -11,12 +11,14 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
@@ -24,6 +26,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.HapticFeedbackConstants;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
@@ -49,9 +52,15 @@ public class OverlayService extends Service {
   /** Expanded-card size limits, in dp. Min stays readable; max is the screen minus a margin. */
   static final int MIN_W_DP = 200;
   static final int MIN_H_DP = 160;
-  static final int DEFAULT_W_DP = 220;
-  static final int DEFAULT_H_DP = 188;
+  static final int DEFAULT_W_DP = 248;
+  static final int DEFAULT_H_DP = 228;
   static final int EDGE_MARGIN_DP = 8;
+  static final int SNAP_DP = 28;
+  static final int PRESET_S_W = 200, PRESET_S_H = 160;
+  static final int PRESET_M_W = 248, PRESET_M_H = 228;
+  static final int PRESET_L_W = 312, PRESET_L_H = 360;
+  static final int TIER_S = 0, TIER_M = 1, TIER_L = 2;
+  static final int ALPHA_MIN = 40, ALPHA_MAX = 100;
   private static volatile boolean running = false;
 
   private WindowManager wm;
@@ -70,6 +79,10 @@ public class OverlayService extends Service {
   private boolean minimized = false;
   private boolean trashHot = false;
   private int touchSlop;
+  private int cardAlpha = ALPHA_MAX;
+  private long lastHeaderTap = 0L;
+  private int lastTier = -1;
+  private boolean sizeClampedTick = false;
 
   static boolean isRunning() { return running; }
 
@@ -161,13 +174,14 @@ public class OverlayService extends Service {
           GoldSpot.Quote fx = GoldSpot.resolve();
           if (fx != null) px = (float) fx.price;
         } catch (Exception ignore) {}
-        String thaiSell = "";
+        String thaiSell = "", thaiBuy = "";
         try {
           JSONArray t = new JSONArray(GoldWorker.get("https://apicheckprice.huasengheng.com/api/values/getprice/"));
           for (int i = 0; i < t.length(); i++) {
             JSONObject o = t.getJSONObject(i);
             if ("REF".equals(o.optString("GoldType"))) {
               thaiSell = o.optString("Sell");
+              thaiBuy = o.optString("Buy");
               break;
             }
           }
@@ -175,6 +189,7 @@ public class OverlayService extends Service {
         SharedPreferences.Editor e = prefs().edit();
         if (px > 0) e.putFloat("snap_price", px);
         if (thaiSell != null && !thaiSell.isEmpty()) e.putString("snap_thaiSell", thaiSell);
+        if (thaiBuy != null && !thaiBuy.isEmpty()) e.putString("snap_thaiBuy", thaiBuy);
         e.putLong("snap_at", System.currentTimeMillis());
         e.apply();
         ui.post(() -> {
@@ -223,9 +238,11 @@ public class OverlayService extends Service {
     trash = LayoutInflater.from(this).inflate(R.layout.overlay_close_target, null);
 
     lpCard = baseLp();
+    applyGlass(lpCard);
     lpCard.x = p.getInt("ov_x", dp(24));
     lpCard.y = p.getInt("ov_y", dp(160));
     restoreCardSize();
+    restoreCardAlpha();
 
     lpHead = baseLp();
     lpHead.x = p.getInt("ov_bx", dp(24));
@@ -249,8 +266,27 @@ public class OverlayService extends Service {
     close.setOnClickListener(v -> closeOverlay());
     min.setOnClickListener(v -> showHead(true));
 
-    View resize = card.findViewById(R.id.ov_resize);
-    if (resize != null) resize.setOnTouchListener(new ResizeTouch());
+    wireResize(R.id.ov_resize, 1, 1);
+    wireResize(R.id.ov_resize_tl, -1, -1);
+    wireResize(R.id.ov_resize_tr, 1, -1);
+    wireResize(R.id.ov_resize_bl, -1, 1);
+    wireResize(R.id.ov_resize_t, 0, -1);
+    wireResize(R.id.ov_resize_b, 0, 1);
+    wireResize(R.id.ov_resize_l, -1, 0);
+    wireResize(R.id.ov_resize_r, 1, 0);
+
+    TextView szS = card.findViewById(R.id.ov_sz_s);
+    TextView szM = card.findViewById(R.id.ov_sz_m);
+    TextView szL = card.findViewById(R.id.ov_sz_l);
+    if (szS != null) szS.setOnClickListener(v -> applyPreset(TIER_S, true));
+    if (szM != null) szM.setOnClickListener(v -> applyPreset(TIER_M, true));
+    if (szL != null) szL.setOnClickListener(v -> applyPreset(TIER_L, true));
+
+    OverlayOpacityBar bar = card.findViewById(R.id.ov_opacity);
+    if (bar != null) {
+      bar.setPercent(cardAlpha);
+      bar.setListener((pct, done) -> setCardAlpha(pct, done));
+    }
 
     card.setOnTouchListener(new DragTouch(card, lpCard, false));
     head.setOnTouchListener(new DragTouch(head, lpHead, true));
@@ -272,6 +308,25 @@ public class OverlayService extends Service {
     ensureForeground();
   }
 
+  private void wireResize(int id, int sx, int sy) {
+    View v = card.findViewById(id);
+    if (v != null) v.setOnTouchListener(new ResizeTouch(sx, sy));
+  }
+
+  private boolean isChromeHit(MotionEvent e) {
+    if (card == null) return false;
+    int[] ids = {
+        R.id.ov_close, R.id.ov_min, R.id.ov_resize, R.id.ov_resize_tl,
+        R.id.ov_resize_tr, R.id.ov_resize_bl, R.id.ov_resize_t, R.id.ov_resize_b,
+        R.id.ov_resize_l, R.id.ov_resize_r, R.id.ov_sz_s, R.id.ov_sz_m,
+        R.id.ov_sz_l, R.id.ov_opacity
+    };
+    for (int id : ids) {
+      if (hit(card.findViewById(id), e)) return true;
+    }
+    return false;
+  }
+
   private final class DragTouch implements View.OnTouchListener {
     final View target;
     final WindowManager.LayoutParams lp;
@@ -279,6 +334,9 @@ public class OverlayService extends Service {
     float downRawX, downRawY;
     int originX, originY;
     boolean moved;
+    boolean pinching;
+    float startSpan;
+    int startW, startH, startX, startY;
 
     DragTouch(View target, WindowManager.LayoutParams lp, boolean isHead) {
       this.target = target;
@@ -287,12 +345,7 @@ public class OverlayService extends Service {
     }
 
     @Override public boolean onTouch(View v, MotionEvent e) {
-      if (!isHead) {
-        View close = card.findViewById(R.id.ov_close);
-        View min = card.findViewById(R.id.ov_min);
-        View resize = card.findViewById(R.id.ov_resize);
-        if ((hit(close, e) || hit(min, e) || hit(resize, e)) && e.getAction() == MotionEvent.ACTION_DOWN) return false;
-      }
+      if (!isHead && isChromeHit(e) && e.getAction() == MotionEvent.ACTION_DOWN) return false;
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
           cancelAnim();
@@ -301,8 +354,30 @@ public class OverlayService extends Service {
           originX = lp.x;
           originY = lp.y;
           moved = false;
+          pinching = false;
+          return true;
+        case MotionEvent.ACTION_POINTER_DOWN:
+          if (!isHead && e.getPointerCount() >= 2 && lpCard != null) {
+            pinching = true;
+            moved = true;
+            startSpan = span(e);
+            startW = sized(lpCard.width, card.getWidth(), dp(DEFAULT_W_DP));
+            startH = sized(lpCard.height, card.getHeight(), dp(DEFAULT_H_DP));
+            startX = lpCard.x;
+            startY = lpCard.y;
+            return true;
+          }
           return true;
         case MotionEvent.ACTION_MOVE: {
+          if (!isHead && pinching && e.getPointerCount() >= 2 && startSpan > 0) {
+            float s = span(e) / startSpan;
+            int nw = Math.round(startW * s);
+            int nh = Math.round(startH * s);
+            int cx = startX + startW / 2;
+            int cy = startY + startH / 2;
+            applyCardFrame(cx - nw / 2, cy - nh / 2, nw, nh, false);
+            return true;
+          }
           float dx = e.getRawX() - downRawX;
           float dy = e.getRawY() - downRawY;
           if (Math.abs(dx) > touchSlop || Math.abs(dy) > touchSlop) moved = true;
@@ -315,6 +390,12 @@ public class OverlayService extends Service {
           }
           return true;
         }
+        case MotionEvent.ACTION_POINTER_UP:
+          if (pinching) {
+            applyCardFrame(lpCard.x, lpCard.y, lpCard.width, lpCard.height, true);
+            pinching = false;
+          }
+          return true;
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
           if (isHead) {
@@ -332,22 +413,54 @@ public class OverlayService extends Service {
             }
             return true;
           }
+          if (pinching) {
+            applyCardFrame(lpCard.x, lpCard.y, lpCard.width, lpCard.height, true);
+            pinching = false;
+            snapCardToEdge();
+            return true;
+          }
           clamp(target, lp);
-          saveCardPos();
           if (!moved) {
+            View header = card.findViewById(R.id.ov_header);
+            if (hit(header, e)) {
+              long now = SystemClock.uptimeMillis();
+              if (now - lastHeaderTap <= 300) {
+                lastHeaderTap = 0L;
+                cyclePreset();
+              } else {
+                lastHeaderTap = now;
+              }
+              return true;
+            }
             Intent open = new Intent(OverlayService.this, MainActivity.class);
             open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(open);
+            saveCardPos();
+            return true;
           }
+          snapCardToEdge();
           return true;
       }
       return false;
     }
   }
 
+  private float span(MotionEvent e) {
+    if (e.getPointerCount() < 2) return 0f;
+    float dx = e.getX(0) - e.getX(1);
+    float dy = e.getY(0) - e.getY(1);
+    return (float) Math.hypot(dx, dy);
+  }
+
   private final class ResizeTouch implements View.OnTouchListener {
+    final int sx, sy;
     float downRawX, downRawY;
-    int startW, startH;
+    int startW, startH, startX, startY, right, bottom;
+
+    ResizeTouch(int sx, int sy) {
+      this.sx = sx;
+      this.sy = sy;
+    }
 
     @Override public boolean onTouch(View v, MotionEvent e) {
       if (lpCard == null || card == null) return false;
@@ -357,17 +470,30 @@ public class OverlayService extends Service {
           downRawY = e.getRawY();
           startW = sized(lpCard.width, card.getWidth(), dp(DEFAULT_W_DP));
           startH = sized(lpCard.height, card.getHeight(), dp(DEFAULT_H_DP));
+          startX = lpCard.x;
+          startY = lpCard.y;
+          right = startX + startW;
+          bottom = startY + startH;
+          sizeClampedTick = false;
+          haptic(HapticFeedbackConstants.CONTEXT_CLICK);
           return true;
-        case MotionEvent.ACTION_MOVE:
-          applyCardSize(
-              startW + (int) (e.getRawX() - downRawX),
-              startH + (int) (e.getRawY() - downRawY),
-              false);
+        case MotionEvent.ACTION_MOVE: {
+          int nw = startW + sx * (int) (e.getRawX() - downRawX);
+          int nh = startH + sy * (int) (e.getRawY() - downRawY);
+          int nx = sx < 0 ? right - nw : startX;
+          int ny = sy < 0 ? bottom - nh : startY;
+          applyCardFrame(nx, ny, nw, nh, false);
+          // keep the opposite edge anchored after clamping
+          if (sx < 0) lpCard.x = right - lpCard.width;
+          if (sy < 0) lpCard.y = bottom - lpCard.height;
+          applyCardFrame(lpCard.x, lpCard.y, lpCard.width, lpCard.height, false);
           return true;
+        }
         case MotionEvent.ACTION_UP:
         case MotionEvent.ACTION_CANCEL:
-          applyCardSize(lpCard.width, lpCard.height, true);
-          clamp(card, lpCard);
+          applyCardFrame(lpCard.x, lpCard.y, lpCard.width, lpCard.height, true);
+          haptic(HapticFeedbackConstants.KEYBOARD_TAP);
+          snapCardToEdge();
           return true;
       }
       return false;
@@ -380,33 +506,48 @@ public class OverlayService extends Service {
     return fallback;
   }
 
-  private int[] clampCardSize(int w, int h) {
+  private int[] clampFrame(int x, int y, int w, int h) {
     DisplayMetrics dm = metrics();
     int margin = dp(EDGE_MARGIN_DP);
     int minW = dp(MIN_W_DP), minH = dp(MIN_H_DP);
     int maxW = Math.max(minW, dm.widthPixels - margin * 2);
     int maxH = Math.max(minH, dm.heightPixels - margin * 2);
-    if (lpCard != null) {
-      maxW = Math.min(maxW, Math.max(minW, dm.widthPixels - lpCard.x - margin));
-      maxH = Math.min(maxH, Math.max(minH, dm.heightPixels - lpCard.y - margin));
-    }
     if (w < minW) w = minW;
     if (h < minH) h = minH;
     if (w > maxW) w = maxW;
     if (h > maxH) h = maxH;
-    return new int[] { w, h };
+    int maxX = Math.max(margin, dm.widthPixels - w - margin);
+    int maxY = Math.max(margin, dm.heightPixels - h - margin);
+    if (x < margin) x = margin;
+    if (y < margin) y = margin;
+    if (x > maxX) x = maxX;
+    if (y > maxY) y = maxY;
+    return new int[] { x, y, w, h };
   }
 
-  private void applyCardSize(int w, int h, boolean persist) {
+  private void applyCardFrame(int x, int y, int w, int h, boolean persist) {
     if (lpCard == null) return;
-    int[] wh = clampCardSize(w, h);
-    lpCard.width = wh[0];
-    lpCard.height = wh[1];
+    int[] f = clampFrame(x, y, w, h);
+    if (!persist && (f[2] != w || f[3] != h) && !sizeClampedTick) {
+      sizeClampedTick = true;
+      haptic(HapticFeedbackConstants.CLOCK_TICK);
+    }
+    lpCard.x = f[0];
+    lpCard.y = f[1];
+    lpCard.width = f[2];
+    lpCard.height = f[3];
     if (card != null && card.getParent() != null && wm != null) {
       try { wm.updateViewLayout(card, lpCard); } catch (Exception ignore) {}
     }
     applyTypeScale();
-    if (persist) saveCardSize();
+    applyTierVisibility();
+    if (persist) saveCardPos();
+  }
+
+  private void applyCardSize(int w, int h, boolean persist) {
+    int x = lpCard != null ? lpCard.x : 0;
+    int y = lpCard != null ? lpCard.y : 0;
+    applyCardFrame(x, y, w, h, persist);
   }
 
   private void restoreCardSize() {
@@ -417,13 +558,149 @@ public class OverlayService extends Service {
       w = dp(DEFAULT_W_DP);
       h = dp(DEFAULT_H_DP);
     }
-    applyCardSize(w, h, false);
+    int x = lpCard != null ? lpCard.x : dp(24);
+    int y = lpCard != null ? lpCard.y : dp(160);
+    applyCardFrame(x, y, w, h, false);
   }
 
   private void saveCardSize() {
+    saveCardPos();
+  }
+
+  private void applyPreset(int tier, boolean persist) {
+    int w, h;
+    if (tier == TIER_S) { w = dp(PRESET_S_W); h = dp(PRESET_S_H); }
+    else if (tier == TIER_L) { w = dp(PRESET_L_W); h = dp(PRESET_L_H); }
+    else { w = dp(PRESET_M_W); h = dp(PRESET_M_H); }
+    int x = lpCard != null ? lpCard.x : dp(24);
+    int y = lpCard != null ? lpCard.y : dp(160);
+    haptic(HapticFeedbackConstants.CONTEXT_CLICK);
+    animateCardFrame(x, y, w, h, persist);
+    highlightPresets(tier);
+  }
+
+  private void cyclePreset() {
+    applyPreset((currentTier() + 1) % 3, true);
+  }
+
+  private void animateCardFrame(int tx, int ty, int tw, int th, boolean persist) {
     if (lpCard == null) return;
-    if (lpCard.width > 0 && lpCard.height > 0) {
-      prefs().edit().putInt("ov_w", lpCard.width).putInt("ov_h", lpCard.height).apply();
+    int[] f = clampFrame(tx, ty, tw, th);
+    tx = f[0]; ty = f[1]; tw = f[2]; th = f[3];
+    int sx = lpCard.x, sy = lpCard.y;
+    int sw = sized(lpCard.width, card != null ? card.getWidth() : 0, dp(DEFAULT_W_DP));
+    int sh = sized(lpCard.height, card != null ? card.getHeight() : 0, dp(DEFAULT_H_DP));
+    if (sx == tx && sy == ty && sw == tw && sh == th) {
+      applyCardFrame(tx, ty, tw, th, persist);
+      return;
+    }
+    cancelAnim();
+    final int ftx = tx, fty = ty, ftw = tw, fth = th;
+    snapAnim = ValueAnimator.ofFloat(0f, 1f);
+    snapAnim.setDuration(220);
+    snapAnim.setInterpolator(new DecelerateInterpolator());
+    snapAnim.addUpdateListener(a -> {
+      float t = (float) a.getAnimatedValue();
+      applyCardFrame(
+          sx + Math.round((ftx - sx) * t),
+          sy + Math.round((fty - sy) * t),
+          sw + Math.round((ftw - sw) * t),
+          sh + Math.round((fth - sh) * t),
+          false);
+    });
+    snapAnim.addListener(new AnimatorListenerAdapter() {
+      @Override public void onAnimationEnd(Animator a) {
+        applyCardFrame(ftx, fty, ftw, fth, persist);
+      }
+    });
+    snapAnim.start();
+  }
+
+  private int currentTier() {
+    if (lpCard == null) return TIER_M;
+    float d = getResources().getDisplayMetrics().density;
+    if (d <= 0) d = 1f;
+    float wdp = lpCard.width / d;
+    float hdp = lpCard.height / d;
+    if (wdp >= 292 && hdp >= 320) return TIER_L;
+    if (wdp >= 228 && hdp >= 200) return TIER_M;
+    return TIER_S;
+  }
+
+  private void highlightPresets(int tier) {
+    if (card == null) return;
+    TextView s = card.findViewById(R.id.ov_sz_s);
+    TextView m = card.findViewById(R.id.ov_sz_m);
+    TextView l = card.findViewById(R.id.ov_sz_l);
+    if (s != null) s.setBackgroundResource(tier == TIER_S ? R.drawable.overlay_chip_on : R.drawable.overlay_chip);
+    if (m != null) m.setBackgroundResource(tier == TIER_M ? R.drawable.overlay_chip_on : R.drawable.overlay_chip);
+    if (l != null) l.setBackgroundResource(tier == TIER_L ? R.drawable.overlay_chip_on : R.drawable.overlay_chip);
+  }
+
+  private void applyTierVisibility() {
+    if (card == null) return;
+    int tier = currentTier();
+    highlightPresets(tier);
+    boolean mid = tier >= TIER_M;
+    boolean large = tier >= TIER_L;
+    setVis(R.id.ov_thai, mid);
+    setVis(R.id.ov_plan_scroll, mid);
+    setVis(R.id.ov_plan, mid);
+    setVis(R.id.ov_chart, large);
+    setVis(R.id.ov_levels, large);
+    setVis(R.id.ov_ai_label, large);
+    setVis(R.id.ov_ai, large);
+    if (lastTier >= 0 && lastTier != tier) {
+      int[] fadeIds = large
+          ? new int[] { R.id.ov_chart, R.id.ov_levels, R.id.ov_ai_label, R.id.ov_ai, R.id.ov_thai, R.id.ov_plan_scroll }
+          : new int[] { R.id.ov_thai, R.id.ov_plan_scroll };
+      for (int id : fadeIds) {
+        View v = card.findViewById(id);
+        if (v != null && v.getVisibility() == View.VISIBLE) {
+          v.setAlpha(0f);
+          v.animate().alpha(1f).setDuration(180).start();
+        }
+      }
+    }
+    lastTier = tier;
+  }
+
+  private void setVis(int id, boolean show) {
+    View v = card.findViewById(id);
+    if (v != null) v.setVisibility(show ? View.VISIBLE : View.GONE);
+  }
+
+  private void snapCardToEdge() {
+    if (card == null || lpCard == null || wm == null) return;
+    DisplayMetrics dm = metrics();
+    int margin = dp(EDGE_MARGIN_DP);
+    int snap = dp(SNAP_DP);
+    int w = sized(lpCard.width, card.getWidth(), dp(DEFAULT_W_DP));
+    int h = sized(lpCard.height, card.getHeight(), dp(DEFAULT_H_DP));
+    int tx = lpCard.x, ty = lpCard.y;
+    if (lpCard.x - margin <= snap) tx = margin;
+    else if (dm.widthPixels - margin - (lpCard.x + w) <= snap) tx = Math.max(margin, dm.widthPixels - w - margin);
+    if (lpCard.y - margin <= snap) ty = margin;
+    else if (dm.heightPixels - margin - (lpCard.y + h) <= snap) ty = Math.max(margin, dm.heightPixels - h - margin);
+    int[] f = clampFrame(tx, ty, w, h);
+    animateTo(card, lpCard, f[0], f[1], this::saveCardPos);
+  }
+
+  private void restoreCardAlpha() {
+    int a = prefs().getInt("ov_alpha", ALPHA_MAX);
+    setCardAlpha(a, false);
+  }
+
+  private void setCardAlpha(int percent, boolean persist) {
+    if (percent < ALPHA_MIN) percent = ALPHA_MIN;
+    if (percent > ALPHA_MAX) percent = ALPHA_MAX;
+    cardAlpha = percent;
+    if (card != null) card.setAlpha(percent / 100f);
+    OverlayOpacityBar bar = card == null ? null : (OverlayOpacityBar) card.findViewById(R.id.ov_opacity);
+    if (bar != null && bar.getPercent() != percent) bar.setPercent(percent);
+    if (persist) {
+      prefs().edit().putInt("ov_alpha", cardAlpha).apply();
+      haptic(HapticFeedbackConstants.CLOCK_TICK);
     }
   }
 
@@ -437,6 +714,9 @@ public class OverlayService extends Service {
     setSp(card.findViewById(R.id.ov_thai), 12f * s);
     setSp(card.findViewById(R.id.ov_signal), 14f * s);
     setSp(card.findViewById(R.id.ov_plan), 11f * s);
+    setSp(card.findViewById(R.id.ov_levels), 11f * s);
+    setSp(card.findViewById(R.id.ov_ai), 11f * s);
+    setSp(card.findViewById(R.id.ov_ai_label), 10f * s);
     setSp(card.findViewById(R.id.ov_updated), 10f * s);
   }
 
@@ -534,6 +814,21 @@ public class OverlayService extends Service {
     }
   }
 
+  private void applyGlass(WindowManager.LayoutParams lp) {
+    if (lp == null || Build.VERSION.SDK_INT < 31) return;
+    try {
+      lp.flags |= WindowManager.LayoutParams.FLAG_BLUR_BEHIND;
+      lp.setBlurBehindRadius(Math.max(20, dp(28)));
+    } catch (Throwable ignore) {}
+  }
+
+  private void haptic(int constant) {
+    try {
+      View v = (card != null) ? card : head;
+      if (v != null) v.performHapticFeedback(constant);
+    } catch (Exception ignore) {}
+  }
+
   private void showTrash() {
     if (trash == null || wm == null) return;
     TextView lab = trash.findViewById(R.id.ov_trash_label);
@@ -598,7 +893,7 @@ public class OverlayService extends Service {
   private void clamp(View v, WindowManager.LayoutParams lp) {
     if (v == null || lp == null || wm == null) return;
     DisplayMetrics dm = metrics();
-    int margin = dp(2);
+    int margin = dp(v == head ? 4 : EDGE_MARGIN_DP);
     int vw = (lp.width > 0) ? lp.width : (v.getWidth() > 0 ? v.getWidth() : dp(v == head ? HEAD_DP : DEFAULT_W_DP));
     int vh = (lp.height > 0) ? lp.height : (v.getHeight() > 0 ? v.getHeight() : dp(v == head ? HEAD_DP : DEFAULT_H_DP));
     lp.x = Math.max(margin, Math.min(lp.x, Math.max(margin, dm.widthPixels - vw - margin)));
@@ -613,7 +908,8 @@ public class OverlayService extends Service {
     SharedPreferences.Editor ed = prefs().edit()
         .putInt("ov_x", lpCard.x)
         .putInt("ov_y", lpCard.y)
-        .putBoolean("ov_min", false);
+        .putBoolean("ov_min", false)
+        .putInt("ov_alpha", cardAlpha);
     if (lpCard.width > 0) ed.putInt("ov_w", lpCard.width);
     if (lpCard.height > 0) ed.putInt("ov_h", lpCard.height);
     ed.apply();
@@ -677,6 +973,7 @@ public class OverlayService extends Service {
     String side = p.getString("snap_side", "WAIT");
     String bias = p.getString("snap_bias", "side");
     String thaiSell = p.getString("snap_thaiSell", "");
+    String thaiBuy = p.getString("snap_thaiBuy", "");
     int conf = p.getInt("snap_conf", 0);
     float e0 = p.getFloat("snap_entry0", 0f);
     float e1 = p.getFloat("snap_entry1", 0f);
@@ -701,20 +998,60 @@ public class OverlayService extends Service {
     }
     View close = card.findViewById(R.id.ov_close);
     if (close != null) close.setContentDescription(th ? "ปิด" : "Close");
-    View resize = card.findViewById(R.id.ov_resize);
-    if (resize != null) resize.setContentDescription(th ? "ลากเพื่อปรับขนาดหน้าต่างลอย" : "Drag to resize the floating window");
+    describeHandle(R.id.ov_resize, th ? "ลากมุมขวาล่างเพื่อปรับขนาด" : "Drag the bottom-right corner to resize");
+    describeHandle(R.id.ov_resize_tl, th ? "ลากมุมซ้ายบนเพื่อปรับขนาด" : "Drag the top-left corner to resize");
+    describeHandle(R.id.ov_resize_tr, th ? "ลากมุมขวาบนเพื่อปรับขนาด" : "Drag the top-right corner to resize");
+    describeHandle(R.id.ov_resize_bl, th ? "ลากมุมซ้ายล่างเพื่อปรับขนาด" : "Drag the bottom-left corner to resize");
+    describeHandle(R.id.ov_resize_t, th ? "ลากขอบบนเพื่อปรับขนาด" : "Drag the top edge to resize");
+    describeHandle(R.id.ov_resize_b, th ? "ลากขอบล่างเพื่อปรับขนาด" : "Drag the bottom edge to resize");
+    describeHandle(R.id.ov_resize_l, th ? "ลากขอบซ้ายเพื่อปรับขนาด" : "Drag the left edge to resize");
+    describeHandle(R.id.ov_resize_r, th ? "ลากขอบขวาเพื่อปรับขนาด" : "Drag the right edge to resize");
+    TextView szS = card.findViewById(R.id.ov_sz_s);
+    TextView szM = card.findViewById(R.id.ov_sz_m);
+    TextView szL = card.findViewById(R.id.ov_sz_l);
+    if (szS != null) szS.setText(th ? "เล็ก" : "S");
+    if (szM != null) szM.setText(th ? "กลาง" : "M");
+    if (szL != null) szL.setText(th ? "ใหญ่" : "L");
+    View opacity = card.findViewById(R.id.ov_opacity);
+    if (opacity != null) {
+      opacity.setContentDescription(th
+          ? ("ความโปร่งใส " + cardAlpha + " เปอร์เซ็นต์")
+          : ("Opacity " + cardAlpha + " percent"));
+    }
+    View title = card.findViewById(R.id.ov_title);
+    if (title != null) {
+      title.setContentDescription(th ? "แตะสองครั้งที่หัวหน้าต่างเพื่อสลับขนาดเล็ก กลาง ใหญ่" : "Double-tap the header to cycle small, medium, and large sizes");
+    }
 
     TextView xau = card.findViewById(R.id.ov_xau);
     TextView thaiV = card.findViewById(R.id.ov_thai);
     TextView sig = card.findViewById(R.id.ov_signal);
     TextView plan = card.findViewById(R.id.ov_plan);
     TextView upd = card.findViewById(R.id.ov_updated);
+    TextView levels = card.findViewById(R.id.ov_levels);
+    TextView aiLab = card.findViewById(R.id.ov_ai_label);
+    TextView ai = card.findViewById(R.id.ov_ai);
+    OverlaySparkView chart = card.findViewById(R.id.ov_chart);
     if (xau == null) return;
 
     xau.setText(px > 0 ? String.format(Locale.US, "XAU $%.2f", px) : "XAU —");
-    thaiV.setText(thaiSell == null || thaiSell.isEmpty()
-        ? (th ? "ทองไทย —" : "Thai gold —")
-        : (th ? "ทองไทย ขาย " + thaiSell : "Thai gold sell " + thaiSell));
+    if (thaiV != null) {
+      boolean hasS = thaiSell != null && !thaiSell.isEmpty();
+      boolean hasB = thaiBuy != null && !thaiBuy.isEmpty();
+      if (!hasS && !hasB) {
+        thaiV.setText(th ? "ทองไทย —" : "Thai gold —");
+      } else if (th) {
+        String line = "ทองไทย";
+        if (hasB) line += " รับซื้อ " + thaiBuy;
+        if (hasS) line += " ขายออก " + thaiSell;
+        thaiV.setText(line);
+      } else {
+        String line = "Thai gold";
+        if (hasB) line += " buy " + thaiBuy;
+        if (hasS) line += " sell " + thaiSell;
+        thaiV.setText(line);
+      }
+    }
 
     String s;
     if ("BUY".equals(side)) s = "BUY";
@@ -732,19 +1069,35 @@ public class OverlayService extends Service {
     sig.setTextColor(color);
 
     View planScroll = card.findViewById(R.id.ov_plan_scroll);
-    if (alert != null && !alert.isEmpty()) {
-      plan.setText(alert);
-      plan.setVisibility(View.VISIBLE);
-      if (planScroll != null) planScroll.setVisibility(View.VISIBLE);
-    } else if (e0 > 0 && sl > 0 && tp > 0) {
-      plan.setText(String.format(Locale.US, "E %.0f–%.0f  SL %.0f  TP %.0f", e0, e1, sl, tp));
-      plan.setVisibility(View.VISIBLE);
-      if (planScroll != null) planScroll.setVisibility(View.VISIBLE);
-    } else {
-      plan.setVisibility(View.GONE);
-      if (planScroll != null) planScroll.setVisibility(View.GONE);
+    if (plan != null) {
+      if (alert != null && !alert.isEmpty()) {
+        plan.setText(alert);
+      } else if (e0 > 0 && sl > 0 && tp > 0) {
+        plan.setText(String.format(Locale.US, "E %.0f–%.0f  SL %.0f  TP %.0f", e0, e1, sl, tp));
+      } else {
+        plan.setText("");
+      }
     }
+    if (levels != null) {
+      if (e0 > 0 && sl > 0 && tp > 0) {
+        String eLab = e1 > 0 && e1 != e0
+            ? String.format(Locale.US, "E %.0f–%.0f", e0, e1)
+            : String.format(Locale.US, "E %.0f", e0);
+        levels.setText(String.format(Locale.US, "%s  SL %.0f  TP %.0f", eLab, sl, tp));
+      } else {
+        levels.setText(th ? "ยังไม่มีจุดเข้า / SL / TP" : "No entry / SL / TP yet");
+      }
+    }
+    if (aiLab != null) aiLab.setText(th ? "AI กำลังทำอะไรอยู่" : "What the AI is doing");
+    if (ai != null) {
+      String aiText = p.getString("snap_ai", "");
+      if (aiText == null || aiText.isEmpty()) aiText = p.getString("lastText", "");
+      if (aiText == null || aiText.isEmpty()) aiText = alert != null ? alert : "";
+      ai.setText(aiText.isEmpty() ? (th ? "รอข้อมูล…" : "Waiting…") : aiText);
+    }
+    if (chart != null) chart.setBars(p.getString("snap_klines", ""));
     applyTypeScale();
+    applyTierVisibility();
 
     if (upd != null) {
       if (at > 0) {
@@ -753,6 +1106,23 @@ public class OverlayService extends Service {
       } else {
         upd.setText(th ? "รอข้อมูล…" : "Waiting…");
       }
+    }
+  }
+
+  private void describeHandle(int id, String desc) {
+    View v = card.findViewById(id);
+    if (v != null) v.setContentDescription(desc);
+  }
+
+  @Override public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    if (minimized) {
+      if (head != null && lpHead != null) {
+        clamp(head, lpHead);
+        snapHeadToEdge();
+      }
+    } else if (card != null && lpCard != null) {
+      applyCardFrame(lpCard.x, lpCard.y, lpCard.width, lpCard.height, true);
     }
   }
 

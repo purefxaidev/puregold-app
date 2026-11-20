@@ -1,6 +1,34 @@
 /** Embedded release notes (offline). Keys: version without leading v. Bodies: th/en/zh (ja falls back to en). */
 export const CHANGELOG = [
   {
+    version: '0.9.15',
+    date: '2026-11-21',
+    th: [
+      'หน้าต่างลอยปรับขนาดได้จากทั้งสี่มุม และบีบสองนิ้วเพื่อย่อหรือขยาย',
+      'มีปุ่มขนาด S / M / L และแตะสองครั้งที่หัวหน้าต่างเพื่อสลับขนาด แถบความโปร่งใส 40–100% จำค่าไว้ให้',
+      'ขนาดเล็กแสดงราคาและสัญญาณ ขนาดกลางเพิ่มทองไทยกับสรุปแผน ขนาดใหญ่เพิ่มกราฟเทียน XAU จุดเข้า/SL/TP และสถานะ «AI กำลังทำอะไรอยู่»',
+      'ปล่อยใกล้ขอบจอแล้วดูดติดขอบ ไม่ล้นจอแม้หมุนเครื่อง จำขนาด ตำแหน่ง และความโปร่งใส ยังลากย้าย ย่อเป็นฟอง และอัปเดตราคาสดได้เหมือนเดิม'
+    ],
+    en: [
+      'Resize the floating window from all four corners, or pinch with two fingers',
+      'S / M / L size presets, double-tap the header to cycle them, and a 40–100% opacity slider, all remembered',
+      'Small shows price and signal; medium adds Thai gold and the plan summary; large adds a mini XAU candle chart, entry/SL/TP, and “What the AI is doing”',
+      'Release near a screen edge to snap to it; the window stays on screen after rotation. Size, position, and opacity are saved. Drag-to-move, minimize-to-bubble, and live prices still work'
+    ],
+    zh: [
+      '浮动窗口可从四个角拖动调整大小，也可用双指捏合缩放',
+      '提供 S / M / L 预设，双击标题栏循环切换，并有 40–100% 透明度滑杆，设置会被记住',
+      '小尺寸显示价格与信号；中尺寸增加泰国金价与计划摘要；大尺寸增加迷你 XAU K 线、入场/止损/止盈，以及「AI 正在做什么」',
+      '靠近屏幕边缘松开会吸附，旋转后也不会超出屏幕；大小、位置和透明度会保存。拖动、缩成气泡和实时报价照常'
+    ],
+    ja: [
+      '四隅のハンドルまたはピンチ操作でフローティングウィンドウのサイズを変えられる',
+      'S / M / L のプリセット、ヘッダーのダブルタップでの切り替え、40–100% の透明度スライダーを備え、設定を記憶する',
+      'S は価格とシグナル、M はタイ金価格とプラン要約、L はミニ XAU ローソク足、エントリー/SL/TP と「AI が今していること」を追加表示',
+      '画面端の近くで離すとスナップし、回転後も画面内に収まる。サイズ・位置・透明度を保存。ドラッグ移動・バブル最小化・ライブ価格はそのまま'
+    ],
+  },
+  {
     version: '0.9.14',
     date: '2026-11-14',
     th: [
